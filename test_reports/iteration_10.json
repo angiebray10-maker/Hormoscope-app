@@ -1,0 +1,39 @@
+{
+  "summary": "End-to-end validation of the RevenueCat → direct-Stripe rewrite and the calculate_cycle_info days_late off-by-one fix. Backend pytest (9/9 passed) and Playwright UI (mobile 390x844) both green. /pro renders in ~525ms with zero spinners, all required testids present, both monthly+yearly purchase-btn redirects land on https://checkout.stripe.com/, manual-unlock flips is_premium and shows pro-page-active, the ?stripe_session_id=... polling banner renders, and the homepage banner copy is now '28d → Period expected today' / '30d → Period 2 days late' with no off-by-one. grep confirms zero RevenueCat references in /app/frontend/src and /app/frontend/.env.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/payments/v1/checkout/session", "issue": "STRIPE_API_KEY in backend/.env is sk_live_... (not sk_test_emergent as stated in the review request). Sessions are being created as cs_live_... — real live-mode keys are being used. Not a functional defect (redirects work), but a security/billing note for the main agent."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/pro and / (after Stripe redirect attempt)", "issues": ["Console CSP warning: 'Applying inline style violates style-src directive…' from Stripe's checkout iframe loader. Cosmetic console noise only; redirect still works."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_stripe_and_dayslate.py",
+    "/app/test_reports/pytest/stripe_and_dayslate.xml"
+  ],
+  "action_items": [
+    "Optional: confirm whether the live STRIPE_API_KEY in backend/.env is intentional or should be the test key (sk_test_...). Currently creating real Stripe live sessions, which is fine for redirect testing but means a real card would be charged."
+  ],
+  "critical_code_review_comments": [
+    "ProPage.js still imports Loader2 (and shows it inline on the purchase-btn while purchasing). That's intentional/scoped to the button only — the initial render has no spinner. OK.",
+    "/api/payments/v1/checkout/status/{session_id} returns 200 even when session belongs to a different user (it only gates the Pro-unlock side-effect with tx.user_id == current_user.id). That is acceptable for polling, but consider returning 404/403 instead of leaking session status to other authenticated users.",
+    "calculate_cycle_info days_late fix at line 533-534 is correct: period_is_late = days_since >= cycle_length; days_late = max(0, days_since - cycle_length). Verified at days_ago=27/28/30 boundaries.",
+    "_activate_pro_for_user is properly idempotent via the {session_id, pro_granted:true} guard."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_stripe_and_dayslate.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Each test signs up a fresh qa_<ts>_<suffix>@test.com / TestPass123! and completes onboarding via API. Pre-existing test_pro@test.com / TestPass123! and friend@test.com / TestPass123! from /app/memory/test_credentials.md were not needed.",
+  "seed_data_creation": "Fresh users per test; days_late tests directly patch users.last_period_date in mongo (db=test_database) to backdate by 27/28/30 days. No cleanup performed (test users isolated by timestamped emails).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression file at /app/backend/tests/test_stripe_and_dayslate.py covers all 4 review-request features: (1) Stripe checkout monthly/yearly/lifetime → url+session_id with checkout.stripe.com prefix, mongo payment_transactions doc with correct amount/plan; (2) GET /api/payments/v1/checkout/status/{sid} returns status/payment_status/amount_total/currency; (3) /api/premium/manual-unlock flips is_premium=true in /api/auth/me and unlocks /api/journal POST (which is 402 before unlock); (4) days_late parametrized at days_ago=27→day28/notlate, 28→day29/late/0, 30→day31/late/2. Playwright covers /pro 525ms-load + 9 testids, purchase-btn monthly/yearly redirects to checkout.stripe.com, manual-unlock-btn → / + pro-page-active, ?stripe_session_id polling shows payment-banner-pending, 28d→'expected today', 30d→'2 days late'. Onboarding payload REQUIRES name + birthday fields in addition to cycle_length/period_length/last_period_date.",
+  "rca of the issue": "N/A — no bugs reproduced. Implementation matches review-request spec on both backend and frontend."
+}

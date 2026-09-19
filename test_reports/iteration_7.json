@@ -1,0 +1,89 @@
+{
+  "summary": "Frontend-only testing completed for HORMOscope Pro (Paywall) page at /pro. Logged in as test_pro@test.com via API (sessionless direct login due to landing page UI change where Sign In requires hamburger drawer). Verified all 13 requested CRO-copy, layout, selection, footer, sticky CTA, and navigation requirements. 25/25 functional checks passed.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "ProPage sticky CTA footer vs BottomNav",
+        "issues": [
+          "CTA gradient container (108px tall, z-[999]) vertically overlaps the floating pill BottomNav (y:778-844) on mobile 430x900. Container spans y:712-820, bleeding ~42px into the nav area. The CTA BUTTON itself (y:728-780) sits just 2px above nav top — visually acceptable but tight. The gradient/container's higher z-index (999 vs nav's z-50) means the #0a0a1a gradient can partially obscure the top of the nav pill. Consider increasing the `bottom-20` offset on the CTA container or reducing py-4 so the gradient fade ends above the bottom nav."
+        ]
+      }
+    ]
+  },
+
+  "passed_tests": {
+    "frontend": [
+      "Pro page loads at /pro for authenticated non-pro user (data-testid='pro-page')",
+      "Headline exactly matches: 'Understand your body, not just your period'",
+      "Subheadline exactly matches: 'Get personalized cycle insights, symptom tracking, and daily guidance based on your unique rhythm.'",
+      "Feature card 0 title: 'Daily cycle guidance' visible",
+      "Feature card 1 title: 'Weekly and monthly reports' visible",
+      "Feature card 2 title: 'Hyper-personalized planning' visible",
+      "All 3 feature cards present with data-testid='feature-card-{0,1,2}'",
+      "Yearly plan card loads from RevenueCat sandbox (data-testid='plan-yearly', $6.67/month, $79.99 billed yearly)",
+      "Monthly plan card loads (data-testid='plan-monthly', $9.99/month)",
+      "'Best Value — Save 33%' badge visible on Yearly plan (rendered uppercase via CSS)",
+      "Yearly plan selected by default (checkmark icon present)",
+      "Clicking Monthly selects Monthly and deselects Yearly",
+      "Clicking Yearly re-selects Yearly and deselects Monthly (toggle works)",
+      "Trust line shows 'Secure payment' with Shield icon",
+      "Trust line shows 'Cancel anytime' with RotateCcw icon",
+      "Footer 'Restore Purchases' button visible (data-testid='restore-btn')",
+      "Footer 'Terms' link visible (data-testid='terms-link')",
+      "Footer 'Privacy' link visible (data-testid='privacy-link')",
+      "All 3 footer links aligned on exactly one horizontal row (Y=683.75 for all three)",
+      "Sticky CTA button text: 'Unlock Personalized Cycle Intelligence' (data-testid='purchase-btn')",
+      "Sticky CTA visible in viewport at bottom (y=728, height=52)",
+      "Sticky CTA positioned above (y-wise) the floating pill bottom nav",
+      "Back button (data-testid='back-btn') navigates to /profile",
+      "Terms link navigates to /terms",
+      "Privacy link navigates to /privacy"
+    ]
+  },
+
+  "test_report_links": [],
+
+  "action_items": [
+    "OPTIONAL/MINOR: Adjust sticky CTA container so its gradient background does not overlap the BottomNav pill. Current: CTA container is `fixed bottom-20` with py-4 and ~108px height; BottomNav pill sits at `bottom-14` (56px from bottom) with 66px height. Consider `bottom-24` (96px) on the CTA container or shrink its vertical padding so the gradient ends at/above y=bottom-14 + 66px = 122px from bottom.",
+    "OPTIONAL: Auth UX note — the landing page no longer has a persistent 'Sign In' button; users must open the hamburger drawer. If desired on mobile, expose Sign In in a visible location for deep-links into /pro from marketing."
+  ],
+
+  "critical_code_review_comments": [
+    "ProPage.js (287 lines) — clean, focused, no DRY violations. All data-testid attributes present for critical elements.",
+    "RevenueCat integration works correctly with sandbox key; packages load within 5-7s; price computation (monthly-equivalent, savings %, saved $) derived correctly from amountMicros.",
+    "Protected route handling correct — unauthenticated users redirected; isPro users see the 'You're HORMOscope Pro!' state (data-testid='pro-page-active').",
+    "No hardcoded URLs; frontend uses REACT_APP_BACKEND_URL via auth context. No MongoDB _id leak concerns (frontend only).",
+    "Accessibility nit: feature card icons lack aria-labels; 'Restore Purchases' disabled state has no visible loading spinner — only text change. Minor."
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "n/a (skipped per request)",
+    "frontend": "100% (25/25 functional checks passed; 1 minor design issue noted)"
+  },
+
+  "test_credentials": {
+    "email": "test_pro@test.com",
+    "password": "TestPass123!",
+    "note": "UI login flow (hamburger → Sign In → modal) is functional but was bypassed using direct POST /api/auth/login and localStorage.setItem('token'/'access_token') for faster, deterministic test setup."
+  },
+
+  "seed_data_creation": "None",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": true,
+
+  "context_for_next_testing_agent": "ProPage.js at /pro is fully compliant with the CRO spec. RevenueCat sandbox returns Yearly ($79.99) and Monthly ($9.99) packages reliably (~5s). Login on the new StoryBrand landing page requires clicking the top-right hamburger icon (button containing svg.lucide-menu) and then 'Sign In' in the drawer — direct get_by_role('button', name='Sign In') will NOT find it on mobile since it is inside a closed drawer. Faster alternative: POST /api/auth/login and set localStorage tokens. The only outstanding observation is a minor visual overlap between the sticky CTA gradient container and the floating BottomNav pill on mobile — the CTA button itself is above the nav, but the gradient background bleeds into the nav area.",
+
+  "rca of the issue": "N/A — no blocking bugs. Minor layout observation: CTA container uses `fixed bottom-20 py-4 z-[999]` (height ~108px ending at y≈820 on 900h viewport). BottomNav uses `fixed bottom-14` pill (y≈778-844, z-50). The 42px vertical overlap is masked at runtime by the CTA gradient (z-999 > z-50), which can obscure the nav's top edge. Mitigation: increase CTA container `bottom-*` offset to bottom-24/bottom-28 or reduce gradient extent."
+}
