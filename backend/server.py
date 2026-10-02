@@ -25,8 +25,8 @@ from pywebpush import webpush, WebPushException
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+# MongoDB connection (strip any whitespace/newlines from copy-paste)
+mongo_url = "".join(os.environ['MONGO_URL'].split())
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ.get('DB_NAME', 'hormoscope')]
 
