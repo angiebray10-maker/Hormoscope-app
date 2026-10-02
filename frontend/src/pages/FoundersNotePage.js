@@ -47,7 +47,7 @@ export default function FoundersNotePage() {
         <div className="mt-12 pt-8">
           <div className="flex items-center gap-4">
             <img 
-              src="https://customer-assets.emergentagent.com/job_e50c2d92-7748-4a4a-9e13-69705a94ca58/artifacts/95z2mabt_1000007702.png"
+              src="/images/founder.jpg"
               alt="Angelita Braaten"
               className="w-14 h-14 rounded-full object-cover border-2 border-[#D4A853]/40 shadow-[0_0_20px_rgba(212,168,83,0.25)]"
               data-testid="founder-photo"

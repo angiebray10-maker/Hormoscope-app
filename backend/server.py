@@ -13,12 +13,12 @@ from datetime import datetime, timezone, timedelta, date
 import jwt
 import bcrypt
 import hashlib
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+import re
+from anthropic import AsyncAnthropic
 import json as json_module
 import base64
 import json
 from pywebpush import webpush, WebPushException
-from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 from emergentintegrations.payments.stripe.checkout import (
     StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 )
@@ -31,14 +31,51 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# JWT Config
-JWT_SECRET = os.environ.get('JWT_SECRET', 'hormoscope_secret')
+# JWT Config — no default: the server must not start without a real secret.
+JWT_SECRET = os.environ.get("JWT_SECRET")
+if not JWT_SECRET:
+    raise RuntimeError(
+        "JWT_SECRET environment variable is required but not set. "
+        "Generate a strong random value (e.g. `openssl rand -hex 32`) and export it before starting the server."
+    )
 JWT_ALGORITHM = "HS256"
 
 # VAPID Config for Web Push
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
 VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
 VAPID_EMAIL = os.environ.get('VAPID_EMAIL', 'mailto:hormoscope@gmail.com')
+
+# ==================== AI (Anthropic, direct SDK — no Emergent proxy) ====================
+# The AI coach and daily read call Anthropic directly. When ANTHROPIC_API_KEY
+# is unset, AI features degrade gracefully instead of crashing.
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-5-20250929")
+
+_anthropic_client = None
+
+
+def get_anthropic_client() -> AsyncAnthropic:
+    """Lazily create the Anthropic client. Raises RuntimeError if no key is set."""
+    global _anthropic_client
+    if not ANTHROPIC_API_KEY:
+        raise RuntimeError("ANTHROPIC_API_KEY is not set")
+    if _anthropic_client is None:
+        _anthropic_client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+    return _anthropic_client
+
+
+async def call_anthropic(system_message: str, messages: list, max_tokens: int = 1024) -> str:
+    """Send a message list to Anthropic and return the concatenated text reply."""
+    client = get_anthropic_client()
+    response = await client.messages.create(
+        model=ANTHROPIC_MODEL,
+        max_tokens=max_tokens,
+        system=system_message,
+        messages=messages,
+    )
+    return "".join(
+        block.text for block in response.content if getattr(block, "type", None) == "text"
+    )
 
 # Create the main app
 app = FastAPI()
@@ -1044,7 +1081,7 @@ async def capture_lead(data: LeadCaptureRequest):
 
 # ==================== AUTH ROUTES ====================
 @api_router.get("/admin/users")
-async def list_all_users():
+async def list_all_users(current_user: dict = Depends(get_current_user)):
     users = await db.users.find({}, {"_id": 0, "email": 1, "name": 1}).to_list(length=500)
     return {"total": len(users), "users": users}
 
@@ -1092,26 +1129,6 @@ async def login(user_data: UserLogin):
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(current_user: dict = Depends(get_current_user)):
     return build_user_response(current_user)
-
-
-# ==================== MANUAL PRO OVERRIDE ====================
-
-@api_router.post("/premium/manual-unlock")
-async def manual_unlock_premium(current_user: dict = Depends(get_current_user)):
-    """User self-declares they're already subscribed (e.g. paid via PayPal externally).
-    Sets is_premium=true and logs the source so we can audit later via the PayPal dashboard."""
-    now = datetime.now(timezone.utc).isoformat()
-    await db.users.update_one(
-        {"id": current_user["id"]},
-        {"$set": {
-            "is_premium": True,
-            "premium_source": "manual_override",
-            "premium_activated_at": now,
-        }}
-    )
-    # Clear any cached daily content so Pro features show up immediately
-    await db.daily_content.delete_many({"user_id": current_user["id"]})
-    return {"is_premium": True, "message": "Pro features unlocked."}
 
 
 # ==================== STRIPE CHECKOUT (Direct) ====================
@@ -1786,7 +1803,7 @@ async def track_analytics_event(evt: AnalyticsEvent, current_user: dict = Depend
     return {"ok": True}
 
 @api_router.get("/admin/analytics")
-async def get_analytics():
+async def get_analytics(current_user: dict = Depends(get_current_user)):
     pipeline = [
         {"$group": {"_id": "$event", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}}
@@ -1795,21 +1812,7 @@ async def get_analytics():
     return [{"event": r["_id"], "count": r["count"]} for r in results]
 
 
-class PremiumStatusSync(BaseModel):
-    is_premium: bool
-
-@api_router.post("/premium/sync-status")
-async def sync_premium_status(status: PremiumStatusSync, current_user: dict = Depends(get_current_user)):
-    await db.users.update_one(
-        {"id": current_user["id"]},
-        {"$set": {"is_premium": status.is_premium}}
-    )
-    return {"ok": True, "is_premium": status.is_premium}
-
-
 # ==================== PREMIUM: YOUR DAILY READ ====================
-
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
 
 @api_router.get("/premium/daily-read")
 async def get_daily_read(current_user: dict = Depends(get_current_user)):
@@ -1910,17 +1913,16 @@ Today's date: {today}
 Generate a deeply personal, warm reading for her today. Make it feel like HORMOscope truly knows her."""
 
     try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"daily-read-{user_id}-{today}",
-            system_message=system_prompt
+        if not ANTHROPIC_API_KEY:
+            raise RuntimeError("ANTHROPIC_API_KEY is not set — using phase-based fallback")
+        response_text = await call_anthropic(
+            system_prompt,
+            [{"role": "user", "content": user_prompt}],
+            max_tokens=1024,
         )
-        chat.with_model("openai", "gpt-4o-mini")
-        
-        response = await chat.send_message(UserMessage(text=user_prompt))
         
         # Parse JSON from response
-        response_text = response.strip()
+        response_text = response_text.strip()
         if response_text.startswith("```"):
             response_text = response_text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
         
@@ -2252,9 +2254,11 @@ async def send_chat_message(msg: ChatMessageCreate, current_user: dict = Depends
     if msg.image_base64 and not current_user.get("is_premium", False):
         raise HTTPException(status_code=403, detail="Image feature requires premium subscription")
     
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="AI service not configured")
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="The AI coach is temporarily unavailable. Please try again later.",
+        )
     
     # Get cycle context
     last_period = current_user.get("last_period_date")
@@ -2402,52 +2406,55 @@ HOW TO RESPOND:
 - Occasionally drop mind-blowing facts about the female body
 - Make her feel like her cycle is a superpower, not a burden{coach_image_context}"""
 
-    # Use conversation_id for session to maintain memory within each conversation
+    # Use conversation_id to maintain memory within each conversation
     # If no conversation_id yet, create a temporary one that will be used for the new conversation
     temp_conversation_id = msg.conversation_id or str(uuid.uuid4())
-    session_id = f"{current_user['id']}-{temp_conversation_id}"
-    
+
     try:
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=session_id,
-            system_message=system_message
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        
+        # Build the Anthropic message list: previous turns first, then the new message
+        anthropic_messages = []
+
         # Load previous conversation history if this is an existing conversation
-        # This ensures the AI remembers context even when session restarts
+        # This ensures the AI remembers context even when the server restarts
         if msg.conversation_id:
             history = await db.chat_messages.find(
                 {"conversation_id": msg.conversation_id, "user_id": current_user["id"]}
             ).sort("timestamp", 1).to_list(length=50)  # Last 50 messages
-            
-            # Append conversation history to the messages list to establish context
+
             for hist_msg in history:
                 user_msg = hist_msg.get("user_message", "")
                 ai_msg = hist_msg.get("ai_response", "")
                 if user_msg:
-                    chat.messages.append({"role": "user", "content": user_msg})
+                    anthropic_messages.append({"role": "user", "content": user_msg})
                 if ai_msg:
-                    chat.messages.append({"role": "assistant", "content": ai_msg})
-            
+                    anthropic_messages.append({"role": "assistant", "content": ai_msg})
+
             logger.info(f"Loaded {len(history)} messages for conversation {msg.conversation_id[:8]}...")
-        
-        # Build user message - with or without image
+
+        # Build the current user message - with or without image
         if msg.image_base64:
-            # Clean base64 string (remove data URL prefix if present)
+            # Clean base64 string (remove data URL prefix if present, keep media type)
             image_data = msg.image_base64
+            media_type = "image/jpeg"
             if "," in image_data:
-                image_data = image_data.split(",")[1]
-            
-            image_content = ImageContent(image_base64=image_data)
-            user_message = UserMessage(
-                text=msg.message if msg.message else "What do you think? 📸",
-                file_contents=[image_content]
-            )
+                prefix, image_data = image_data.split(",", 1)
+                media_match = re.match(r"data:(image/[a-zA-Z0-9.+-]+)", prefix)
+                if media_match:
+                    media_type = media_match.group(1)
+
+            content = [
+                {
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": media_type, "data": image_data},
+                },
+                {"type": "text", "text": msg.message if msg.message else "What do you think? 📸"},
+            ]
         else:
-            user_message = UserMessage(text=msg.message)
-        
-        response = await chat.send_message(user_message)
+            content = msg.message
+
+        anthropic_messages.append({"role": "user", "content": content})
+
+        response = await call_anthropic(system_message, anthropic_messages, max_tokens=1024)
         
         # Handle conversation tracking
         conversation_id = msg.conversation_id

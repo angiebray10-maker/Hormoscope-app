@@ -3,8 +3,9 @@ End-to-end backend tests for HORMOscope paywall + Journal lock.
 Covers:
   - Fresh user signup + onboarding
   - Journal POST blocked with 402 for non-Pro
-  - POST /api/premium/manual-unlock flips is_premium
-  - After unlock, journal POST returns 200 with id
+  - POST /api/premium/manual-unlock is REMOVED (expect 404) — premium can no
+    longer be self-granted; it comes only from verified payment webhooks
+  - Journal stays locked (402) when there is no verified premium
 """
 import os
 import time
@@ -84,37 +85,29 @@ def test_journal_post_blocked_for_free_user(session, fresh_user):
     assert "hormoscope pro" in detail or "pro" in detail, f"Detail should mention Pro: {detail}"
 
 
-# ---------- Manual unlock ----------
+# ---------- Manual unlock endpoint removed ----------
 
-def test_manual_unlock_sets_is_premium(session, fresh_user):
+def test_manual_unlock_endpoint_is_gone(session, fresh_user):
     r = session.post(
         f"{BASE_URL}/api/premium/manual-unlock", json={}, headers=fresh_user["headers"]
     )
-    assert r.status_code == 200, f"Manual unlock failed: {r.status_code} {r.text}"
-    body = r.json()
-    assert body.get("is_premium") is True
+    assert r.status_code in (404, 405), (
+        f"manual-unlock should be gone, got {r.status_code}: {r.text}"
+    )
 
-    # Verify via /auth/me
+    # is_premium must still be false — no self-granted premium
     r2 = session.get(f"{BASE_URL}/api/auth/me", headers=fresh_user["headers"])
     assert r2.status_code == 200
     me = r2.json()
-    assert me.get("is_premium") is True, f"is_premium should be true after manual-unlock: {me}"
+    assert me.get("is_premium") in (False, None), f"Fresh user should NOT be premium: {me}"
 
 
-# ---------- Journal write after unlock ----------
+# ---------- Journal stays locked without verified payment ----------
 
-def test_journal_post_works_after_unlock(session, fresh_user):
+def test_journal_stays_locked_without_payment(session, fresh_user):
     r = session.post(
         f"{BASE_URL}/api/journal",
-        json={"title": "Post-unlock", "content": "Now I can write"},
+        json={"title": "Still locked", "content": "No self-serve premium anymore"},
         headers=fresh_user["headers"],
     )
-    assert r.status_code == 200, f"Expected 200 after unlock, got {r.status_code}: {r.text}"
-    body = r.json()
-    assert "id" in body and body["id"], f"Response should include id: {body}"
-
-    # Confirm visible via GET /api/journal
-    r2 = session.get(f"{BASE_URL}/api/journal", headers=fresh_user["headers"])
-    assert r2.status_code == 200
-    entries = r2.json()
-    assert any(e.get("id") == body["id"] for e in entries), "Created entry should appear in GET /journal"
+    assert r.status_code == 402, f"Expected 402 (locked), got {r.status_code}: {r.text}"

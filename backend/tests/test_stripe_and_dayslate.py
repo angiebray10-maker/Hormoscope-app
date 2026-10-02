@@ -3,7 +3,7 @@
 Covers:
   - POST /api/payments/v1/checkout/session (monthly/yearly/lifetime)
   - GET  /api/payments/v1/checkout/status/{sid}
-  - POST /api/premium/manual-unlock + GET /api/auth/me reflects is_premium
+  - POST /api/premium/manual-unlock is REMOVED (expect 404/405) — no self-granted premium
   - calculate_cycle_info days_late edge cases via GET /api/dashboard
   - POST /api/journal returns 402 for non-premium users
 """
@@ -118,9 +118,9 @@ class TestStripeCheckout:
             mc.close()
 
 
-# ---- Manual unlock + premium reflection ----
+# ---- Manual unlock endpoint removed (no self-granted premium) ----
 
-class TestManualUnlockAndJournal:
+class TestManualUnlockRemoved:
     def test_journal_locked_before_unlock(self):
         u = _signup_user("_journal")
         r = requests.post(
@@ -133,25 +133,14 @@ class TestManualUnlockAndJournal:
         detail = str(r.json().get("detail", "")).lower()
         assert "hormoscope pro" in detail or "pro" in detail
 
-    def test_manual_unlock_flips_premium(self):
+    def test_manual_unlock_endpoint_is_gone(self):
         u = _signup_user("_unlock")
-        # Pre-check
-        me = requests.get(f"{API}/auth/me", headers=_auth_headers(u), timeout=30).json()
-        assert me.get("is_premium") in (False, None)
-        # Unlock
+        # Endpoint must not exist anymore — premium can't be self-granted
         r = requests.post(f"{API}/premium/manual-unlock", json={}, headers=_auth_headers(u), timeout=30)
-        assert r.status_code in (200, 201), r.text
-        # Verify
-        me2 = requests.get(f"{API}/auth/me", headers=_auth_headers(u), timeout=30).json()
-        assert me2.get("is_premium") is True, f"is_premium not True: {me2}"
-        # Journal now allowed
-        r3 = requests.post(
-            f"{API}/journal",
-            json={"content": "post-unlock entry", "mood": "calm"},
-            headers=_auth_headers(u),
-            timeout=30,
-        )
-        assert r3.status_code in (200, 201), r3.text
+        assert r.status_code in (404, 405), f"manual-unlock should be gone, got {r.status_code}: {r.text}"
+        # User must still not be premium
+        me = requests.get(f"{API}/auth/me", headers=_auth_headers(u), timeout=30).json()
+        assert me.get("is_premium") in (False, None), f"user should NOT be premium: {me}"
 
 
 # ---- Days late off-by-one ----

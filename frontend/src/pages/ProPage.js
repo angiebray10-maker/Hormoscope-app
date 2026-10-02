@@ -43,12 +43,11 @@ const PRO_FEATURES = [
 ];
 
 export default function ProPage() {
-  const { isPro, refreshCustomerInfo } = usePremium();
+  const { isPro } = usePremium();
   const { token } = useAuth();
   const location = useLocation();
   const [selectedPlan, setSelectedPlan] = useState('yearly');
   const [purchasing, setPurchasing] = useState(null);
-  const [unlocking, setUnlocking] = useState(false);
   const [expandedFeature, setExpandedFeature] = useState(null);
 
   useEffect(() => {
@@ -74,25 +73,6 @@ export default function ProPage() {
     } catch (err) {
       setPurchasing(null);
       alert('Could not start checkout. Please try again or contact support.');
-    }
-  };
-
-  const handleManualUnlock = async () => {
-    if (unlocking) return;
-    const confirmed = window.confirm(
-      'Only click this if you have already subscribed and your access has not unlocked. Misuse may result in account suspension. Continue?'
-    );
-    if (!confirmed) return;
-    setUnlocking(true);
-    try {
-      await axios.post(`${API}/premium/manual-unlock`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      await refreshCustomerInfo();
-      window.location.href = '/';
-    } catch (err) {
-      alert('Could not unlock. Please try again or contact support.');
-      setUnlocking(false);
     }
   };
 
@@ -149,7 +129,7 @@ export default function ProPage() {
 
       {/* HERO */}
       <section className="py-12 px-5 relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(https://customer-assets.emergentagent.com/job_e50c2d92-7748-4a4a-9e13-69705a94ca58/artifacts/5wjhwc0j_IMG_0551.jpeg)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0" style={{ backgroundImage: `url(/images/img-0551.jpeg)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: 'rgba(10,10,26,0.88)' }} />
         </div>
         <div className="max-w-lg mx-auto relative z-10">

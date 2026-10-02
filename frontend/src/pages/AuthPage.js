@@ -11,15 +11,15 @@ const PINK = '#f4a7b9';
 const PINK_SOFT = '#e8dce0';
 const PINK_MUTED = '#a0a0b8';
 
-const NEW_LOGO = 'https://customer-assets.emergentagent.com/job_e50c2d92-7748-4a4a-9e13-69705a94ca58/artifacts/izuy67k1_ChatGPT%20Image%20Jun%201%2C%202026%20at%2001_13_54%20AM.png';
-const HERO_BG = 'https://customer-assets.emergentagent.com/job_e50c2d92-7748-4a4a-9e13-69705a94ca58/artifacts/si6v5ez5_2ylm5_UrBdsVnYe5leEbx.png';
-const SCENARIO_BG = 'https://customer-assets.emergentagent.com/job_e50c2d92-7748-4a4a-9e13-69705a94ca58/artifacts/ha1nnlov_IMG_0554.jpeg';
-const SCIENCE_BG = 'https://customer-assets.emergentagent.com/job_e50c2d92-7748-4a4a-9e13-69705a94ca58/artifacts/c91mdfuy_IMG_0548.jpeg';
-const RELATIONSHIP_BG = 'https://customer-assets.emergentagent.com/job_e50c2d92-7748-4a4a-9e13-69705a94ca58/artifacts/y9f07e4i_IMG_0556.jpeg';
-const TRANSFORM_BG = 'https://customer-assets.emergentagent.com/job_e50c2d92-7748-4a4a-9e13-69705a94ca58/artifacts/9lh4ye06_IMG_0547.jpeg';
-const TESTIMONIAL_BG = 'https://customer-assets.emergentagent.com/job_e50c2d92-7748-4a4a-9e13-69705a94ca58/artifacts/h7uf5es0_IMG_0546.jpeg';
+const NEW_LOGO = '/images/logo.png';
+const HERO_BG = '/images/hero-bg.png';
+const SCENARIO_BG = '/images/scenario-bg.jpeg';
+const SCIENCE_BG = '/images/science-bg.jpeg';
+const RELATIONSHIP_BG = '/images/relationship-bg.jpeg';
+const TRANSFORM_BG = '/images/transform-bg.jpeg';
+const TESTIMONIAL_BG = '/images/testimonial-bg.jpeg';
 
-const COUPLE_IMG = 'https://customer-assets.emergentagent.com/job_77525525-7994-4f0c-957c-329428a3fd1f/artifacts/mcn4a89a_download_849a83e7-ce20-4351-b928-944cc62db658.jpg';
+const COUPLE_IMG = '/images/couple.jpg';
 const REVIEWER_1_IMG = 'https://images.unsplash.com/photo-1548544507-7de0e7a931d6?w=200&h=200&fit=crop&crop=face';
 const REVIEWER_2_IMG = 'https://images.unsplash.com/photo-1768651925930-1680767d92df?w=200&h=200&fit=crop&crop=face';
 const REVIEWER_3_IMG = 'https://images.unsplash.com/photo-1765648684671-db09402b2d48?w=200&h=200&fit=crop&crop=face';
@@ -327,7 +327,7 @@ export default function AuthPage() {
 
       {/* CTA — Start Free */}
       <section className="py-16 px-6 relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(https://customer-assets.emergentagent.com/job_e50c2d92-7748-4a4a-9e13-69705a94ca58/artifacts/5wjhwc0j_IMG_0551.jpeg)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0" style={{ backgroundImage: `url(/images/img-0551.jpeg)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: 'rgba(10,10,26,0.88)' }} />
         </div>
         <div className="max-w-md mx-auto relative z-10 text-center">
@@ -377,7 +377,7 @@ export default function AuthPage() {
 
       {/* FINAL CTA */}
       <section className="py-20 px-6 text-center relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(https://customer-assets.emergentagent.com/job_e50c2d92-7748-4a4a-9e13-69705a94ca58/artifacts/gh3dz68h_IMG_0546.jpeg)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0" style={{ backgroundImage: `url(/images/img-0546-alt.jpeg)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: 'rgba(10,10,26,0.82)' }} />
         </div>
         <div className="max-w-lg mx-auto relative z-10">
