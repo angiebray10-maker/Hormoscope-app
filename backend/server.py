@@ -28,7 +28,7 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ.get('DB_NAME', 'hormoscope')]
 
 # JWT Config — no default: the server must not start without a real secret.
 JWT_SECRET = os.environ.get("JWT_SECRET")
