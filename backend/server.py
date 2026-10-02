@@ -15,14 +15,12 @@ import bcrypt
 import hashlib
 import re
 import httpx
+import stripe
 from anthropic import AsyncAnthropic
 import json as json_module
 import base64
 import json
 from pywebpush import webpush, WebPushException
-from emergentintegrations.payments.stripe.checkout import (
-    StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
-)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -1165,10 +1163,9 @@ async def create_stripe_checkout(
     success_url = f"{origin}/?stripe_session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{origin}/pro?canceled=true"
 
-    # Webhook URL points to this backend
-    host_url = str(http_request.base_url).rstrip("/")
-    webhook_url = f"{host_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    # Webhook URL points to this backend (for reference; verification is done
+    # via Stripe's API with the secret key)
+    stripe.api_key = STRIPE_API_KEY
 
     metadata = {
         "user_id": current_user["id"],
@@ -1176,19 +1173,29 @@ async def create_stripe_checkout(
         "plan": body.plan,
         "product": "hormoscope_pro",
     }
-    req = CheckoutSessionRequest(
-        amount=float(pkg["amount"]),
-        currency=pkg["currency"],
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata=metadata,
-    )
-    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(req)
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": pkg["currency"],
+                    "unit_amount": int(round(float(pkg["amount"]) * 100)),
+                    "product_data": {"name": pkg["label"]},
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata=metadata,
+        )
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     # Log transaction (initiated). Required by playbook.
     await db.payment_transactions.insert_one({
         "id": str(uuid.uuid4()),
-        "session_id": session.session_id,
+        "session_id": session.id,
         "user_id": current_user["id"],
         "email": current_user.get("email"),
         "plan": body.plan,
@@ -1199,7 +1206,7 @@ async def create_stripe_checkout(
         "status": "open",
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    return {"url": session.url, "session_id": session.session_id}
+    return {"url": session.url, "session_id": session.id}
 
 
 async def _activate_pro_for_user(user_id: str, plan: str, session_id: str):
@@ -1234,48 +1241,59 @@ async def get_stripe_checkout_status(
 ):
     """Poll endpoint — frontend hits this after Stripe redirects to /?stripe_session_id=...
     If paid, flips user to Pro and returns updated status."""
-    host_url = str(http_request.base_url).rstrip("/")
-    webhook_url = f"{host_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-    status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+    stripe.api_key = STRIPE_API_KEY
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    payment_status = session.payment_status or "unpaid"
+    status = session.status or "open"
+    amount_total = (session.amount_total or 0) / 100
+    currency = session.currency or "usd"
 
     tx = await db.payment_transactions.find_one({"session_id": session_id})
     if tx:
         await db.payment_transactions.update_one(
             {"session_id": session_id},
-            {"$set": {"payment_status": status.payment_status, "status": status.status}}
+            {"$set": {"payment_status": payment_status, "status": status}}
         )
         # Idempotent unlock on success
-        if status.payment_status == "paid" and tx.get("user_id") == current_user["id"]:
+        if payment_status == "paid" and tx.get("user_id") == current_user["id"]:
             await _activate_pro_for_user(tx["user_id"], tx.get("plan", "monthly"), session_id)
 
     return {
-        "status": status.status,
-        "payment_status": status.payment_status,
-        "amount_total": status.amount_total,
-        "currency": status.currency,
+        "status": status,
+        "payment_status": payment_status,
+        "amount_total": amount_total,
+        "currency": currency,
     }
 
 
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
     """Stripe will POST here after checkout.session.completed etc.
-    Verifies signature via the playbook helper, then unlocks Pro for the user."""
+    Verifies by retrieving the session from Stripe's own API (authenticated
+    with the secret key) and trusts only what Stripe reports as paid."""
     body_bytes = await request.body()
-    sig = request.headers.get("Stripe-Signature") or request.headers.get("stripe-signature")
-    host_url = str(request.base_url).rstrip("/")
-    webhook_url = f"{host_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    stripe.api_key = STRIPE_API_KEY
     try:
-        evt = await stripe_checkout.handle_webhook(body_bytes, sig)
-    except Exception as e:
-        logger.error(f"Stripe webhook verification failed: {e}")
-        raise HTTPException(status_code=400, detail="Invalid signature")
+        payload = json.loads(body_bytes)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    session_id = ((payload.get("data") or {}).get("object") or {}).get("id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="No session id in event")
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe webhook session retrieve failed: {e}")
+        raise HTTPException(status_code=400, detail="Invalid session")
 
-    if evt.payment_status == "paid" and evt.session_id:
-        tx = await db.payment_transactions.find_one({"session_id": evt.session_id})
+    if session.payment_status == "paid":
+        tx = await db.payment_transactions.find_one({"session_id": session_id})
         if tx and tx.get("user_id"):
-            await _activate_pro_for_user(tx["user_id"], tx.get("plan", "monthly"), evt.session_id)
+            await _activate_pro_for_user(tx["user_id"], tx.get("plan", "monthly"), session_id)
     return {"received": True}
 
 
