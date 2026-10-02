@@ -2,6 +2,11 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 import logger from '../utils/logger';
+import {
+  isBillingConfigured,
+  ensureRevenueCatUser,
+  checkNativeProEntitlement,
+} from '../utils/revenueCat';
 
 const PremiumContext = createContext(null);
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -17,6 +22,21 @@ export function PremiumProvider({ children }) {
       setLoading(false);
       return;
     }
+    // Native app (Google Play build): RevenueCat entitlement is the source of truth.
+    if (isBillingConfigured()) {
+      try {
+        const ready = await ensureRevenueCatUser(user?.id);
+        if (ready) {
+          setIsPro(await checkNativeProEntitlement());
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        logger.error('RevenueCat entitlement check failed:', err);
+      }
+      // fall through to backend check if RevenueCat is unreachable
+    }
+    // Web (Stripe flow): backend is the source of truth.
     try {
       const res = await axios.get(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
       setIsPro(res.data?.is_premium === true);
@@ -25,9 +45,9 @@ export function PremiumProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, user?.id]);
 
-  useEffect(() => { refresh(); }, [refresh, user?.id]);
+  useEffect(() => { refresh(); }, [refresh]);
 
   const value = useMemo(() => ({
     isPro,

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">HORMOscope</string>
+    <string name="title_activity_main">HORMOscope</string>
+    <string name="package_name">com.hormoscope.app</string>
+    <string name="custom_url_scheme">com.hormoscope.app</string>
+</resources>

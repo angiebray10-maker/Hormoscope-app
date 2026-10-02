@@ -51,8 +51,20 @@ Create `frontend/.env` (Create React App reads `REACT_APP_*` at build time):
 
 | Variable | Required | Notes |
 |---|---|---|
-| `REACT_APP_BACKEND_URL` | Yes | Base URL of the backend, e.g. `https://api.example.com`. The app cannot talk to the API without it. |
+| `REACT_APP_BACKEND_URL` | Yes | Base URL of the backend, e.g. `https://api.example.com`. The app cannot talk to the API without it. **For the Play Store build this must be the production backend URL at build time** (CRA embeds it). |
 | `REACT_APP_VAPID_PUBLIC_KEY` | Only for web push | Must match the backend's `VAPID_PUBLIC_KEY`. |
+| `REACT_APP_REVENUECAT_ANDROID_API_KEY` | Only for the native Android app | RevenueCat **public** Android key (starts with `goog_`). Enables Google Play Billing in the Capacitor app. If unset, the native app falls back to the web/Stripe flow (which Play policy forbids — don't ship that). |
+| `REACT_APP_REVENUECAT_ENTITLEMENT_ID` | No | RevenueCat entitlement id. Default: `pro`. Must match the entitlement created in the RevenueCat dashboard. |
+| `REACT_APP_REVENUECAT_OFFERING_ID` | No | RevenueCat offering id. Default: `default`. |
+| `REACT_APP_REVENUECAT_YEARLY_PACKAGE_ID` / `REACT_APP_REVENUECAT_MONTHLY_PACKAGE_ID` | No | Override which RevenueCat package backs the Yearly/Monthly buttons. By default the code matches packages by type (`ANNUAL` / `MONTHLY`). |
+
+## Backend environment variables (RevenueCat additions)
+
+| Variable | Required | Notes |
+|---|---|---|
+| `REVENUECAT_SECRET_API_KEY` | For native app | Secret key from RevenueCat dashboard. Used by `POST /api/subscription/revenuecat/sync` to verify entitlements server-side. Never expose to the frontend. |
+| `REVENUECAT_WEBHOOK_AUTH` | For native app | Shared secret placed in the `Authorization` header of the RevenueCat dashboard webhook pointing at `/api/webhooks/revenuecat`. |
+| `REVENUECAT_ENTITLEMENT_ID` | No | Default: `pro`. Must match the frontend's `REACT_APP_REVENUECAT_ENTITLEMENT_ID`. |
 
 ## Local dev setup
 
@@ -107,6 +119,46 @@ directly.)
 - Stripe webhook signature verification is not yet implemented — treat the
   Stripe flow as legacy until the Google Play Billing migration lands.
 
+## Android (Capacitor) build
+
+The web app is wrapped with [Capacitor](https://capacitorjs.com) for the
+Google Play release (`@capacitor/core`, `@capacitor/cli`, `@capacitor/android`,
+`@revenuecat/purchases-capacitor` in `frontend/package.json`).
+
+```bash
+cd frontend
+npm install                       # use --legacy-peer-deps (pre-existing peer conflict)
+# capacitor.config.ts already exists: appId com.hormoscope.app, webDir build
+npm run build                     # REACT_APP_* env vars are baked in here
+npx cap sync                      # copies build/ into android/
+```
+
+Then open `frontend/android/` in Android Studio (or use the CLI with an
+Android SDK installed) to build the release AAB for Play Console.
+
+**Play Billing setup (all dashboard work, in order):**
+1. Google Play Console: pay the $25 one-time registration, create the app,
+   then Monetize > Subscriptions: create the monthly and yearly products.
+2. Firebase Console (free): create a project, add the Android app
+   (`com.hormoscope.app`), download `google-services.json` into
+   `frontend/android/app/` (needed for push notifications in production builds).
+3. RevenueCat dashboard: create account + app, connect Google Play (service
+   credentials JSON from Play Console), create Entitlement `pro`, attach the
+   Play products, create Offering `default` with the monthly + yearly packages.
+4. RevenueCat dashboard > Integrations > Webhooks: add
+   `https://<backend-host>/api/webhooks/revenuecat` with an Authorization
+   header value; set the same value as `REVENUECAT_WEBHOOK_AUTH` on the backend.
+5. Build the frontend with `REACT_APP_BACKEND_URL` (production),
+   `REACT_APP_REVENUECAT_ANDROID_API_KEY`, and matching entitlement/offering ids.
+
+How billing behaves per platform:
+- **Native Android app**: paywall uses RevenueCat → Google Play Billing
+  (prices come from the Play Store, localized). Includes Restore Purchases.
+  Entitlement is checked via the RevenueCat SDK; the backend is synced through
+  `POST /api/subscription/revenuecat/sync` and the RevenueCat webhook.
+- **Web**: unchanged Stripe checkout flow (kept intentionally for the web
+  version; do not expose it inside the Play build).
+
 ## Deployment notes
 
 - Images that used to live on Emergent's CDN are now self-hosted in
@@ -115,6 +167,7 @@ directly.)
   the request path. The `emergentintegrations` Python package is still listed
   in `backend/requirements.txt` because the (legacy) Stripe checkout code
   imports from it; it can be dropped when Stripe is removed.
-- Before a Google Play release: the current in-app subscription flow uses
-  Stripe web checkout, which Play policy does not allow for digital goods —
-  migrate to Google Play Billing first.
+- Google Play Billing is implemented via RevenueCat for the native Android
+  app (see "Android (Capacitor) build" above). The Stripe web-checkout flow
+  is kept for the web version only — never expose it inside the Play build,
+  or Play policy review will reject it.

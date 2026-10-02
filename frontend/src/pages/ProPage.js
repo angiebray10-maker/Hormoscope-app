@@ -4,9 +4,24 @@ import { useAuth } from '../context/AuthContext';
 import { Crown, Check, Shield, Loader2, RotateCcw, Sun, BarChart3, TrendingUp, ChevronDown, BookOpen } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import {
+  isBillingConfigured,
+  ensureRevenueCatUser,
+  getPackages,
+  findPackageForPlan,
+  purchasePlan,
+  restorePurchases,
+} from '../utils/revenueCat';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#D4A853';
+
+// Hardcoded display prices are only a fallback for the WEB (Stripe) flow.
+// On native, prices come from the Play Store via RevenueCat (localized).
+const FALLBACK_PRICES = {
+  yearly: { price: '$79.99', per: '/yr', note: '$6.67/mo · Save $40' },
+  monthly: { price: '$9.99', per: '/mo', note: 'Cancel anytime' },
+};
 
 const trackEvent = (token, event, context = '', plan = '') => {
   if (!token) return;
@@ -43,17 +58,106 @@ const PRO_FEATURES = [
 ];
 
 export default function ProPage() {
-  const { isPro } = usePremium();
-  const { token } = useAuth();
+  const { isPro, refreshCustomerInfo } = usePremium();
+  const { token, user } = useAuth();
   const location = useLocation();
   const [selectedPlan, setSelectedPlan] = useState('yearly');
   const [purchasing, setPurchasing] = useState(null);
   const [expandedFeature, setExpandedFeature] = useState(null);
+  const [rcPackages, setRcPackages] = useState([]);
+  const [restoring, setRestoring] = useState(false);
+  const nativeBilling = isBillingConfigured();
 
   useEffect(() => {
     const source = new URLSearchParams(location.search).get('from') || 'tab';
     trackEvent(token, 'paywall_view', source);
   }, [location.search, token]);
+
+  // Native: load RevenueCat packages (prices come from the Play Store).
+  useEffect(() => {
+    if (!nativeBilling) return;
+    let cancelled = false;
+    (async () => {
+      await ensureRevenueCatUser(user?.id);
+      const pkgs = await getPackages();
+      if (!cancelled) setRcPackages(pkgs);
+    })();
+    return () => { cancelled = true; };
+  }, [nativeBilling, user?.id]);
+
+  const priceFor = (plan) => {
+    if (nativeBilling) {
+      const pkg = findPackageForPlan(rcPackages, plan);
+      const priceString = pkg?.product?.priceString;
+      if (priceString) {
+        return {
+          price: priceString,
+          per: plan === 'yearly' ? '/yr' : '/mo',
+          note: plan === 'yearly' ? '' : 'Cancel anytime',
+        };
+      }
+    }
+    return FALLBACK_PRICES[plan];
+  };
+
+  // Sync a native RevenueCat purchase to our backend so server-side
+  // premium gates (is_premium) stay consistent.
+  const syncNativePurchase = async () => {
+    try {
+      await axios.post(`${API}/subscription/revenuecat/sync`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {
+      // Non-fatal: the RevenueCat webhook will sync it shortly.
+    }
+    await refreshCustomerInfo();
+  };
+
+  const handleNativePurchase = async (plan) => {
+    if (purchasing) return;
+    setPurchasing(plan);
+    trackEvent(token, 'play_billing_start', '', plan);
+    try {
+      await ensureRevenueCatUser(user?.id);
+      const pkgs = rcPackages.length ? rcPackages : await getPackages();
+      const result = await purchasePlan(pkgs, plan);
+      if (result.cancelled) {
+        trackEvent(token, 'play_billing_cancelled', '', plan);
+      } else if (result.isPro) {
+        trackEvent(token, 'play_billing_success', '', plan);
+        await syncNativePurchase();
+      } else {
+        trackEvent(token, 'play_billing_failed', result.error || '', plan);
+        alert('Purchase could not be completed. Please try again.');
+      }
+    } catch (err) {
+      alert('Purchase could not be completed. Please try again.');
+    } finally {
+      setPurchasing(null);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (restoring) return;
+    setRestoring(true);
+    try {
+      await ensureRevenueCatUser(user?.id);
+      const { isPro: restored } = await restorePurchases();
+      if (restored) {
+        await syncNativePurchase();
+        alert('Purchases restored. Welcome back to Pro.');
+      } else {
+        alert('No previous purchases found for this account.');
+      }
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handlePurchase = (plan) => {
+    if (nativeBilling) return handleNativePurchase(plan);
+    return handleStripeCheckout(plan);
+  };
 
   const handleStripeCheckout = async (plan) => {
     if (purchasing) return;
@@ -236,11 +340,15 @@ export default function ProPage() {
                 <div>
                   <p className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>Yearly</p>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xs line-through" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Poppins, sans-serif' }} data-testid="yearly-strikethrough-pro">$119.99</span>
-                    <span className="text-lg font-semibold" style={{ color: GOLD }}>$79.99</span>
-                    <span className="text-white/50 text-xs">/yr</span>
+                    {!nativeBilling && (
+                      <span className="text-xs line-through" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Poppins, sans-serif' }} data-testid="yearly-strikethrough-pro">$119.99</span>
+                    )}
+                    <span className="text-lg font-semibold" style={{ color: GOLD }}>{priceFor('yearly').price}</span>
+                    <span className="text-white/50 text-xs">{priceFor('yearly').per}</span>
                   </div>
-                  <p className="text-white/40 text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>$6.67/mo · Save $40</p>
+                  {priceFor('yearly').note && (
+                    <p className="text-white/40 text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>{priceFor('yearly').note}</p>
+                  )}
                 </div>
                 <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center" style={{ borderColor: selectedPlan === 'yearly' ? GOLD : 'rgba(255,255,255,0.3)', background: selectedPlan === 'yearly' ? GOLD : 'transparent' }}>
                   {selectedPlan === 'yearly' && <Check className="w-3.5 h-3.5 text-white" />}
@@ -263,11 +371,15 @@ export default function ProPage() {
               <div>
                 <p className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>Monthly</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-xs line-through" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Poppins, sans-serif' }} data-testid="monthly-strikethrough-pro">$14.99</span>
-                  <span className="text-lg font-semibold" style={{ color: GOLD }}>$9.99</span>
-                  <span className="text-white/50 text-xs">/mo</span>
+                  {!nativeBilling && (
+                    <span className="text-xs line-through" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Poppins, sans-serif' }} data-testid="monthly-strikethrough-pro">$14.99</span>
+                  )}
+                  <span className="text-lg font-semibold" style={{ color: GOLD }}>{priceFor('monthly').price}</span>
+                  <span className="text-white/50 text-xs">{priceFor('monthly').per}</span>
                 </div>
-                <p className="text-white/40 text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Cancel anytime</p>
+                {priceFor('monthly').note && (
+                  <p className="text-white/40 text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>{priceFor('monthly').note}</p>
+                )}
               </div>
               <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center" style={{ borderColor: selectedPlan === 'monthly' ? GOLD : 'rgba(255,255,255,0.3)', background: selectedPlan === 'monthly' ? GOLD : 'transparent' }}>
                 {selectedPlan === 'monthly' && <Check className="w-3.5 h-3.5 text-white" />}
@@ -295,12 +407,12 @@ export default function ProPage() {
         </div>
       </div>
 
-      {/* Sticky CTA — direct Stripe checkout */}
+      {/* Sticky CTA — native Play Billing on Android app, Stripe checkout on web */}
       <div className="fixed bottom-24 lg:bottom-0 left-0 right-0 lg:left-64 px-5 pb-2 pt-2 z-[999]">
         <div className="max-w-lg mx-auto">
           <button
             data-testid="purchase-btn"
-            onClick={() => handleStripeCheckout(selectedPlan)}
+            onClick={() => handlePurchase(selectedPlan)}
             disabled={!!purchasing}
             className="w-full py-2.5 rounded-full text-white font-semibold text-xs tracking-wide transition-all disabled:opacity-60"
             style={{ fontFamily: 'Poppins, sans-serif', background: 'transparent', border: '2px solid #FF1493', color: '#FF1493' }}
@@ -308,12 +420,23 @@ export default function ProPage() {
             {purchasing ? (
               <span className="flex items-center justify-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Redirecting to Stripe...
+                {nativeBilling ? 'Opening Google Play...' : 'Redirecting to Stripe...'}
               </span>
             ) : (
               'Unlock HORMOscope Pro'
             )}
           </button>
+          {nativeBilling && (
+            <button
+              data-testid="restore-btn"
+              onClick={handleRestore}
+              disabled={restoring}
+              className="w-full mt-2 py-2 text-center text-xs disabled:opacity-60"
+              style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.5)' }}
+            >
+              {restoring ? 'Restoring...' : 'Restore Purchases'}
+            </button>
+          )}
         </div>
       </div>
     </div>

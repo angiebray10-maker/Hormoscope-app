@@ -14,6 +14,7 @@ import jwt
 import bcrypt
 import hashlib
 import re
+import httpx
 from anthropic import AsyncAnthropic
 import json as json_module
 import base64
@@ -1276,6 +1277,117 @@ async def stripe_webhook(request: Request):
         if tx and tx.get("user_id"):
             await _activate_pro_for_user(tx["user_id"], tx.get("plan", "monthly"), evt.session_id)
     return {"received": True}
+
+
+# ==================== REVENUECAT (Google Play Billing) ====================
+# Used by the native Android (Capacitor) app. The web version keeps using Stripe.
+#
+# TODO for the account owner (dashboard steps, cannot be done in code):
+#  1. RevenueCat dashboard: create app, connect Google Play, create Entitlement
+#     (must match REVENUECAT_ENTITLEMENT_ID, default "pro"), attach Play products,
+#     create Offering (must match REACT_APP_REVENUECAT_OFFERING_ID, default "default").
+#  2. RevenueCat dashboard > Integrations > Webhooks: add
+#       https://<backend-host>/api/webhooks/revenuecat
+#     with an Authorization header value; set that same value as
+#     REVENUECAT_WEBHOOK_AUTH on the backend.
+#  3. Set REVENUECAT_SECRET_API_KEY (secret key from RevenueCat dashboard) on the backend.
+
+REVENUECAT_ENTITLEMENT_ID = os.environ.get("REVENUECAT_ENTITLEMENT_ID", "pro")
+REVENUECAT_SECRET_API_KEY = os.environ.get("REVENUECAT_SECRET_API_KEY", "")
+REVENUECAT_WEBHOOK_AUTH = os.environ.get("REVENUECAT_WEBHOOK_AUTH", "")
+
+
+def _revenuecat_entitlement_active(subscriber: dict) -> bool:
+    """True if the configured entitlement has a future (or lifetime) expiry."""
+    entitlements = (subscriber or {}).get("entitlements", {})
+    ent = entitlements.get(REVENUECAT_ENTITLEMENT_ID) or {}
+    expires = ent.get("expires_date")
+    if not expires:
+        # No expiry field but entitlement present (e.g. lifetime) counts as active
+        # only when RevenueCat reports a purchase date for it.
+        return bool(ent.get("purchase_date"))
+    try:
+        exp = datetime.fromisoformat(expires.replace("Z", "+00:00"))
+        return exp > datetime.now(timezone.utc)
+    except (ValueError, TypeError):
+        return False
+
+
+async def _set_premium_from_revenuecat(user_id: str, is_pro: bool):
+    now = datetime.now(timezone.utc).isoformat()
+    if is_pro:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {
+                "is_premium": True,
+                "premium_source": "revenuecat",
+                "premium_activated_at": now,
+            }},
+        )
+        await db.daily_content.delete_many({"user_id": user_id})
+    else:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"is_premium": False, "premium_source": "revenuecat_expired"}},
+        )
+
+
+@api_router.post("/subscription/revenuecat/sync")
+async def revenuecat_sync(current_user: dict = Depends(get_current_user)):
+    """Verify the caller's RevenueCat entitlement server-side and sync is_premium.
+
+    Called by the native app right after a Play Billing purchase/restore.
+    Requires REVENUECAT_SECRET_API_KEY env var on the backend.
+    """
+    if not REVENUECAT_SECRET_API_KEY:
+        raise HTTPException(status_code=503, detail="RevenueCat not configured on server")
+    app_user_id = current_user["id"]
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(
+                f"https://api.revenuecat.com/v1/subscribers/{app_user_id}",
+                headers={
+                    "Authorization": f"Bearer {REVENUECAT_SECRET_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+            )
+    except httpx.HTTPError as e:
+        logger.error(f"RevenueCat subscriber lookup failed: {e}")
+        raise HTTPException(status_code=502, detail="Could not verify subscription")
+    if r.status_code == 404:
+        await _set_premium_from_revenuecat(app_user_id, False)
+        return {"is_premium": False}
+    if r.status_code != 200:
+        raise HTTPException(status_code=502, detail="Could not verify subscription")
+    is_pro = _revenuecat_entitlement_active(r.json().get("subscriber", {}))
+    await _set_premium_from_revenuecat(app_user_id, is_pro)
+    return {"is_premium": is_pro}
+
+
+@api_router.post("/webhooks/revenuecat")
+async def revenuecat_webhook(request: Request):
+    """RevenueCat server-to-server webhook. Kept in sync automatically when the
+    dashboard webhook (see TODO above) is configured. Verifies the shared
+    Authorization header value; only EXPIRATION revokes premium (CANCELLATION
+    alone leaves access until the paid period ends)."""
+    if not REVENUECAT_WEBHOOK_AUTH or request.headers.get("Authorization") != REVENUECAT_WEBHOOK_AUTH:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+    event = body.get("event") or {}
+    event_type = event.get("type")
+    app_user_id = event.get("app_user_id")
+    entitlement_ids = event.get("entitlement_ids") or []
+    if not app_user_id or REVENUECAT_ENTITLEMENT_ID not in entitlement_ids:
+        return {"ok": True}
+    if event_type in ("INITIAL_PURCHASE", "RENEWAL", "UNCANCELLATION", "TRANSFER", "SUBSCRIPTION_EXTENDED"):
+        await _set_premium_from_revenuecat(app_user_id, True)
+    elif event_type == "EXPIRATION":
+        await _set_premium_from_revenuecat(app_user_id, False)
+    # CANCELLATION / BILLING_ISSUE: access continues until expiry; no change.
+    return {"ok": True}
 
 
 # ==================== ONBOARDING ====================
