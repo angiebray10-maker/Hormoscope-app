@@ -20,15 +20,21 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            // Use local signing config if keystore exists, otherwise rely on -Pandroid.injected.signing.* from CI
+            def keystoreFile = file(System.getenv("KEYSTORE_PATH") ?: "${System.getProperty('user.home')}/workspace/hormoscope-upload.keystore")
+            if (keystoreFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     signingConfigs {
         release {
-            storeFile file(System.getenv("KEYSTORE_PATH") ?: "${System.getProperty('user.home')}/workspace/hormoscope-upload.keystore")
-            storePassword System.getenv("KEYSTORE_PASS") ?: new File("${System.getProperty('user.home')}/workspace/.keystore-pass").text.trim()
+            def keystoreFile = file(System.getenv("KEYSTORE_PATH") ?: "${System.getProperty('user.home')}/workspace/hormoscope-upload.keystore")
+            def passFile = new File("${System.getProperty('user.home')}/workspace/.keystore-pass")
+            storeFile keystoreFile
+            storePassword System.getenv("KEYSTORE_PASS") ?: (passFile.exists() ? passFile.text.trim() : "")
             keyAlias "hormoscope"
-            keyPassword System.getenv("KEYSTORE_PASS") ?: new File("${System.getProperty('user.home')}/workspace/.keystore-pass").text.trim()
+            keyPassword System.getenv("KEYSTORE_PASS") ?: (passFile.exists() ? passFile.text.trim() : "")
         }
     }
 }
