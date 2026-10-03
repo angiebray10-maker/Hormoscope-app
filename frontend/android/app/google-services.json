@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "393521519274",
+    "project_id": "hormoscope-eb82c",
+    "storage_bucket": "hormoscope-eb82c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:393521519274:android:b3301c83fe514bc00e4ed3",
+        "android_client_info": {
+          "package_name": "com.hormoscope.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvqiHd96kpI_6vyzK0-_fj6mr4geAHMfk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
