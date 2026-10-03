@@ -20,21 +20,20 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            // Use local signing config if keystore exists, otherwise rely on -Pandroid.injected.signing.* from CI
-            def keystoreFile = file(System.getenv("KEYSTORE_PATH") ?: "${System.getProperty('user.home')}/workspace/hormoscope-upload.keystore")
-            if (keystoreFile.exists()) {
-                signingConfig signingConfigs.release
-            }
+            signingConfig signingConfigs.release
         }
     }
     signingConfigs {
         release {
-            def keystoreFile = file(System.getenv("KEYSTORE_PATH") ?: "${System.getProperty('user.home')}/workspace/hormoscope-upload.keystore")
+            // CI (GitHub Actions) uses /tmp/hormoscope.keystore, local uses ~/workspace/
+            def isCI = System.getenv("CI") == "true"
+            def keystorePath = isCI ? "/tmp/hormoscope.keystore" : (System.getenv("KEYSTORE_PATH") ?: "${System.getProperty('user.home')}/workspace/hormoscope-upload.keystore")
             def passFile = new File("${System.getProperty('user.home')}/workspace/.keystore-pass")
-            storeFile keystoreFile
-            storePassword System.getenv("KEYSTORE_PASS") ?: (passFile.exists() ? passFile.text.trim() : "")
-            keyAlias "hormoscope"
-            keyPassword System.getenv("KEYSTORE_PASS") ?: (passFile.exists() ? passFile.text.trim() : "")
+            storeFile file(keystorePath)
+            // On CI, passwords come from env vars set by workflow; locally from file
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: System.getenv("KEYSTORE_PASS") ?: (passFile.exists() ? passFile.text.trim() : "")
+            keyAlias System.getenv("KEY_ALIAS") ?: "hormoscope"
+            keyPassword System.getenv("KEY_PASSWORD") ?: System.getenv("KEYSTORE_PASS") ?: (passFile.exists() ? passFile.text.trim() : "")
         }
     }
 }
