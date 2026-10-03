@@ -15,8 +15,6 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /tmp/hormoscope.keystore
           ls -lh /tmp/hormoscope.keystore
-          # Verify keystore is valid (list entries without password)
-          keytool -list -keystore /tmp/hormoscope.keystore -storepass "${{ secrets.KEYSTORE_PASSWORD }}" 2>&1 | head -10
       - name: Build AAB
         working-directory: frontend/android
         env:
@@ -25,9 +23,8 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           chmod +x gradlew
-          ./gradlew bundleRelease --stacktrace 2>&1 | tail -100
+          ./gradlew bundleRelease
       - name: Upload AAB
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: hormoscope-release
