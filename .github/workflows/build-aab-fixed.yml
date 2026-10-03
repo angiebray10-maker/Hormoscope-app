@@ -15,11 +15,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install dependencies and sync Capacitor
+      - name: Install and sync
         working-directory: frontend
         run: |
           npm install
+          ls node_modules/@capacitor/android/capacitor/build.gradle
           npx cap sync android
+          cat android/capacitor.settings.gradle
       - name: Decode keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /tmp/hormoscope.keystore
       - name: Build AAB
@@ -31,16 +33,9 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew bundleRelease > /tmp/build.log 2>&1 || true
-          tail -30 /tmp/build.log
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
           path: /tmp/build.log
-      - name: Upload AAB
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: hormoscope-release
-          path: frontend/android/app/build/outputs/bundle/release/app-release.aab
