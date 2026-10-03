@@ -11,6 +11,13 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
       - name: Decode keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /tmp/hormoscope.keystore
       - name: Build AAB
@@ -22,8 +29,7 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew bundleRelease > /tmp/build.log 2>&1 || true
-          tail -200 /tmp/build.log
-          # Always upload the log
+          tail -50 /tmp/build.log
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
