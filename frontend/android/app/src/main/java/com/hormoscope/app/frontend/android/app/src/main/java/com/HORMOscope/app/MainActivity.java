@@ -1,4 +1,4 @@
-package com.hormoscope.app;
+package com.HORMOscope.app;
 
 import com.getcapacitor.BridgeActivity;
 
