@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePremium } from '../context/PremiumContext';
 import { useAuth } from '../context/AuthContext';
-import { Crown, Check, Shield, Loader2, RotateCcw, Sun, BarChart3, TrendingUp, ChevronDown, BookOpen } from 'lucide-react';
+import { Crown, Check, Shield, Loader2, RotateCcw, Sun, BarChart3, TrendingUp, ChevronDown, BookOpen, Calendar } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -20,7 +20,7 @@ const GOLD = '#D4A853';
 // On native, prices come from the Play Store via RevenueCat (localized).
 const FALLBACK_PRICES = {
   yearly: { price: '$49.99', per: '/yr', note: '$4.17/mo · Save $10' },
-  monthly: { price: '$4.99', per: '/mo', note: 'Cancel anytime' },
+  monthly: { price: '$6.99', per: '/mo', note: 'Cancel anytime' },
 };
 
 const trackEvent = (token, event, context = '', plan = '') => {
@@ -52,8 +52,14 @@ const PRO_FEATURES = [
   {
     icon: BookOpen,
     title: 'The Journal',
-    subtitle: 'Your private space — that makes Your Daily Read smarter',
-    description: 'A beautiful lined-paper journal with handwritten "Satisfy" font and a mini-calendar to revisit any day. Every entry teaches your Daily Read more about you — so it grows more personal with every cycle.',
+    subtitle: 'It talks back to you',
+    description: 'A smart journal that responds with insights personalized just for you. Talk about anything. Your deepest thoughts are safe here. There is nothing your journal cannot handle.',
+  },
+  {
+    icon: Calendar,
+    title: 'Stealth Calendar',
+    subtitle: 'Your secret, kept',
+    description: 'Discreetly track intimacy with a simple heart on any date. Only you know what it means. No more guessing, no more wondering.',
   },
 ];
 
@@ -399,6 +405,9 @@ export default function ProPage() {
             Cancel anytime
           </div>
         </div>
+        <p className="text-center text-xs mb-4 px-6" style={{ color: '#9A8B91', fontFamily: 'Poppins, sans-serif' }}>
+          We will never ask for your billing info before you know what you are paying for. Only share your credit card at the end of your free cycle, if it has made a difference for you like it has for so many others, myself included.
+        </p>
 
         {/* Footer links */}
         <div className="flex items-center justify-center gap-4 pb-6 flex-wrap mt-6" data-testid="footer-links">

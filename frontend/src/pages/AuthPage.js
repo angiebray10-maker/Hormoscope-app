@@ -110,7 +110,7 @@ export default function AuthPage() {
         <div className="relative z-10 w-full max-w-xl mx-auto px-6 py-20 text-center sm:text-left">
           <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT }} data-testid="hero-eyebrow">Science, Not Stars</p>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white leading-tight mb-5" style={{ fontFamily: HEADING_FONT }} data-testid="hero-title">
-            Real biology, <span style={{ color: PURPLE_LIGHT }}>real insights.</span>
+            Not your horoscope. <span style={{ color: PURPLE_LIGHT }}>Your hormones.</span>
           </h1>
           <p className="text-sm sm:text-base leading-relaxed mb-8 max-w-md" style={{ color: PINK_SOFT, fontFamily: HEADING_FONT }}>
             Daily personalized hormonal readings rooted in science — not astrology. See exactly what your body is doing today, which of the 4 phases you&apos;re in, and how it&apos;s shaping your mood, energy and focus.
@@ -124,7 +124,7 @@ export default function AuthPage() {
             </button>
           </div>
           <p className="text-xs flex items-center justify-center sm:justify-start gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-            <Shield className="w-3.5 h-3.5" /> Free to start. Setup in under 2 minutes.
+            <Shield className="w-3.5 h-3.5" /> One full cycle free. No credit card needed.
           </p>
         </div>
         <button onClick={() => scrollTo(scenariosRef)} className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce" style={{ color: PINK_MUTED }}>
@@ -207,7 +207,7 @@ export default function AuthPage() {
           <div className="text-center mb-14">
             <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>The science</p>
             <h2 className="text-3xl sm:text-4xl text-white mb-4" style={{ fontFamily: HEADING_FONT }} data-testid="science-heading">
-              3 questions, 28 days of clarity.
+              3 questions, one full cycle of clarity.
             </h2>
             <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: HEADING_FONT }}>
               Every woman&apos;s cycle follows the same hormonal blueprint. We just map yours to it.
@@ -301,14 +301,14 @@ export default function AuthPage() {
           <div className="text-center mb-14">
             <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>The shift</p>
             <h2 className="text-3xl sm:text-4xl text-white" style={{ fontFamily: HEADING_FONT }} data-testid="transformation-heading">
-              Imagine your life <span style={{ color: PURPLE_LIGHT }}>with clarity.</span>
+              A little more <span style={{ color: PURPLE_LIGHT }}>clarity.</span>
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="p-6 rounded-2xl border border-red-400/20 bg-black/20" data-testid="before-card">
               <p className="text-red-400 text-xs font-medium tracking-widest uppercase mb-5" style={{ fontFamily: 'Poppins, sans-serif' }}>Without <BrandName style={{ textTransform: 'none', letterSpacing: 'normal' }} /></p>
               <ul className="space-y-3">
-                {['Blindsided by mood swings', 'Snapping at the people you love', 'Googling "why am I so emotional"', 'Turning to horoscopes for answers', 'Feeling broken or "too much"'].map((item) => (
+                {['Wondering why you feel off some days', 'Beating yourself up over mood swings', 'Googling "why am I so emotional"', 'Checking your horoscope for answers', 'Feeling like something is wrong with you'].map((item) => (
                   <li key={item} className="flex items-start gap-2 text-red-300/70 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}><span className="text-red-400/60 mt-0.5">-</span> {item}</li>
                 ))}
               </ul>
@@ -316,7 +316,7 @@ export default function AuthPage() {
             <div className="p-6 rounded-2xl" style={{ border: '1px solid rgba(123,79,166,0.25)', background: 'rgba(123,79,166,0.04)' }} data-testid="after-card">
               <p className="text-xs font-medium tracking-widest uppercase mb-5" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>With <BrandName style={{ textTransform: 'none', letterSpacing: 'normal' }} /></p>
               <ul className="space-y-3">
-                {['Knowing your mood before it hits', 'Scheduling tough talks on the right days', 'Understanding exactly why you feel this way', 'Planning your life around your biology', 'Feeling in control for the first time'].map((item) => (
+                {['Seeing patterns in how you feel across your cycle', 'Having context for hard days instead of blaming yourself', 'Learning what your body tends to do in each phase', 'A private place to track and reflect', 'Feeling a little less alone in it'].map((item) => (
                   <li key={item} className="flex items-start gap-2 text-sm" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}><Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: PURPLE_LIGHT }} /> {item}</li>
                 ))}
               </ul>

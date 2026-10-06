@@ -11,6 +11,25 @@ import {
 const PremiumContext = createContext(null);
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// TEST-ONLY: internal tester allowlist grants Pro without a purchase.
+// This is for the internal-testing track only. REMOVE BEFORE PRODUCTION LAUNCH.
+const TESTER_ALLOWLIST = [
+  'prymedpilot@gmail.com',
+  'stroker@stroker.net',
+  'tchvez@gmail.com',
+  'dizzalina@yahoo.com',
+  'cweiler1228@gmail.com',
+  'aramirezbh4587@gmail.com',
+  'elena.zimareva95@gmail.com',
+  'abeinphoenix@yahoo.com',
+  'oliverisholson@gmail.com',
+  'mbracewell619@gmail.com',
+  'yokothepunk@gmail.com',
+  'bray10bad@gmail.com',
+  'durhangisselle@gmail.com',
+  'gracieburch2479@gmail.com',
+];
+
 export function PremiumProvider({ children }) {
   const { token, user } = useAuth();
   const [isPro, setIsPro] = useState(false);
@@ -19,6 +38,13 @@ export function PremiumProvider({ children }) {
   const refresh = useCallback(async () => {
     if (!token) {
       setIsPro(false);
+      setLoading(false);
+      return;
+    }
+    // TEST-ONLY bypass: internal testers get Pro free during testing.
+    // REMOVE BEFORE PRODUCTION LAUNCH.
+    if (user?.email && TESTER_ALLOWLIST.includes(user.email.toLowerCase())) {
+      setIsPro(true);
       setLoading(false);
       return;
     }
@@ -38,7 +64,7 @@ export function PremiumProvider({ children }) {
     }
     // Web (Stripe flow): backend is the source of truth.
     try {
-      const res = await axios.get(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
       setIsPro(res.data?.is_premium === true);
     } catch (err) {
       logger.error('Premium status check failed:', err);

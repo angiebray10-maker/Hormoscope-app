@@ -38,8 +38,8 @@ export default function CalendarPage() {
   const fetchLogs = useCallback(async () => {
     try {
       const [cycleRes, intimacyRes] = await Promise.all([
-        axios.get(`${API}/cycle-logs`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API}/intimacy-logs`, { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API}/cycle-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }),
+        axios.get(`${API}/intimacy-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
       ]);
       setCycleLogs(cycleRes.data);
       setIntimacyLogs(intimacyRes.data || []);
@@ -53,7 +53,8 @@ export default function CalendarPage() {
   const fetchDashboard = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000
       });
       setDashboard(res.data);
     } catch (err) {
@@ -84,6 +85,26 @@ export default function CalendarPage() {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     return { firstDay, daysInMonth };
+  };
+
+  // Next period date with a local fallback: prefer the backend dashboard value,
+  // but project forward from last_period_date when the backend is unreachable
+  // so ovulation/fertile displays keep working offline.
+  const getNextPeriodDate = () => {
+    if (dashboard?.cycle_info?.next_period_date) return dashboard.cycle_info.next_period_date;
+    if (!user?.last_period_date) return null;
+    const cycleLen = user.cycle_length || 28;
+    const lastStart = new Date(user.last_period_date + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const next = new Date(lastStart);
+    while (next <= today) {
+      next.setDate(next.getDate() + cycleLen);
+    }
+    const y = next.getFullYear();
+    const m = String(next.getMonth() + 1).padStart(2, '0');
+    const d = String(next.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   };
 
   const formatDateString = (year, month, day) => {
@@ -132,8 +153,9 @@ export default function CalendarPage() {
   // Check if this date falls within the predicted FUTURE period range
   // Uses user.period_length so the marked range matches their cycle.
   const isExpectedPeriodRange = (dateStr) => {
-    if (!dashboard?.cycle_info?.next_period_date) return false;
-    const nextPeriodStart = new Date(dashboard.cycle_info.next_period_date + 'T00:00:00');
+    const npd = getNextPeriodDate();
+    if (!npd) return false;
+    const nextPeriodStart = new Date(npd + 'T00:00:00');
     const checkDate = new Date(dateStr + 'T00:00:00');
 
     const periodLen = user?.period_length || 5;
@@ -149,34 +171,37 @@ export default function CalendarPage() {
 
   // Check if this is THE expected next period day
   const isNextPeriodDay = (dateStr) => {
-    if (!dashboard?.cycle_info?.next_period_date) return false;
-    return dateStr === dashboard.cycle_info.next_period_date;
+    const npd = getNextPeriodDate();
+    if (!npd) return false;
+    return dateStr === npd;
   };
 
   // Check if date is in fertile/ovulation window
   const isOvulationDay = (dateStr) => {
-    if (!dashboard?.cycle_info?.next_period_date) return false;
-    const nextPeriod = new Date(dashboard.cycle_info.next_period_date);
-    const checkDate = new Date(dateStr);
-    
+    const npd = getNextPeriodDate();
+    if (!npd) return false;
+    const nextPeriod = new Date(npd + 'T00:00:00');
+    const checkDate = new Date(dateStr + 'T00:00:00');
+
     const ovulationDate = new Date(nextPeriod);
     ovulationDate.setDate(ovulationDate.getDate() - 14);
-    
+
     const fertileStart = new Date(ovulationDate);
-    fertileStart.setDate(fertileStart.getDate() - 4);
+    fertileStart.setDate(fertileStart.getDate() - 5);
     const fertileEnd = new Date(ovulationDate);
     fertileEnd.setDate(fertileEnd.getDate() + 1);
-    
+
     return checkDate >= fertileStart && checkDate <= fertileEnd;
   };
 
   const isPeakOvulation = (dateStr) => {
-    if (!dashboard?.cycle_info?.next_period_date) return false;
-    const nextPeriod = new Date(dashboard.cycle_info.next_period_date);
-    const checkDate = new Date(dateStr);
+    const npd = getNextPeriodDate();
+    if (!npd) return false;
+    const nextPeriod = new Date(npd + 'T00:00:00');
+    const checkDate = new Date(dateStr + 'T00:00:00');
     const ovulationDate = new Date(nextPeriod);
     ovulationDate.setDate(ovulationDate.getDate() - 14);
-    
+
     const diffDays = Math.floor((checkDate - ovulationDate) / (1000 * 60 * 60 * 24));
     return diffDays >= -1 && diffDays <= 0;
   };
@@ -545,7 +570,7 @@ export default function CalendarPage() {
       {/* Info Cards */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         {/* Next Period Card */}
-        {dashboard?.cycle_info?.next_period_date && (
+        {getNextPeriodDate() && (
           <div className="bento-card p-4 hover-lift">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-8 h-8 rounded-xl bg-[#E85A6B]/20 flex items-center justify-center">
@@ -553,23 +578,29 @@ export default function CalendarPage() {
               </div>
             </div>
             <p className="label-luxe mb-1">Next Period</p>
-            <p 
+            <p
               className="text-[#FDF8FA] text-sm tracking-wide"
-              
+
             >
-              {new Date(dashboard.cycle_info.next_period_date + 'T00:00:00').toLocaleDateString('en-US', {
+              {new Date(getNextPeriodDate() + 'T00:00:00').toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric'
               })}
             </p>
             <p className="text-[#E85A6B] text-xs mt-1">
-              {dashboard.cycle_info.days_until_period} days
+              {(() => {
+                if (dashboard?.cycle_info?.next_period_date) return `${dashboard.cycle_info.days_until_period} days`;
+                const diff = Math.round((new Date(getNextPeriodDate() + 'T00:00:00') - new Date(new Date().setHours(0, 0, 0, 0))) / 86400000);
+                if (diff <= 0) return 'today';
+                if (diff === 1) return 'tomorrow';
+                return `${diff} days`;
+              })()}
             </p>
           </div>
         )}
 
         {/* Fertile Window Card */}
-        {dashboard?.cycle_info?.next_period_date && (
+        {getNextPeriodDate() && (
           <div className="bento-card p-4 hover-lift">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-8 h-8 rounded-xl bg-[#5DBB8A]/20 flex items-center justify-center">
@@ -577,16 +608,16 @@ export default function CalendarPage() {
               </div>
             </div>
             <p className="label-luxe mb-1">Fertile Window</p>
-            <p 
+            <p
               className="text-[#FDF8FA] text-sm tracking-wide"
-              
+
             >
               {(() => {
-                const nextPeriod = new Date(dashboard.cycle_info.next_period_date);
+                const nextPeriod = new Date(getNextPeriodDate() + 'T00:00:00');
                 const ovulationDate = new Date(nextPeriod);
                 ovulationDate.setDate(ovulationDate.getDate() - 14);
                 const fertileStart = new Date(ovulationDate);
-                fertileStart.setDate(fertileStart.getDate() - 4);
+                fertileStart.setDate(fertileStart.getDate() - 5);
                 return fertileStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' - ' + ovulationDate.toLocaleDateString('en-US', { day: 'numeric' });
               })()}
             </p>

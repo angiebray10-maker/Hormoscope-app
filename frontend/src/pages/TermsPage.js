@@ -74,7 +74,7 @@ export default function TermsPage() {
             Premium Subscription
           </h2>
           <ul className="list-disc list-inside space-y-2">
-            <li>Premium subscription is billed monthly at $4.99 USD</li>
+            <li>Premium subscription is billed monthly at $6.99 USD</li>
             <li>You can cancel your subscription at any time</li>
             <li>Refunds are handled on a case-by-case basis</li>
             <li>Premium features are available immediately upon payment</li>

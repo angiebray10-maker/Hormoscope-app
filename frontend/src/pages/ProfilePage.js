@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { User, LogOut, ChevronRight, Shield, FileText, Sparkles, Mail, Camera, Loader2, Crown } from 'lucide-react';
+import { User, LogOut, ChevronRight, Shield, FileText, Sparkles, Mail, Camera, Loader2, Crown, Heart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -255,6 +255,29 @@ export default function ProfilePage() {
           </div>
         </Link>
       )}
+
+      {/* Attuned Partner Mode — Coming Soon teaser */}
+      <div
+        className="glass-card p-5 mb-6 flex items-center justify-between opacity-60"
+        data-testid="attuned-teaser"
+        aria-disabled="true"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#FF1493]/20 flex items-center justify-center">
+            <Heart className="w-5 h-5 text-[#FF1493]" fill="#FF1493" />
+          </div>
+          <div>
+            <p className="text-[#F4D3DC] text-sm font-medium">Attuned</p>
+            <p className="text-[#9A8B91] text-xs">Attuned Partner Mode coming soon. Built by one woman, a breast cancer survivor, from real personal experience.</p>
+          </div>
+        </div>
+        <span
+          className="text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-full"
+          style={{ border: '1px solid rgba(212,168,83,0.4)', color: '#D4A853', fontFamily: 'Poppins, sans-serif' }}
+        >
+          Coming Soon
+        </span>
+      </div>
 
       {/* Logout */}
       <button

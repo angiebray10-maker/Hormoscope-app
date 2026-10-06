@@ -28,6 +28,15 @@ export default function HomePage() {
   const [hormoneData, setHormoneData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentBanner, setPaymentBanner] = useState(null); // 'pending' | 'success' | 'failed'
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  // Welcome message after onboarding completes
+  useEffect(() => {
+    if (localStorage.getItem('hormoscope-show-welcome') === 'true') {
+      setShowWelcome(true);
+      localStorage.removeItem('hormoscope-show-welcome');
+    }
+  }, []);
 
   // Stripe redirect — poll for payment status if ?stripe_session_id is present
   useEffect(() => {
@@ -114,6 +123,21 @@ export default function HomePage() {
           Hello, {data?.user_name || 'Beautiful'}
         </h1>
       </div>
+
+      {/* Welcome message after onboarding */}
+      {showWelcome && (
+        <div className="card p-6 mb-6 border border-[#D4A853]/40 bg-[#D4A853]/10 text-center" data-testid="welcome-banner">
+          <p className="text-xl text-white font-script mb-2">Welcome to your true HORMOscope.</p>
+          <p className="text-[#b8b8d1] text-sm">Your cycle, decoded. Let&apos;s begin.</p>
+          <button
+            onClick={() => setShowWelcome(false)}
+            className="mt-4 px-6 py-2 rounded-full text-sm text-white"
+            style={{ background: '#FF1493' }}
+          >
+            Begin
+          </button>
+        </div>
+      )}
 
       {/* Stripe payment banner */}
       {paymentBanner && (

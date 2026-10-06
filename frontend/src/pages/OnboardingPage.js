@@ -4,9 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Calendar, Moon, Sparkles, ChevronRight, ChevronLeft, Cake, Bell, BellOff, Clock } from 'lucide-react';
+import { Calendar, Moon, Sparkles, ChevronRight, ChevronLeft, Cake, Bell, BellOff, Clock, Heart, Lock } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
+import { subscribeToPush } from '../utils/pushNotifications';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -37,6 +38,19 @@ export default function OnboardingPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
       updateUser(res.data);
+      // Save notification preferences for daily reminders
+      localStorage.setItem('hormoscope-notifications-enabled', notificationsEnabled ? 'true' : 'false');
+      localStorage.setItem('hormoscope-notification-time', notificationTime);
+      // Subscribe to push notifications if the user opted in
+      if (notificationsEnabled) {
+        try {
+          await subscribeToPush(token);
+        } catch (pushErr) {
+          logger.error('Push subscription failed during onboarding:', pushErr);
+        }
+      }
+      // Flag the welcome message for the home screen
+      localStorage.setItem('hormoscope-show-welcome', 'true');
       navigate('/');
     } catch (err) {
       logger.error('Onboarding error:', err);
@@ -45,14 +59,14 @@ export default function OnboardingPage() {
     }
   };
 
-  const totalSteps = 4;
+  const totalSteps = 6;
 
   return (
     <div className="min-h-screen bg-[#05050A] stars-bg flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md">
         {/* Progress */}
         <div className="flex items-center justify-center gap-2 mb-10">
-          {[1, 2, 3, 4, 5].map((s) => (
+          {[1, 2, 3, 4, 5, 6].map((s) => (
             <div
               key={s}
               className={`h-2 rounded-full transition-all duration-300 ${
@@ -310,6 +324,36 @@ export default function OnboardingPage() {
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {step === 6 && (
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#12121A] border border-[#FF1493]/30 mb-4">
+                  <Lock className="w-8 h-8 text-[#FF1493]" />
+                </div>
+                <h2 className="text-2xl font-semibold text-[#F5F5F5]">
+                  Your Secret Calendar
+                </h2>
+                <p className="text-[#A0A0A0] mt-2">
+                  This is a one-time message. Only you will know this exists.
+                </p>
+              </div>
+              <div className="space-y-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-[#12121A] border border-white/5">
+                  <Heart className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#FF1493' }} fill="#FF1493" />
+                  <p className="text-sm text-white/80"><strong className="text-white">Tap</strong> any date to drop a discreet heart for intimacy. No sensitive text on screen.</p>
+                </div>
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-[#12121A] border border-white/5">
+                  <Lock className="w-5 h-5 text-[#D4A853] flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-white/80"><strong className="text-white">Tap and hold</strong> any date with a heart to privately log who you were with. Only you will ever see this.</p>
+                </div>
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-[#12121A] border border-white/5">
+                  <Calendar className="w-5 h-5 text-[#7B1E30] flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-white/80">Green highlights show your fertile window. Dotted outlines forecast your next period.</p>
+                </div>
+              </div>
             </div>
           )}
 

@@ -20,8 +20,8 @@ function MiniCalendar({ token, selectedDate, onSelectDate, onClose }) {
     const fetchData = async () => {
       try {
         const [c, i] = await Promise.all([
-          axios.get(`${API}/cycle-logs`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API}/intimacy-logs`, { headers: { Authorization: `Bearer ${token}` } })
+          axios.get(`${API}/cycle-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }),
+          axios.get(`${API}/intimacy-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
         ]);
         setCycleLogs(c.data || []);
         setIntimacyLogs(i.data || []);
@@ -74,6 +74,8 @@ export default function JournalPage() {
   const [currentTitle, setCurrentTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showCal, setShowCal] = useState(false);
   const entryRefs = useRef({});
@@ -84,13 +86,33 @@ export default function JournalPage() {
   useEffect(() => { if (token) fetchEntries(); else setLoading(false); }, [token]);
   /* eslint-enable */
 
+  // Safety net: never spin forever. If the backend is asleep and both the
+  // journal fetch and the premium check are still pending after 20 seconds,
+  // stop and show the retry UI instead.
+  useEffect(() => {
+    if (!loading && !rcLoading) return;
+    const t = setTimeout(() => setLoadTimedOut(true), 20000);
+    return () => clearTimeout(t);
+  }, [loading, rcLoading]);
+
+  const handleRetry = () => {
+    setLoadError(false);
+    setLoadTimedOut(false);
+    setLoading(true);
+    fetchEntries();
+  };
+
   // Journal is Pro-only — fully locked for free users (no trial entries)
 
   const fetchEntries = async () => {
+    setLoadError(false);
     try {
-      const res = await axios.get(`${API}/journal`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get(`${API}/journal`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
       setEntries(res.data);
-    } catch (err) { logger.error('Failed to fetch journal entries:', err); } finally { setLoading(false); }
+    } catch (err) {
+      logger.error('Failed to fetch journal entries:', err);
+      setLoadError(true);
+    } finally { setLoading(false); }
   };
 
   const handleSave = async () => {
@@ -100,7 +122,7 @@ export default function JournalPage() {
       await axios.post(`${API}/journal`, {
         title: currentTitle.trim() || new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
         content: currentEntry
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
       setCurrentEntry(''); setCurrentTitle(''); setWriting(false);
       fetchEntries();
     } catch (err) { logger.error('Failed to save journal entry:', err); } finally { setSaving(false); }
@@ -108,7 +130,7 @@ export default function JournalPage() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API}/journal/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`${API}/journal/${id}`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
       setEntries(entries.filter(e => e.id !== id));
     } catch (err) { logger.error('Failed to delete journal entry:', err); }
   };
@@ -123,7 +145,21 @@ export default function JournalPage() {
 
   const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  if (loading || rcLoading) return <div className="flex items-center justify-center min-h-screen"><div className="cycle-orb orb-follicular w-16 h-16" /></div>;
+  if ((loading || rcLoading) && !loadTimedOut && !loadError) return <div className="flex items-center justify-center min-h-screen"><div className="cycle-orb orb-follicular w-16 h-16" /></div>;
+
+  if (loadTimedOut || loadError) return (
+    <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
+      <p className="text-white/80 text-sm mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Couldn&apos;t load your journal.</p>
+      <p className="text-white/40 text-xs mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>The server might be waking up. Try again in a moment.</p>
+      <button
+        onClick={handleRetry}
+        className="px-6 py-3 rounded-full text-white text-sm font-medium"
+        style={{ background: '#FF1493', fontFamily: 'Poppins, sans-serif' }}
+      >
+        Try Again
+      </button>
+    </div>
+  );
 
   // Pro-only gate: free users see a locked preview, no trial
   if (!isPro) {
@@ -156,7 +192,7 @@ export default function JournalPage() {
             Unlock HORMOscope Pro
           </Link>
           <p className="text-[10px] mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.4)' }}>
-            $4.99/mo or $49.99/yr · Cancel anytime
+            $6.99/mo or $49.99/yr · Cancel anytime
           </p>
         </div>
       </div>
