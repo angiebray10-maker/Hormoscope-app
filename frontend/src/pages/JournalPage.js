@@ -156,7 +156,7 @@ export default function JournalPage() {
             Unlock HORMOscope Pro
           </Link>
           <p className="text-[10px] mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.4)' }}>
-            $9.99/mo or $79.99/yr · Cancel anytime
+            $4.99/mo or $49.99/yr · Cancel anytime
           </p>
         </div>
       </div>
