@@ -19,8 +19,8 @@ const GOLD = '#D4A853';
 // Hardcoded display prices are only a fallback for the WEB (Stripe) flow.
 // On native, prices come from the Play Store via RevenueCat (localized).
 const FALLBACK_PRICES = {
-  yearly: { price: '$79.99', per: '/yr', note: '$6.67/mo · Save $40' },
-  monthly: { price: '$9.99', per: '/mo', note: 'Cancel anytime' },
+  yearly: { price: '$49.99', per: '/yr', note: '$4.17/mo · Save $10' },
+  monthly: { price: '$4.99', per: '/mo', note: 'Cancel anytime' },
 };
 
 const trackEvent = (token, event, context = '', plan = '') => {
@@ -341,7 +341,7 @@ export default function ProPage() {
                   <p className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>Yearly</p>
                   <div className="flex items-baseline gap-2">
                     {!nativeBilling && (
-                      <span className="text-xs line-through" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Poppins, sans-serif' }} data-testid="yearly-strikethrough-pro">$119.99</span>
+                      <span className="text-xs line-through" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Poppins, sans-serif' }} data-testid="yearly-strikethrough-pro">$59.99</span>
                     )}
                     <span className="text-lg font-semibold" style={{ color: GOLD }}>{priceFor('yearly').price}</span>
                     <span className="text-white/50 text-xs">{priceFor('yearly').per}</span>
