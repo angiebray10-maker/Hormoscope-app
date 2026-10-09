@@ -12,6 +12,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const APP_URL = process.env.REACT_APP_BACKEND_URL?.replace('/api', '') || window.location.origin;
 
 function AttunedSection({ token }) {
+  const { isPro } = usePremium();
   const [status, setStatus] = useState(null);
   const [inviteCode, setInviteCode] = useState(null);
   const [generating, setGenerating] = useState(false);
@@ -109,11 +110,19 @@ function AttunedSection({ token }) {
           <p className="text-[#9A8B91] text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Link his account to yours so he can follow your cycle — ovulation days, fertile window, and when to expect your period.
           </p>
-          <button onClick={handleInvite} disabled={generating}
-            className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50"
-            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}>
-            {generating ? 'Creating invite...' : 'Invite Your Partner'}
-          </button>
+          {isPro ? (
+            <button onClick={handleInvite} disabled={generating}
+              className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50"
+              style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}>
+              {generating ? 'Creating invite...' : 'Invite Your Partner'}
+            </button>
+          ) : (
+            <Link to="/pro?from=partner-invite"
+              className="block w-full py-2.5 rounded-full text-white text-sm font-medium text-center"
+              style={{ fontFamily: 'Poppins, sans-serif', background: 'linear-gradient(135deg, #D4A853, #c9a030)' }}>
+              Unlock with HORMOscope Pro
+            </Link>
+          )}
         </div>
       )}
     </div>

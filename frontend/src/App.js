@@ -21,6 +21,7 @@ import FoundersNotePage from './pages/FoundersNotePage';
 import ContactPage from './pages/ContactPage';
 import PartnerViewPage from './pages/PartnerViewPage';
 import PartnerHubPage from './pages/PartnerHubPage';
+import GiftShopPage from './pages/GiftShopPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 import './index.css';
@@ -110,6 +111,11 @@ const AppContent = () => {
         <Route path="/partner-hub" element={
           <ProtectedRoute>
             <PartnerHubPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/gift-shop" element={
+          <ProtectedRoute>
+            <GiftShopPage />
           </ProtectedRoute>
         } />
 

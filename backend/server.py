@@ -2242,6 +2242,12 @@ def _partner_pair(rel: dict):
 
 @api_router.post("/partner/invite")
 async def create_partner_invite(current_user: dict = Depends(get_current_user)):
+    # Pro-only: the owner must have Pro to invite a partner
+    if not current_user.get("is_premium"):
+        raise HTTPException(
+            status_code=402,  # Payment Required
+            detail="Attuned Partner Mode is a HORMOscope Pro feature. Upgrade to invite your partner."
+        )
     # One active invite at a time; revoke older pending ones
     await db.partner_invites.delete_many({"inviter_id": current_user["id"], "status": "pending"})
     existing = await _get_partner_relationship(current_user["id"])
