@@ -351,6 +351,64 @@ h1, h2, h3, .heading {
 }
 
 /* =============================================
+   HORMOscope floating quick-log carousel
+   Pure CSS orbit: outer wrapper travels left->right,
+   inner icon scales + pulls focus (blur) with depth.
+   ============================================= */
+@keyframes hs-orbit-x {
+    0%   { left: -10%; }
+    25%  { left: 27%; }
+    50%  { left: 50%; }
+    75%  { left: 73%; }
+    100% { left: 110%; }
+}
+
+@keyframes hs-orbit-focus {
+    0%   { transform: translate(-50%, -50%) scale(0.55); filter: blur(7px); opacity: 0.15; z-index: 1; }
+    20%  { opacity: 0.4; z-index: 2; }
+    25%  { transform: translate(-50%, -50%) scale(0.82); filter: blur(3px); opacity: 0.55; z-index: 3; }
+    50%  { transform: translate(-50%, -50%) scale(1.22); filter: blur(0px); opacity: 1; z-index: 10; }
+    75%  { transform: translate(-50%, -50%) scale(0.82); filter: blur(3px); opacity: 0.55; z-index: 3; }
+    80%  { opacity: 0.4; z-index: 2; }
+    100% { transform: translate(-50%, -50%) scale(0.55); filter: blur(7px); opacity: 0.15; z-index: 1; }
+}
+
+.hs-orbit-item {
+    position: absolute;
+    top: 50%;
+    animation: hs-orbit-x 26s linear infinite;
+    will-change: left;
+}
+
+.hs-orbit-icon {
+    animation: hs-orbit-focus 26s linear infinite;
+    will-change: transform, filter, opacity;
+}
+
+/* Pause the carousel while hovering (desktop) */
+.hs-carousel-track:hover .hs-orbit-item,
+.hs-carousel-track:hover .hs-orbit-icon {
+    animation-play-state: paused;
+}
+
+/* Respect reduced-motion: show a calm static row instead */
+@media (prefers-reduced-motion: reduce) {
+    .hs-orbit-item,
+    .hs-orbit-icon {
+        animation: none;
+    }
+    .hs-orbit-item {
+        position: static;
+        transform: none;
+    }
+    .hs-orbit-icon {
+        transform: none;
+        filter: none;
+        opacity: 1;
+    }
+}
+
+/* =============================================
    TAILWIND OVERRIDES
    ============================================= */
 

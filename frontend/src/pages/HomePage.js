@@ -7,6 +7,7 @@ import DailyRhythmReport from '../components/DailyRhythmReport';
 import HormoneMap from '../components/HormoneMap';
 import ProUpsellBanner from '../components/ProUpsellBanner';
 import DailyRead from '../components/DailyRead';
+import FloatingCarousel from '../components/FloatingCarousel';
 import logger from '../utils/logger';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -185,6 +186,9 @@ export default function HomePage() {
           }
         </p>
       </div>
+
+      {/* Floating quick-log carousel */}
+      <FloatingCarousel token={token} />
 
       {/* Mood Card */}
       <div className="card card-pink p-5 mb-4">
