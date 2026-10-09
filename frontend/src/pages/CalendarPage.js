@@ -30,6 +30,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
   const [dashboard, setDashboard] = useState(null);
+  const [cycleStats, setCycleStats] = useState(null);
   const [newCycleLength, setNewCycleLength] = useState(user?.cycle_length || 28);
   const [newPeriodLength, setNewPeriodLength] = useState(user?.period_length || 5);
   const [newPeriodDate, setNewPeriodDate] = useState(new Date().toISOString().split('T')[0]);
@@ -62,11 +63,32 @@ export default function CalendarPage() {
     }
   }, [token]);
 
+  // Fetch cycle stats to get the real average period length calculated
+  // from consecutive logged period days (not just the static user setting).
+  const fetchCycleStats = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/cycle-stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000
+      });
+      setCycleStats(res.data);
+    } catch (err) {
+      logger.error('Cycle stats error:', err);
+    }
+  }, [token]);
+
+  // Period length for predictions: prefer the backend's dynamically calculated
+  // average from actual logged period days, falling back to the user setting.
+  const getPeriodLength = () => {
+    return cycleStats?.avg_period_length || user?.period_length || 5;
+  };
+
   /* eslint-disable */
   useEffect(() => {
     fetchLogs();
     fetchDashboard();
-  }, [fetchLogs, fetchDashboard]);
+    fetchCycleStats();
+  }, [fetchLogs, fetchDashboard, fetchCycleStats]);
   /* eslint-enable */
 
   // Show guide once — lazy init state, no effect needed
@@ -126,7 +148,7 @@ export default function CalendarPage() {
     today.setHours(0, 0, 0, 0);
 
     const cycleLen = user.cycle_length || 28;
-    const periodLen = user.period_length || 5;
+    const periodLen = Math.round(getPeriodLength());
 
     // Only project for dates strictly in the past
     if (checkDate >= today) return false;
@@ -150,15 +172,16 @@ export default function CalendarPage() {
     return false;
   };
 
-  // Check if this date falls within the predicted FUTURE period range
-  // Uses user.period_length so the marked range matches their cycle.
+  // Check if this date falls within the predicted FUTURE period range.
+  // Uses the actual average period length from logged days so the marked
+  // range matches her real cycle, falling back to the user setting.
   const isExpectedPeriodRange = (dateStr) => {
     const npd = getNextPeriodDate();
     if (!npd) return false;
     const nextPeriodStart = new Date(npd + 'T00:00:00');
     const checkDate = new Date(dateStr + 'T00:00:00');
 
-    const periodLen = user?.period_length || 5;
+    const periodLen = Math.round(getPeriodLength());
     const nextPeriodEnd = new Date(nextPeriodStart);
     nextPeriodEnd.setDate(nextPeriodEnd.getDate() + (periodLen - 1));
 
