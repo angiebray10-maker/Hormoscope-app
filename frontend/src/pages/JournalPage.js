@@ -78,6 +78,7 @@ export default function JournalPage() {
   const [loadTimedOut, setLoadTimedOut] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showCal, setShowCal] = useState(false);
+  const [isIntimate, setIsIntimate] = useState(false);
   const entryRefs = useRef({});
 
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -121,9 +122,10 @@ export default function JournalPage() {
     try {
       await axios.post(`${API}/journal`, {
         title: currentTitle.trim() || new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
-        content: currentEntry
+        content: currentEntry,
+        is_intimate: isIntimate
       }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setCurrentEntry(''); setCurrentTitle(''); setWriting(false);
+      setCurrentEntry(''); setCurrentTitle(''); setIsIntimate(false); setWriting(false);
       fetchEntries();
     } catch (err) { logger.error('Failed to save journal entry:', err); } finally { setSaving(false); }
   };
@@ -133,6 +135,14 @@ export default function JournalPage() {
       await axios.delete(`${API}/journal/${id}`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
       setEntries(entries.filter(e => e.id !== id));
     } catch (err) { logger.error('Failed to delete journal entry:', err); }
+  };
+
+  const handleToggleIntimate = async (entry) => {
+    try {
+      const res = await axios.put(`${API}/journal/${entry.id}/intimate`, { is_intimate: !entry.is_intimate },
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setEntries(entries.map(e => e.id === entry.id ? { ...e, is_intimate: res.data.is_intimate } : e));
+    } catch (err) { logger.error('Failed to toggle intimate flag:', err); }
   };
 
   const handleDateSelect = (dateStr) => {
@@ -266,8 +276,19 @@ export default function JournalPage() {
                 data-testid="journal-content-input"
               />
             </div>
-            <div className="flex gap-2 p-3 border-t border-white/5">
-              <button onClick={() => { setWriting(false); setCurrentEntry(''); setCurrentTitle(''); }}
+            <div className="flex gap-2 p-3 border-t border-white/5 items-center">
+              <button
+                onClick={() => setIsIntimate(!isIntimate)}
+                title={isIntimate ? 'Intimate — her eyes only' : 'Mark as intimate'}
+                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                style={{
+                  border: isIntimate ? `1px solid ${GOLD}` : '1px solid rgba(255,255,255,0.12)',
+                  background: isIntimate ? 'rgba(212,168,83,0.12)' : 'transparent'
+                }}
+                data-testid="intimate-toggle">
+                <Lock className="w-4 h-4" style={{ color: isIntimate ? GOLD : 'rgba(255,255,255,0.35)' }} />
+              </button>
+              <button onClick={() => { setWriting(false); setCurrentEntry(''); setCurrentTitle(''); setIsIntimate(false); }}
                 className="flex-1 py-2 rounded-full text-white/50 text-xs" style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.08)' }}>
                 Cancel
               </button>
@@ -305,10 +326,22 @@ export default function JournalPage() {
                         <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>{entry.title}</h3>
                         <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtDate(entry.created_at)}</p>
                       </div>
-                      <button onClick={() => handleDelete(entry.id)} className="text-white/15 hover:text-red-400 p-1" data-testid={`delete-entry-${entry.id}`}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => handleToggleIntimate(entry)}
+                          title={entry.is_intimate ? 'Intimate — her eyes only' : 'Mark as intimate'}
+                          className="p-1" data-testid={`intimate-entry-${entry.id}`}>
+                          <Lock className="w-3.5 h-3.5" style={{ color: entry.is_intimate ? GOLD : 'rgba(255,255,255,0.15)' }} />
+                        </button>
+                        <button onClick={() => handleDelete(entry.id)} className="text-white/15 hover:text-red-400 p-1" data-testid={`delete-entry-${entry.id}`}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
+                    {entry.is_intimate && (
+                      <p className="text-[10px] tracking-widest uppercase mb-1" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>
+                        Intimate · her eyes only
+                      </p>
+                    )}
                     <p className="text-white/80 leading-7 whitespace-pre-wrap mt-2" style={{ fontFamily: "'Satisfy', cursive", fontSize: '15px', lineHeight: '28px' }}>{entry.content}</p>
                   </div>
                 </div>

@@ -1704,6 +1704,10 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
 class JournalEntryCreate(BaseModel):
     title: str = ""
     content: str
+    is_intimate: bool = False
+
+class IntimateUpdate(BaseModel):
+    is_intimate: bool
 
 @api_router.post("/journal")
 async def create_journal_entry(entry: JournalEntryCreate, current_user: dict = Depends(get_current_user)):
@@ -1718,6 +1722,7 @@ async def create_journal_entry(entry: JournalEntryCreate, current_user: dict = D
         "user_id": current_user["id"],
         "title": entry.title or datetime.now().strftime("%A, %B %d"),
         "content": entry.content,
+        "is_intimate": bool(entry.is_intimate),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.journal_entries.insert_one(entry_data)
@@ -1737,6 +1742,17 @@ async def delete_journal_entry(entry_id: str, current_user: dict = Depends(get_c
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Entry not found")
     return {"message": "Entry deleted"}
+
+@api_router.put("/journal/{entry_id}/intimate")
+async def set_journal_entry_intimate(entry_id: str, req: IntimateUpdate, current_user: dict = Depends(get_current_user)):
+    """Mark a journal entry as intimate (her eyes only) or not. Intimate entries are never shared with partners."""
+    result = await db.journal_entries.update_one(
+        {"id": entry_id, "user_id": current_user["id"]},
+        {"$set": {"is_intimate": bool(req.is_intimate)}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"ok": True, "is_intimate": bool(req.is_intimate)}
 
 # ==================== PREMIUM: DAILY RHYTHM REPORT ====================
 
@@ -2119,28 +2135,10 @@ async def revoke_partner_link(current_user: dict = Depends(get_current_user)):
     await db.partner_links.delete_many({"user_id": current_user["id"]})
     return {"ok": True}
 
-@api_router.get("/partner/view/{link_code}")
-async def get_partner_view(link_code: str):
-    link = await db.partner_links.find_one({"link_code": link_code, "active": True}, {"_id": 0})
-    if not link:
-        raise HTTPException(status_code=404, detail="Link not found or expired")
-    
-    user = await db.users.find_one({"id": link["user_id"]}, {"_id": 0, "hashed_password": 0, "email": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    last_period = user.get("last_period_date")
-    cycle_length = user.get("cycle_length", 28)
-    
-    if last_period:
-        cycle_info = calculate_cycle_info(last_period, cycle_length)
-    else:
-        cycle_info = {"cycle_day": 1, "cycle_length": 28, "phase": "unknown"}
-    
-    phase = cycle_info.get("phase", "menstrual")
-    rhythm = RHYTHM_DATA.get(phase, RHYTHM_DATA.get("menstrual", {}))
-    
-    # Build partner-friendly tips
+
+
+def _partner_tips_for_phase(phase: str):
+    """Partner-friendly tips per cycle phase. Shared by the public link view and the linked partner dashboard."""
     partner_tips = {
         "menstrual": {
             "headline": "She's on her period",
@@ -2173,8 +2171,30 @@ async def get_partner_view(link_code: str):
             "conversation": "Follow her lead. If she wants to talk, listen. If not, just be present."
         }
     }
+    return partner_tips.get(phase, partner_tips["menstrual"])
+
+@api_router.get("/partner/view/{link_code}")
+async def get_partner_view(link_code: str):
+    link = await db.partner_links.find_one({"link_code": link_code, "active": True}, {"_id": 0})
+    if not link:
+        raise HTTPException(status_code=404, detail="Link not found or expired")
     
-    tips = partner_tips.get(phase, partner_tips["menstrual"])
+    user = await db.users.find_one({"id": link["user_id"]}, {"_id": 0, "hashed_password": 0, "email": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    last_period = user.get("last_period_date")
+    cycle_length = user.get("cycle_length", 28)
+    
+    if last_period:
+        cycle_info = calculate_cycle_info(last_period, cycle_length)
+    else:
+        cycle_info = {"cycle_day": 1, "cycle_length": 28, "phase": "unknown"}
+    
+    phase = cycle_info.get("phase", "menstrual")
+    rhythm = RHYTHM_DATA.get(phase, RHYTHM_DATA.get("menstrual", {}))
+    
+    tips = _partner_tips_for_phase(phase)
     
     return {
         "name": user.get("name", "Her"),
@@ -2195,6 +2215,251 @@ async def get_my_partner_link(current_user: dict = Depends(get_current_user)):
     if not link:
         return {"has_link": False}
     return {"has_link": True, "link_code": link["link_code"]}
+
+
+# ==================== ATTUNED PARTNER MODE: LINKED ACCOUNTS ====================
+# A partner creates their own HORMOscope account and links it to her account
+# via an invite code. Partners see her cycle calendar (ovulation, fertile
+# window, next period) but NEVER her journal entries (intimate or otherwise)
+# and NEVER her intimacy logs.
+
+class AcceptInviteRequest(BaseModel):
+    invite_code: str
+
+class PartnerNoteCreate(BaseModel):
+    content: str
+
+async def _get_partner_relationship(user_id: str):
+    """Return the active partner relationship for a user, in either direction."""
+    return await db.partner_relationships.find_one(
+        {"active": True, "$or": [{"user_id": user_id}, {"partner_user_id": user_id}]},
+        {"_id": 0}
+    )
+
+def _partner_pair(rel: dict):
+    """(owner_id, partner_id). The owner is the woman who sent the invite."""
+    return rel["user_id"], rel["partner_user_id"]
+
+@api_router.post("/partner/invite")
+async def create_partner_invite(current_user: dict = Depends(get_current_user)):
+    # One active invite at a time; revoke older pending ones
+    await db.partner_invites.delete_many({"inviter_id": current_user["id"], "status": "pending"})
+    existing = await _get_partner_relationship(current_user["id"])
+    if existing:
+        raise HTTPException(status_code=400, detail="You already have a linked partner. Unlink first to send a new invite.")
+    code = str(uuid.uuid4())[:8].upper()
+    await db.partner_invites.insert_one({
+        "id": str(uuid.uuid4()),
+        "inviter_id": current_user["id"],
+        "invite_code": code,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    return {"invite_code": code}
+
+@api_router.get("/partner/invites/sent")
+async def get_sent_invites(current_user: dict = Depends(get_current_user)):
+    invites = await db.partner_invites.find(
+        {"inviter_id": current_user["id"]}, {"_id": 0}
+    ).sort("created_at", -1).to_list(length=20)
+    return invites
+
+@api_router.post("/partner/accept-invite")
+async def accept_partner_invite(req: AcceptInviteRequest, current_user: dict = Depends(get_current_user)):
+    code = (req.invite_code or "").strip().upper()
+    invite = await db.partner_invites.find_one({"invite_code": code, "status": "pending"}, {"_id": 0})
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite code not found or already used.")
+    if invite["inviter_id"] == current_user["id"]:
+        raise HTTPException(status_code=400, detail="You can't accept your own invite.")
+    if await _get_partner_relationship(current_user["id"]):
+        raise HTTPException(status_code=400, detail="This account is already linked to a partner.")
+    if await _get_partner_relationship(invite["inviter_id"]):
+        raise HTTPException(status_code=400, detail="This invite is no longer valid.")
+    await db.partner_relationships.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": invite["inviter_id"],
+        "partner_user_id": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "active": True
+    })
+    await db.partner_invites.update_one({"id": invite["id"]}, {"$set": {"status": "accepted"}})
+    owner = await db.users.find_one({"id": invite["inviter_id"]}, {"_id": 0, "name": 1})
+    return {"ok": True, "linked_to": (owner.get("name") if owner else None) or "Her"}
+
+@api_router.get("/partner/status")
+async def get_partner_status(current_user: dict = Depends(get_current_user)):
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        return {"is_linked": False}
+    owner_id, partner_id = _partner_pair(rel)
+    other_id = partner_id if current_user["id"] == owner_id else owner_id
+    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1})
+    return {
+        "is_linked": True,
+        "role": "owner" if current_user["id"] == owner_id else "partner",
+        "partner_name": (other.get("name") if other else None) or "Partner",
+        "linked_since": rel.get("created_at")
+    }
+
+@api_router.post("/partner/unlink")
+async def unlink_partner(current_user: dict = Depends(get_current_user)):
+    result = await db.partner_relationships.delete_many({
+        "active": True,
+        "$or": [{"user_id": current_user["id"]}, {"partner_user_id": current_user["id"]}]
+    })
+    return {"ok": True, "removed": result.deleted_count}
+
+@api_router.get("/partner/calendar")
+async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
+    """Her cycle calendar for a linked partner. NEVER includes journal entries
+    (intimate or otherwise) or intimacy logs."""
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        raise HTTPException(status_code=403, detail="No linked partner account.")
+    owner_id, _ = _partner_pair(rel)
+    owner = await db.users.find_one({"id": owner_id}, {"_id": 0, "hashed_password": 0, "email": 0})
+    if not owner:
+        raise HTTPException(status_code=404, detail="Partner account not found")
+
+    last_period = owner.get("last_period_date")
+    cycle_length = owner.get("cycle_length", 28)
+    period_length = owner.get("period_length", 5)
+    if last_period:
+        cycle_info = calculate_cycle_info(last_period, cycle_length)
+    else:
+        cycle_info = {"cycle_day": 1, "cycle_length": 28, "phase": "unknown",
+                      "phase_info": "", "next_period_date": None, "days_until_period": None}
+
+    npd = cycle_info.get("next_period_date")
+    ovulation_date = fertile_start = fertile_end = None
+    if npd:
+        np = date.fromisoformat(npd)
+        ov = np - timedelta(days=14)
+        ovulation_date = ov.isoformat()
+        fertile_start = (ov - timedelta(days=5)).isoformat()
+        fertile_end = (ov + timedelta(days=1)).isoformat()
+
+    marked_days = []
+    if last_period:
+        try:
+            lpd = date.fromisoformat(str(last_period)[:10])
+            today = date.today()
+            win_start = today - timedelta(days=45)
+            win_end = today + timedelta(days=75)
+            # Project period starts backward then forward across the window
+            s = lpd
+            while s > win_start - timedelta(days=cycle_length):
+                s = s - timedelta(days=cycle_length)
+            period_days = set()
+            while s <= win_end:
+                for i in range(period_length):
+                    d = s + timedelta(days=i)
+                    if win_start <= d <= win_end:
+                        period_days.add(d.isoformat())
+                s = s + timedelta(days=cycle_length)
+            fertile_days = set()
+            if fertile_start and fertile_end:
+                f = date.fromisoformat(fertile_start)
+                fe = date.fromisoformat(fertile_end)
+                while f <= fe:
+                    fertile_days.add(f.isoformat())
+                    f = f + timedelta(days=1)
+            expected_days = set()
+            if npd:
+                e = date.fromisoformat(npd)
+                for i in range(period_length):
+                    expected_days.add((e + timedelta(days=i)).isoformat())
+            ov_set = {ovulation_date} if ovulation_date else set()
+            for ds in sorted(period_days | fertile_days | expected_days | ov_set):
+                if ds in period_days:
+                    kind = "period"
+                elif ds == ovulation_date:
+                    kind = "ovulation"
+                elif ds in expected_days:
+                    kind = "expected_period"
+                else:
+                    kind = "fertile"
+                marked_days.append({"date": ds, "kind": kind})
+        except Exception:
+            marked_days = []
+
+    phase = cycle_info.get("phase", "menstrual")
+    return {
+        "name": owner.get("name", "Her"),
+        "cycle_day": cycle_info.get("cycle_day", 1),
+        "cycle_length": cycle_length,
+        "phase": phase,
+        "phase_info": cycle_info.get("phase_info", ""),
+        "next_period_date": npd,
+        "days_until_period": cycle_info.get("days_until_period"),
+        "ovulation_date": ovulation_date,
+        "fertile_window": {"start": fertile_start, "end": fertile_end},
+        "marked_days": marked_days,
+        "partner_tips": _partner_tips_for_phase(phase)
+    }
+
+# ==================== ATTUNED PARTNER MODE: NOTES ====================
+# A quiet, unadvertised space where the two of them can leave short notes
+# for each other. Not mentioned in onboarding or UI tours — discovered
+# naturally inside partner mode.
+
+@api_router.post("/partner/notes")
+async def create_partner_note(note: PartnerNoteCreate, current_user: dict = Depends(get_current_user)):
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        raise HTTPException(status_code=403, detail="No linked partner account.")
+    content = (note.content or "").strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Note can't be empty.")
+    if len(content) > 280:
+        raise HTTPException(status_code=400, detail="Keep notes under 280 characters.")
+    owner_id, partner_id = _partner_pair(rel)
+    note_data = {
+        "id": str(uuid.uuid4()),
+        "author_id": current_user["id"],
+        "author_name": current_user.get("name") or "Her",
+        "recipient_id": partner_id if current_user["id"] == owner_id else owner_id,
+        "content": content,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "read": False
+    }
+    await db.partner_notes.insert_one(note_data)
+    return {"id": note_data["id"], "message": "Note sent"}
+
+@api_router.get("/partner/notes")
+async def get_partner_notes(current_user: dict = Depends(get_current_user)):
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        raise HTTPException(status_code=403, detail="No linked partner account.")
+    owner_id, partner_id = _partner_pair(rel)
+    notes = await db.partner_notes.find(
+        {"$or": [
+            {"author_id": owner_id, "recipient_id": partner_id},
+            {"author_id": partner_id, "recipient_id": owner_id}
+        ]},
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(length=500)
+    unread = sum(1 for n in notes if n["recipient_id"] == current_user["id"] and not n.get("read"))
+    return {"notes": notes, "unread_count": unread}
+
+@api_router.put("/partner/notes/read")
+async def mark_partner_notes_read(current_user: dict = Depends(get_current_user)):
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        raise HTTPException(status_code=403, detail="No linked partner account.")
+    result = await db.partner_notes.update_many(
+        {"recipient_id": current_user["id"], "read": False},
+        {"$set": {"read": True}}
+    )
+    return {"ok": True, "marked": result.modified_count}
+
+@api_router.delete("/partner/notes/{note_id}")
+async def delete_partner_note(note_id: str, current_user: dict = Depends(get_current_user)):
+    result = await db.partner_notes.delete_one({"id": note_id, "author_id": current_user["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return {"message": "Note deleted"}
 
 
 

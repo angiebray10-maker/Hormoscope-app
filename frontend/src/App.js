@@ -20,6 +20,7 @@ import TermsPage from './pages/TermsPage';
 import FoundersNotePage from './pages/FoundersNotePage';
 import ContactPage from './pages/ContactPage';
 import PartnerViewPage from './pages/PartnerViewPage';
+import PartnerHubPage from './pages/PartnerHubPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 import './index.css';
@@ -104,6 +105,11 @@ const AppContent = () => {
         <Route path="/pro" element={
           <ProtectedRoute>
             <ProPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/partner-hub" element={
+          <ProtectedRoute>
+            <PartnerHubPage />
           </ProtectedRoute>
         } />
 

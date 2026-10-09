@@ -11,6 +11,115 @@ import logger from '../utils/logger';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const APP_URL = process.env.REACT_APP_BACKEND_URL?.replace('/api', '') || window.location.origin;
 
+function AttunedSection({ token }) {
+  const [status, setStatus] = useState(null);
+  const [inviteCode, setInviteCode] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    axios.get(`${API}/partner/status`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => setStatus(res.data))
+      .catch(() => setStatus({ is_linked: false }));
+  }, [token]);
+
+  const handleInvite = async () => {
+    setGenerating(true);
+    try {
+      const res = await axios.post(`${API}/partner/invite`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setInviteCode(res.data.invite_code);
+    } catch (err) {
+      logger.error('Invite error:', err);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleUnlink = async () => {
+    try {
+      await axios.post(`${API}/partner/unlink`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setStatus({ is_linked: false });
+      setInviteCode(null);
+    } catch (err) {
+      logger.error('Unlink error:', err);
+    }
+  };
+
+  const copyCode = () => {
+    if (inviteCode) {
+      navigator.clipboard?.writeText(inviteCode).catch(() => {});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="glass-card p-5 mb-6" data-testid="attuned-section">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-full bg-[#FF1493]/20 flex items-center justify-center">
+          <Heart className="w-5 h-5 text-[#FF1493]" fill="#FF1493" />
+        </div>
+        <div>
+          <p className="text-[#F4D3DC] text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>Attuned Partner Mode</p>
+          <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Built by one woman, a breast cancer survivor, from real personal experience.</p>
+        </div>
+      </div>
+
+      {status === null ? (
+        <div className="flex justify-center py-2"><Loader2 className="w-5 h-5 text-[#FF1493] animate-spin" /></div>
+      ) : status.is_linked ? (
+        <div>
+          <p className="text-white text-sm mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            Linked with <span className="font-semibold" style={{ color: '#f4a7b9' }}>{status.partner_name}</span>
+          </p>
+          <p className="text-[#9A8B91] text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            He can see your cycle calendar — ovulation, fertile days, and your next period. Your journal stays private.
+          </p>
+          <div className="flex gap-2">
+            <Link to="/partner-hub" className="flex-1 py-2.5 rounded-full text-white text-sm font-medium text-center"
+              style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}>
+              Open Partner Hub
+            </Link>
+            <button onClick={handleUnlink} className="px-4 py-2.5 rounded-full text-white/50 text-xs"
+              style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.12)' }}>
+              Unlink
+            </button>
+          </div>
+        </div>
+      ) : inviteCode ? (
+        <div>
+          <p className="text-[#9A8B91] text-xs mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            Share this code with your partner. He creates his own HORMOscope account, opens Partner Hub, and enters it.
+          </p>
+          <button onClick={copyCode}
+            className="w-full py-3 rounded-xl text-center mb-2"
+            style={{ background: 'rgba(255,20,147,0.08)', border: '1px dashed rgba(255,20,147,0.4)' }}>
+            <span className="text-white text-xl font-bold tracking-[0.3em]" style={{ fontFamily: 'Poppins, sans-serif' }}>{inviteCode}</span>
+            <span className="block text-[#9A8B91] text-[10px] mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              {copied ? 'Copied!' : 'Tap to copy'}
+            </span>
+          </button>
+          <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            He sees your cycle calendar only — never your journal.
+          </p>
+        </div>
+      ) : (
+        <div>
+          <p className="text-[#9A8B91] text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            Link his account to yours so he can follow your cycle — ovulation days, fertile window, and when to expect your period.
+          </p>
+          <button onClick={handleInvite} disabled={generating}
+            className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50"
+            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}>
+            {generating ? 'Creating invite...' : 'Invite Your Partner'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const { user, token, logout, updateUser } = useAuth();
   const { isPro } = usePremium();
@@ -256,28 +365,8 @@ export default function ProfilePage() {
         </Link>
       )}
 
-      {/* Attuned Partner Mode — Coming Soon teaser */}
-      <div
-        className="glass-card p-5 mb-6 flex items-center justify-between opacity-60"
-        data-testid="attuned-teaser"
-        aria-disabled="true"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#FF1493]/20 flex items-center justify-center">
-            <Heart className="w-5 h-5 text-[#FF1493]" fill="#FF1493" />
-          </div>
-          <div>
-            <p className="text-[#F4D3DC] text-sm font-medium">Attuned</p>
-            <p className="text-[#9A8B91] text-xs">Attuned Partner Mode coming soon. Built by one woman, a breast cancer survivor, from real personal experience.</p>
-          </div>
-        </div>
-        <span
-          className="text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-full"
-          style={{ border: '1px solid rgba(212,168,83,0.4)', color: '#D4A853', fontFamily: 'Poppins, sans-serif' }}
-        >
-          Coming Soon
-        </span>
-      </div>
+      {/* Attuned Partner Mode */}
+      <AttunedSection token={token} />
 
       {/* Logout */}
       <button
