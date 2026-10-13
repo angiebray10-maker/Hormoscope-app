@@ -5,8 +5,8 @@ import { ArrowLeft, Gift, Sparkles, ShoppingBag, Heart } from 'lucide-react';
 const GOLD = '#D4A853';
 const PINK = '#f4a7b9';
 
-// Placeholder affiliate links — replace with real Amazon Associates links
-const AFFILIATE_TAG = 'hormoscope-20';
+// Amazon Associates affiliate links — Store ID hormoscope20-20 (approved Oct 9, 2026)
+const AFFILIATE_TAG = 'hormoscope20-20';
 
 const CATEGORIES = [
   {
@@ -16,15 +16,15 @@ const CATEGORIES = [
     products: [
       {
         id: 'period-panties',
-        name: 'Period Panties Set',
-        description: 'Leak-proof, comfortable, reusable. The upgrade she deserves.',
+        name: 'Cozy Leak-Proof Undies',
+        description: 'Cute, comfortable, reusable. The upgrade she deserves.',
         price: '$25 – $45',
         search: 'period panties for women leak proof',
         emoji: '🩲',
       },
       {
         id: 'organic-tampons',
-        name: 'Organic Cotton Tampons',
+        name: 'Cloud-Soft Organic Tampons',
         description: 'Chemical-free, ultra-absorbent. Gentle for sensitive days.',
         price: '$12 – $18',
         search: 'organic cotton tampons',
@@ -32,15 +32,15 @@ const CATEGORIES = [
       },
       {
         id: 'menstrual-cup',
-        name: 'Menstrual Cup',
-        description: '12-hour protection, eco-friendly, cost-effective.',
+        name: 'The 12-Hour Cup',
+        description: 'Eco-friendly, cost-effective, forget-its-there comfort.',
         price: '$20 – $35',
         search: 'menstrual cup',
         emoji: '🌙',
       },
       {
         id: 'pads-overnight',
-        name: 'Overnight Pads',
+        name: 'Dream-Through-The-Night Pads',
         description: 'Extra-long, ultra-absorbent for worry-free sleep.',
         price: '$8 – $14',
         search: 'overnight sanitary pads extra long',
@@ -55,7 +55,7 @@ const CATEGORIES = [
     products: [
       {
         id: 'heating-pad',
-        name: 'Heating Pad for Cramps',
+        name: 'Warm Hug Heating Pad',
         description: 'Cordless, wearable relief. Her new best friend.',
         price: '$25 – $50',
         search: 'portable heating pad for menstrual cramps',
@@ -63,7 +63,7 @@ const CATEGORIES = [
       },
       {
         id: 'period-tea',
-        name: 'Cycle-Supporting Tea',
+        name: 'Moon Time Tea',
         description: 'Raspberry leaf, ginger, chamomile. Warmth in a cup.',
         price: '$10 – $18',
         search: 'menstrual cramp relief tea',
@@ -71,7 +71,7 @@ const CATEGORIES = [
       },
       {
         id: 'bath-salts',
-        name: 'Relaxing Bath Salts',
+        name: 'Melt Away Bath Soak',
         description: 'Magnesium and lavender. Melt the tension away.',
         price: '$12 – $22',
         search: 'lavender bath salts relaxation',
@@ -79,7 +79,7 @@ const CATEGORIES = [
       },
       {
         id: 'weighted-blanket',
-        name: 'Weighted Blanket',
+        name: 'Cloud Hug Blanket',
         description: 'Deep pressure comfort for restless nights.',
         price: '$40 – $80',
         search: 'weighted blanket 15 lbs',
@@ -94,7 +94,7 @@ const CATEGORIES = [
     products: [
       {
         id: 'dark-chocolate',
-        name: 'Dark Chocolate Box',
+        name: 'Fancy Dark Chocolate',
         description: '70%+ cacao. Magnesium-rich and mood-lifting.',
         price: '$12 – $25',
         search: 'dark chocolate gift box 70 percent',
@@ -102,7 +102,7 @@ const CATEGORIES = [
       },
       {
         id: 'silk-eye-mask',
-        name: 'Silk Sleep Mask',
+        name: 'Dreamy Silk Sleep Mask',
         description: 'Total darkness for deeper rest.',
         price: '$15 – $30',
         search: 'silk sleep mask',
@@ -110,7 +110,7 @@ const CATEGORIES = [
       },
       {
         id: 'journal',
-        name: 'Beautiful Journal',
+        name: 'Her Secret Journal',
         description: 'For her thoughts, dreams, and everything in between.',
         price: '$15 – $28',
         search: 'luxury journal for women',
@@ -118,7 +118,7 @@ const CATEGORIES = [
       },
       {
         id: 'candle',
-        name: 'Scented Candle',
+        name: 'Cozy Glow Candle',
         description: 'Vanilla, sandalwood, or lavender. Set the mood.',
         price: '$18 – $35',
         search: 'luxury scented candle vanilla',
