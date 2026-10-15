@@ -71,28 +71,6 @@
         </script>
     </head>
     <body>
-    <div id="debug-status" style="position:fixed;top:0;left:0;background:yellow;padding:10px;z-index:99999;font-family:monospace;">
-      HTML loaded. Waiting for JS...
-    </div>
-    <script>
-      // Check if main bundle loads within 5 seconds
-      setTimeout(function() {
-        var el = document.getElementById('debug-status');
-        if (el && !window.reactLoaded) {
-          el.style.background = 'red';
-          el.style.color = 'white';
-          el.innerHTML = 'HTML loaded but JS bundle FAILED to load or execute.<br>Check: 1) Is the script tag path correct?<br>2) Does the file exist in the AAB?';
-        }
-      }, 5000);
-      window.addEventListener('error', function(e) {
-        var el = document.getElementById('debug-status');
-        if (el) {
-          el.style.background = 'red';
-          el.style.color = 'white';
-          el.innerHTML = 'JS Error: ' + (e.message || 'unknown') + '<br>' + (e.filename || '') + ':' + (e.lineno || '');
-        }
-      });
-    </script>
 
         <noscript>You need to enable JavaScript to run this app.</noscript>
         <div id="root"></div>
