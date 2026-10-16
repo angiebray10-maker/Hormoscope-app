@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Calendar as CalendarIcon, Heart, Droplet, ChevronLeft, ChevronRight, Plus, X, Lock, RotateCcw, Baby, Sparkles, HelpCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import DateSelect from '../components/DateSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -760,15 +761,12 @@ export default function CalendarPage() {
           <div className="py-2">
             <div className="mb-4">
               <label className="text-[#9A8B91] text-xs mb-2 block">When did your period start?</label>
-              <input
-                type="date"
+              <DateSelect
+                testId="reset-date-input"
                 value={newPeriodDate}
-                onChange={(e) => setNewPeriodDate(e.target.value)}
-                onFocus={(e) => e.target.showPicker && e.target.showPicker()}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none"
-                max={new Date().toISOString().split('T')[0]}
-                style={{ colorScheme: 'dark', WebkitAppearance: 'none', fontSize: '16px' }}
-                data-testid="reset-date-input"
+                onChange={setNewPeriodDate}
+                minYear={new Date().getFullYear() - 2}
+                maxYear={new Date().getFullYear()}
               />
             </div>
             

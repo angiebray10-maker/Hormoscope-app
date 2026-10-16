@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import DateSelect from '../components/DateSelect';
 import { Label } from '../components/ui/label';
 import { Calendar, Moon, Sparkles, ChevronRight, ChevronLeft, Cake, Bell, BellOff, Clock, Heart, Lock } from 'lucide-react';
 import axios from 'axios';
@@ -116,13 +117,12 @@ export default function OnboardingPage() {
               </div>
               <div>
                 <Label className="text-[#A0A0A0] mb-2 block">Birthday</Label>
-                <Input
-                  data-testid="onboarding-birthday-input"
-                  type="date"
+                <DateSelect
+                  testId="onboarding-birthday-input"
                   value={birthday}
-                  onChange={(e) => setBirthday(e.target.value)}
-                  className="input-dark"
-                  max={new Date().toISOString().split('T')[0]}
+                  onChange={setBirthday}
+                  minYear={1930}
+                  maxYear={new Date().getFullYear()}
                 />
               </div>
             </div>
@@ -193,13 +193,12 @@ export default function OnboardingPage() {
               </div>
               <div>
                 <Label className="text-[#A0A0A0] mb-2 block">Date</Label>
-                <Input
-                  data-testid="onboarding-date-input"
-                  type="date"
+                <DateSelect
+                  testId="onboarding-date-input"
                   value={lastPeriodDate}
-                  onChange={(e) => setLastPeriodDate(e.target.value)}
-                  className="input-dark"
-                  max={new Date().toISOString().split('T')[0]}
+                  onChange={setLastPeriodDate}
+                  minYear={new Date().getFullYear() - 2}
+                  maxYear={new Date().getFullYear()}
                 />
                 <button
                   onClick={() => {
