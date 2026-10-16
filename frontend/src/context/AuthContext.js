@@ -25,7 +25,8 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 12000
       });
       setUser(res.data);
     } catch (e) {
@@ -46,7 +47,7 @@ export const AuthProvider = ({ children }) => {
   }, [token, fetchUser]);
 
   const login = useCallback(async (email, password) => {
-    const res = await axios.post(`${API}/auth/login`, { email, password });
+    const res = await axios.post(`${API}/auth/login`, { email, password }, { timeout: 15000 });
     localStorage.setItem('token', res.data.access_token);
     setToken(res.data.access_token);
     setUser(res.data.user);
@@ -54,7 +55,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const signup = useCallback(async (email, password) => {
-    const res = await axios.post(`${API}/auth/signup`, { email, password });
+    const res = await axios.post(`${API}/auth/signup`, { email, password }, { timeout: 15000 });
     localStorage.setItem('token', res.data.access_token);
     setToken(res.data.access_token);
     setUser(res.data.user);
