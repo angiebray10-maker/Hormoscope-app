@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await axios.get(`${API}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
-        timeout: 12000
+        timeout: 90000
       });
       setUser(res.data);
     } catch (e) {
@@ -47,7 +47,13 @@ export const AuthProvider = ({ children }) => {
   }, [token, fetchUser]);
 
   const login = useCallback(async (email, password) => {
-    const res = await axios.post(`${API}/auth/login`, { email, password }, { timeout: 15000 });
+    let res;
+    try {
+      res = await axios.post(`${API}/auth/login`, { email, password }, { timeout: 90000 });
+    } catch (firstErr) {
+      if (firstErr.response) throw firstErr;
+      res = await axios.post(`${API}/auth/login`, { email, password }, { timeout: 90000 });
+    }
     localStorage.setItem('token', res.data.access_token);
     setToken(res.data.access_token);
     setUser(res.data.user);
@@ -55,7 +61,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const signup = useCallback(async (email, password) => {
-    const res = await axios.post(`${API}/auth/signup`, { email, password }, { timeout: 15000 });
+    let res;
+    try {
+      res = await axios.post(`${API}/auth/signup`, { email, password }, { timeout: 90000 });
+    } catch (firstErr) {
+      if (firstErr.response) throw firstErr;
+      res = await axios.post(`${API}/auth/signup`, { email, password }, { timeout: 90000 });
+    }
     localStorage.setItem('token', res.data.access_token);
     setToken(res.data.access_token);
     setUser(res.data.user);
