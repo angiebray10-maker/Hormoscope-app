@@ -18,9 +18,8 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [birthday, setBirthday] = useState('');
-  const [cycleLength, setCycleLength] = useState(28);
+  const [cycleChoice, setCycleChoice] = useState(null);
   const [lastPeriodDate, setLastPeriodDate] = useState('');
-  const [notSure, setNotSure] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [notificationTime, setNotificationTime] = useState('09:00');
   const [loading, setLoading] = useState(false);
@@ -30,10 +29,11 @@ export default function OnboardingPage() {
   const handleComplete = async () => {
     setLoading(true);
     try {
+      const CYCLE_LENGTH_BY_CHOICE = { d28: 28, d29: 29, d30: 30, d31: 31, d32: 32, longer: 35, never_tracked: 28, birth_control: 28 };
       const res = await axios.post(`${API}/onboarding`, {
         name,
         birthday,
-        cycle_length: notSure ? 28 : cycleLength,
+        cycle_length: CYCLE_LENGTH_BY_CHOICE[cycleChoice] || 28,
         last_period_date: lastPeriodDate
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -131,65 +131,13 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#12121A] border border-[#ff8fab]/30 mb-4">
-                  <Calendar className="w-8 h-8 text-[#ff8fab]" />
-                </div>
-                <h2 className="text-2xl font-semibold text-[#F5F5F5]" >
-                  Your Cycle Length
-                </h2>
-                <p className="text-[#A0A0A0] mt-2">Average is 28 days</p>
-              </div>
-              <div>
-                <Label className="text-[#A0A0A0] mb-2 block">Days in your cycle</Label>
-                {!notSure ? (
-                  <>
-                    <div className="flex items-center justify-center gap-4">
-                      <button
-                        onClick={() => setCycleLength(Math.max(21, cycleLength - 1))}
-                        className="w-12 h-12 rounded-full bg-[#12121A] border border-[#ff8fab]/30 text-[#ff8fab] hover:bg-[#ff8fab]/10"
-                      >
-                        -
-                      </button>
-                      <span className="text-4xl font-bold text-[#F5F5F5] w-20 text-center">{cycleLength}</span>
-                      <button
-                        onClick={() => setCycleLength(Math.min(35, cycleLength + 1))}
-                        className="w-12 h-12 rounded-full bg-[#12121A] border border-[#ff8fab]/30 text-[#ff8fab] hover:bg-[#ff8fab]/10"
-                      >
-                        +
-                      </button>
-                    </div>
-                    <p className="text-center text-[#505050] text-sm mt-4">Normal range: 21-35 days</p>
-                  </>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-[#ff8fab] text-lg">We'll use 28 days as default</p>
-                    <p className="text-[#505050] text-sm mt-2">This is average - you can update anytime</p>
-                  </div>
-                )}
-                <button
-                  onClick={() => setNotSure(!notSure)}
-                  className={`w-full mt-4 py-3 rounded-lg border transition-colors ${
-                    notSure 
-                      ? 'border-[#ff8fab] bg-[#ff8fab]/10 text-[#ff8fab]' 
-                      : 'border-[#12121A] text-[#A0A0A0] hover:border-[#ff8fab]/50'
-                  }`}
-                >
-                  {notSure ? "✓ I'm not sure" : "I'm not sure"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="space-y-6">
-              <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#12121A] border border-[#7B1E30]/50 mb-4">
                   <Moon className="w-8 h-8 text-[#7B1E30]" />
                 </div>
                 <h2 className="text-2xl font-semibold text-[#F5F5F5]" >
-                  Last Period Start
+                  First Day of Your Last Period
                 </h2>
-                <p className="text-[#A0A0A0] mt-2">When did your last period begin?</p>
+                <p className="text-[#A0A0A0] mt-2">When did your last period start?</p>
               </div>
               <div>
                 <Label className="text-[#A0A0A0] mb-2 block">Date</Label>
@@ -216,6 +164,44 @@ export default function OnboardingPage() {
                     You can always update this later
                   </p>
                 )}
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#12121A] border border-[#ff8fab]/30 mb-4">
+                  <Calendar className="w-8 h-8 text-[#ff8fab]" />
+                </div>
+                <h2 className="text-2xl font-semibold text-[#F5F5F5]" >
+                  How Long Is Your Cycle, Usually?
+                </h2>
+                <p className="text-[#A0A0A0] mt-2">Pick the one that's true for you</p>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { id: 'd28', label: '28 day cycle' },
+                  { id: 'd29', label: '29 day cycle' },
+                  { id: 'd30', label: '30 day cycle' },
+                  { id: 'd31', label: '31 day cycle' },
+                  { id: 'd32', label: '32 day cycle' },
+                  { id: 'longer', label: 'Usually longer than a 32 day cycle' },
+                  { id: 'never_tracked', label: "I don't know, I've never tracked the length of my cycle before" },
+                  { id: 'birth_control', label: "I'm on birth control, I don't really get a full period anymore" },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setCycleChoice(opt.id)}
+                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                      cycleChoice === opt.id
+                        ? 'border-[#ff8fab] bg-[#ff8fab]/10 text-[#F5F5F5]'
+                        : 'border-[#12121A] text-[#A0A0A0] hover:border-[#ff8fab]/50'
+                    }`}
+                  >
+                    {cycleChoice === opt.id ? '✓ ' : ''}{opt.label}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -373,7 +359,7 @@ export default function OnboardingPage() {
               <Button
                 data-testid="onboarding-next-btn"
                 onClick={() => setStep(step + 1)}
-                disabled={(step === 1 && !name) || (step === 2 && !birthday) || (step === 4 && !lastPeriodDate)}
+                disabled={(step === 1 && !name) || (step === 2 && !birthday) || (step === 3 && !lastPeriodDate) || (step === 4 && !cycleChoice)}
                 className="btn-gold flex items-center gap-2"
               >
                 Next <ChevronRight className="w-5 h-5" />
