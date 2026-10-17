@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Link } from 'react-router-dom';
-import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2, Lock, Gift } from 'lucide-react';
+import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2, Lock } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 
@@ -357,22 +357,7 @@ export default function PartnerHubPage() {
             { id: 'cycle', label: 'Cycle', icon: Heart },
             { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
             { id: 'notes', label: 'Notes', icon: null },
-            { id: 'gifts', label: 'Gifts', icon: Gift, link: '/gift-shop' },
           ].map(t => (
-            t.link ? (
-              <Link key={t.id} to={t.link}
-                className="flex-1 py-2.5 rounded-full text-sm font-medium flex items-center justify-center gap-1.5"
-                style={{
-                  fontFamily: 'Poppins, sans-serif',
-                  background: 'rgba(212,168,83,0.08)',
-                  color: GOLD,
-                  border: `1px solid ${GOLD}40`
-                }}
-                data-testid={`hub-tab-${t.id}`}>
-                <Gift className="w-4 h-4" />
-                {t.label}
-              </Link>
-            ) : (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className="flex-1 py-2.5 rounded-full text-sm font-medium relative"
                 style={{
@@ -387,7 +372,6 @@ export default function PartnerHubPage() {
                   <span className="absolute top-1.5 right-3 w-2 h-2 rounded-full" style={{ background: '#55efc4' }} />
                 )}
               </button>
-            )
           ))}
         </div>
 

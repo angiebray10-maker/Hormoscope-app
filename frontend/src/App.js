@@ -22,7 +22,6 @@ import ContactPage from './pages/ContactPage';
 import PartnerViewPage from './pages/PartnerViewPage';
 import PartnerHubPage from './pages/PartnerHubPage';
 import AttunementPage from './pages/AttunementPage';
-import GiftShopPage from './pages/GiftShopPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 import './index.css';
@@ -119,12 +118,6 @@ const AppContent = () => {
             <AttunementPage />
           </ProtectedRoute>
         } />
-        <Route path="/gift-shop" element={
-          <ProtectedRoute>
-            <GiftShopPage />
-          </ProtectedRoute>
-        } />
-
         {/* Fallback - 404 Page */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Heart, Sun, ShieldAlert, Cookie, BedDouble, X, Check } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -66,38 +66,45 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
   const [sleepHours, setSleepHours] = useState(7);
   const [sleepQuality, setSleepQuality] = useState('okay');
   const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  // Every tap in here saves right away (Angelita, Oct 17: pushing the
+  // icons did nothing and nothing was saved anywhere). saveState drives
+  // the visible "Saved to today" confirmation, and a failure is shown,
+  // never swallowed silently the way the old Save button did.
+  const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
+  const flashTimer = useRef(null);
 
-  const toggleIn = (list, setter, value) => {
-    setter(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
-  };
-
-  const buildPayload = () => {
+  const buildPayload = (ov = {}) => {
+    const moodVal = ov.mood !== undefined ? ov.mood : mood;
+    const emos = ov.emotions !== undefined ? ov.emotions : emotions;
+    const energyVal = ov.energy !== undefined ? ov.energy : energy;
+    const syms = ov.symptoms !== undefined ? ov.symptoms : symptoms;
+    const cravs = ov.cravings !== undefined ? ov.cravings : cravings;
+    const hours = ov.sleepHours !== undefined ? ov.sleepHours : sleepHours;
+    const qual = ov.sleepQuality !== undefined ? ov.sleepQuality : sleepQuality;
     let payloadSymptoms = [];
     let label = '';
     switch (category.id) {
       case 'mood':
-        payloadSymptoms = [`mood:${mood}`, ...emotions.map((e) => `emotion:${e.toLowerCase()}`)];
-        label = emotions.length
-          ? `Feeling ${emotions.join(', ')} · Mood ${mood}/5`
-          : `Mood ${mood}/5`;
+        payloadSymptoms = [`mood:${moodVal}`, ...emos.map((e) => `emotion:${e.toLowerCase()}`)];
+        label = emos.length
+          ? `Feeling ${emos.join(', ')} · Mood ${moodVal}/5`
+          : `Mood ${moodVal}/5`;
         break;
       case 'energy':
-        payloadSymptoms = [`energy:${energy}`];
-        label = `Energy ${energy}/5`;
+        payloadSymptoms = [`energy:${energyVal}`];
+        label = `Energy ${energyVal}/5`;
         break;
       case 'symptoms':
-        payloadSymptoms = symptoms;
-        label = symptoms.length ? symptoms.join(', ') : 'No symptoms';
+        payloadSymptoms = syms;
+        label = syms.length ? syms.join(', ') : 'No symptoms';
         break;
       case 'cravings':
-        payloadSymptoms = cravings.map((c) => `craving:${c}`);
-        label = cravings.length ? cravings.join(', ') : 'No cravings';
+        payloadSymptoms = cravs.map((c) => `craving:${c}`);
+        label = cravs.length ? cravs.join(', ') : 'No cravings';
         break;
       case 'sleep':
-        payloadSymptoms = [`sleep:${sleepHours}h`, `sleep_quality:${sleepQuality}`];
-        label = `${sleepHours}h, ${sleepQuality}`;
+        payloadSymptoms = [`sleep:${hours}h`, `sleep_quality:${qual}`];
+        label = `${hours}h, ${qual}`;
         break;
       default:
         break;
@@ -110,27 +117,60 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
     };
   };
 
-  const canSave = () => {
-    if (category.id === 'symptoms') return symptoms.length > 0 || note.trim();
-    if (category.id === 'cravings') return cravings.length > 0 || note.trim();
-    return true;
-  };
-
-  const handleSave = async () => {
-    if (saving || saved) return;
-    setSaving(true);
+  const saveNow = async (ov = {}) => {
+    setSaveState('saving');
     try {
-      await axios.post(`${API}/cycle-logs`, buildPayload(), {
+      await axios.post(`${API}/cycle-logs`, buildPayload(ov), {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 15000,
       });
-      setSaved(true);
+      setSaveState('saved');
       if (onSaved) onSaved(category.id);
-      setTimeout(onClose, 900);
+      if (flashTimer.current) clearTimeout(flashTimer.current);
+      flashTimer.current = setTimeout(() => setSaveState('idle'), 2200);
     } catch (err) {
       logger.error('Quick log save failed:', err);
-    } finally {
-      setSaving(false);
+      setSaveState('error');
+    }
+  };
+
+  // Tapping a mood face saves that mood (with any feelings picked) at once.
+  const handleMoodPick = (value) => {
+    setMood(value);
+    saveNow({ mood: value });
+  };
+
+  // Tapping a feeling chip saves the updated set at once.
+  const handleEmotionToggle = (label) => {
+    const next = emotions.includes(label) ? emotions.filter((v) => v !== label) : [...emotions, label];
+    setEmotions(next);
+    saveNow({ emotions: next });
+  };
+
+  const handleSymptomToggle = (s) => {
+    const next = symptoms.includes(s) ? symptoms.filter((v) => v !== s) : [...symptoms, s];
+    setSymptoms(next);
+    if (next.length > 0) saveNow({ symptoms: next });
+  };
+
+  const handleCravingToggle = (c) => {
+    const next = cravings.includes(c) ? cravings.filter((v) => v !== c) : [...cravings, c];
+    setCravings(next);
+    if (next.length > 0) saveNow({ cravings: next });
+  };
+
+  const handleSleepQuality = (q) => {
+    setSleepQuality(q);
+    saveNow({ sleepQuality: q });
+  };
+
+  // Done closes the dialog. If she typed a note, one last save carries it.
+  const handleDone = async () => {
+    if (note.trim()) {
+      await saveNow({});
+      setTimeout(onClose, 500);
+    } else {
+      onClose();
     }
   };
 
@@ -172,7 +212,7 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
               {MOOD_OPTIONS.map((m) => (
                 <button
                   key={m.value}
-                  onClick={() => setMood(m.value)}
+                  onClick={() => handleMoodPick(m.value)}
                   className="flex flex-col items-center gap-1 p-2 rounded-2xl transition-transform"
                   style={{
                     background: mood === m.value ? `${category.color}22` : 'transparent',
@@ -195,7 +235,7 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
                 return (
                   <button
                     key={e.label}
-                    onClick={() => toggleIn(emotions, setEmotions, e.label)}
+                    onClick={() => handleEmotionToggle(e.label)}
                     className="px-2.5 py-1.5 rounded-full text-[11px]"
                     style={chip(active, category.color)}
                     aria-label={e.label}
@@ -219,6 +259,7 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
             <input
               type="range" min="1" max="5" step="1" value={energy}
               onChange={(e) => setEnergy(parseInt(e.target.value, 10))}
+              onPointerUp={(e) => saveNow({ energy: parseInt(e.target.value, 10) })}
               className="w-full accent-[#c9b8f0]"
               aria-label="Energy level"
             />
@@ -229,7 +270,7 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
           <div className="flex flex-wrap gap-2 mb-5">
             {SYMPTOM_OPTIONS.map((s) => (
               <button
-                key={s} onClick={() => toggleIn(symptoms, setSymptoms, s)}
+                key={s} onClick={() => handleSymptomToggle(s)}
                 className="px-3 py-1.5 rounded-full text-xs capitalize"
                 style={chip(symptoms.includes(s), category.color)}
               >
@@ -243,7 +284,7 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
           <div className="flex flex-wrap gap-2 mb-5">
             {CRAVING_OPTIONS.map((c) => (
               <button
-                key={c} onClick={() => toggleIn(cravings, setCravings, c)}
+                key={c} onClick={() => handleCravingToggle(c)}
                 className="px-3 py-1.5 rounded-full text-xs capitalize"
                 style={chip(cravings.includes(c), category.color)}
               >
@@ -262,13 +303,14 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
             <input
               type="range" min="0" max="12" step="0.5" value={sleepHours}
               onChange={(e) => setSleepHours(parseFloat(e.target.value))}
+              onPointerUp={(e) => saveNow({ sleepHours: parseFloat(e.target.value) })}
               className="w-full accent-[#a29bfe] mb-4"
               aria-label="Hours slept"
             />
             <div className="flex gap-2">
               {SLEEP_QUALITY.map((q) => (
                 <button
-                  key={q} onClick={() => setSleepQuality(q)}
+                  key={q} onClick={() => handleSleepQuality(q)}
                   className="flex-1 px-3 py-1.5 rounded-full text-xs capitalize"
                   style={chip(sleepQuality === q, category.color)}
                 >
@@ -288,13 +330,31 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
           style={{ fontFamily: 'Poppins, sans-serif' }}
         />
 
+        {/* Save status: every tap above already saved to today. This line
+            is the proof, and a failure shows here instead of vanishing. */}
+        <div className="h-5 mb-2 flex items-center justify-center" aria-live="polite">
+          {saveState === 'saving' && (
+            <span className="text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>Saving to today…</span>
+          )}
+          {saveState === 'saved' && (
+            <span className="text-[11px] flex items-center gap-1 animate-in" style={{ fontFamily: 'Poppins, sans-serif', color: '#55efc4' }}>
+              <Check className="w-3.5 h-3.5" /> Saved to today
+            </span>
+          )}
+          {saveState === 'error' && (
+            <span className="text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }}>
+              That didn&apos;t save. The server may be waking up, tap again.
+            </span>
+          )}
+        </div>
+
         <button
-          onClick={handleSave}
-          disabled={saving || saved || !canSave()}
+          onClick={handleDone}
+          disabled={saveState === 'saving'}
           className="w-full py-3 rounded-full text-white text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-40"
-          style={{ background: saved ? '#55efc4' : category.color, fontFamily: 'Poppins, sans-serif', color: saved ? '#0a0a1a' : '#fff' }}
+          style={{ background: category.color, fontFamily: 'Poppins, sans-serif' }}
         >
-          {saved ? (<><Check className="w-4 h-4" /> Logged</>) : saving ? 'Saving…' : `Log ${category.label}`}
+          {saveState === 'saving' ? 'Saving…' : 'Done'}
         </button>
       </div>
     </div>
@@ -303,7 +363,13 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
 
 export default function FloatingCarousel({ token }) {
   const [activeCategory, setActiveCategory] = useState(null);
-  const [justLogged, setJustLogged] = useState(null);
+  const [justLogged, setJustLogged] = useState(false);
+  // The icons orbit constantly, which makes them moving targets that are
+  // hard to hit on a phone (Angelita: "when you push the icons, nothing
+  // happens"). Pressing on the track freezes the orbit so she can tap
+  // the icon she means.
+  const [paused, setPaused] = useState(false);
+  const pillTimer = useRef(null);
 
   const perItem = CYCLE_SECONDS / CATEGORIES.length;
 
@@ -321,6 +387,10 @@ export default function FloatingCarousel({ token }) {
       <div
         className="hs-carousel-track relative overflow-hidden"
         style={{ height: 132 }}
+        onPointerDown={() => setPaused(true)}
+        onPointerUp={() => setPaused(false)}
+        onPointerCancel={() => setPaused(false)}
+        onPointerLeave={() => setPaused(false)}
       >
         {CATEGORIES.map((cat, i) => {
           const { Icon } = cat;
@@ -328,11 +398,11 @@ export default function FloatingCarousel({ token }) {
             <div
               key={cat.id}
               className="hs-orbit-item"
-              style={{ animationDelay: `${-i * perItem}s` }}
+              style={{ animationDelay: `${-i * perItem}s`, animationPlayState: paused ? 'paused' : 'running' }}
             >
               <button
                 className="hs-orbit-icon flex flex-col items-center gap-1 rounded-full"
-                style={{ animationDelay: `${-i * perItem}s`, pointerEvents: 'auto' }}
+                style={{ animationDelay: `${-i * perItem}s`, pointerEvents: 'auto', animationPlayState: paused ? 'paused' : 'running' }}
                 onClick={() => setActiveCategory(cat)}
                 aria-label={`Log ${cat.label}`}
               >
@@ -362,7 +432,7 @@ export default function FloatingCarousel({ token }) {
             className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[11px] animate-in"
             style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(85,239,196,0.15)', color: '#55efc4', border: '1px solid rgba(85,239,196,0.4)', zIndex: 20 }}
           >
-            ✓ {justLogged} logged
+            ✓ Saved to today
           </div>
         )}
       </div>
@@ -372,10 +442,10 @@ export default function FloatingCarousel({ token }) {
           category={activeCategory}
           token={token}
           onClose={() => setActiveCategory(null)}
-          onSaved={(id) => {
-            const cat = CATEGORIES.find((c) => c.id === id);
-            setJustLogged(cat ? cat.label : 'Entry');
-            setTimeout(() => setJustLogged(null), 2500);
+          onSaved={() => {
+            setJustLogged(true);
+            if (pillTimer.current) clearTimeout(pillTimer.current);
+            pillTimer.current = setTimeout(() => setJustLogged(false), 2500);
           }}
         />
       )}

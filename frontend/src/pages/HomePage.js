@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Droplet } from 'lucide-react';
@@ -22,17 +22,6 @@ const phases = {
   unknown: { orb: 'orb-follicular', color: '#74b9ff', name: 'Setup Required' }
 };
 
-// Today's color and vibe, revealed by pressing and holding the orb
-// (Angelita's fix list, Oct 16). Warm and nurturing, biology only.
-const VIBES = {
-  menstrual: { colorName: 'Soft Rose Red', vibe: 'A tender, restful day. Your body is doing deep, quiet work. Be gentle with yourself and let home feel safe.' },
-  follicular: { colorName: 'Sky Blue', vibe: 'Fresh energy is blooming. A lighter, hopeful day, good for little plans and time with the people you love.' },
-  ovulatory: { colorName: 'Warm Mint', vibe: 'You are glowing and open today. A sweet day to feel close, laugh, and be seen.' },
-  luteal: { colorName: 'Cozy Lavender', vibe: 'A nesting kind of day. Slow down, get cozy, and let small comforts carry you.' },
-  late: { colorName: 'Soft Rose Red', vibe: 'Your body is getting ready. Rest close to home and be patient with yourself.' },
-  unknown: { colorName: 'Sky Blue', vibe: 'Once your cycle is set up, your color and vibe for the day will live right here.' }
-};
-
 export default function HomePage() {
   const { user, token } = useAuth();
   const { isPro, refreshCustomerInfo } = usePremium();
@@ -42,17 +31,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [paymentBanner, setPaymentBanner] = useState(null); // 'pending' | 'success' | 'failed'
   const [showWelcome, setShowWelcome] = useState(false);
-  const [showVibe, setShowVibe] = useState(false);
-  const pressTimer = useRef(null);
-
-  const startOrbPress = () => {
-    if (pressTimer.current) clearTimeout(pressTimer.current);
-    pressTimer.current = setTimeout(() => setShowVibe(true), 450);
-  };
-  const endOrbPress = () => {
-    if (pressTimer.current) clearTimeout(pressTimer.current);
-    pressTimer.current = null;
-  };
 
   // Welcome message after onboarding completes
   useEffect(() => {
@@ -189,19 +167,9 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Cycle Orb: gentle pulsate; press and hold for today's color and vibe */}
+      {/* Cycle Orb */}
       <div className="flex flex-col items-center mb-10">
-        <div
-          className={`cycle-orb ${config.orb}`}
-          style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', cursor: 'pointer' }}
-          onPointerDown={startOrbPress}
-          onPointerUp={endOrbPress}
-          onPointerLeave={endOrbPress}
-          onPointerCancel={endOrbPress}
-          onContextMenu={(e) => e.preventDefault()}
-          role="button"
-          aria-label="Press and hold to see today's color and vibe"
-        >
+        <div className={`cycle-orb ${config.orb}`}>
           <span className="text-white/90 text-sm tracking-widest uppercase font-semibold">
             {periodIsLate ? 'CYCLE DAY' : 'YOU ARE ON DAY'}
           </span>
@@ -218,31 +186,6 @@ export default function HomePage() {
               : ''
           }
         </p>
-        <p className="text-[#6c6c8a] text-[11px] mt-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
-          Press and hold the orb for today&apos;s color and vibe
-        </p>
-        {showVibe && (
-          <div
-            className="card p-4 mt-3 max-w-xs text-center animate-in"
-            style={{ border: `1.5px solid ${config.color}`, boxShadow: `0 0 24px ${config.color}30` }}
-            data-testid="orb-vibe-card"
-          >
-            <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-1">TODAY&apos;S COLOR AND VIBE</p>
-            <p className="text-lg font-script mb-1" style={{ color: config.color }}>
-              {(VIBES[phase] || VIBES.unknown).colorName}
-            </p>
-            <p className="text-[#b8b8d1] text-sm leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              {(VIBES[phase] || VIBES.unknown).vibe}
-            </p>
-            <button
-              onClick={() => setShowVibe(false)}
-              className="mt-3 px-5 py-1.5 rounded-full text-xs text-white"
-              style={{ background: '#FF1493', fontFamily: 'Poppins, sans-serif' }}
-            >
-              Close
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Floating quick-log carousel */}

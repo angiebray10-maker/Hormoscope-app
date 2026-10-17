@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Link } from 'react-router-dom';
@@ -9,6 +9,10 @@ import logger from '../utils/logger';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#D4A853';
 const JOURNAL_PREVIEW_IMG = '/pro-screenshots/journal.png';
+// Classy, easy-to-read serif for the journal itself (Angelita, Oct 17:
+// no more cursive). System serif stack, so it renders the same offline
+// in the WebView with no font download.
+const SERIF = "'Georgia', 'Noto Serif', 'Times New Roman', serif";
 
 function MiniCalendar({ token, selectedDate, onSelectDate, onClose }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -73,13 +77,17 @@ export default function JournalPage() {
   const [currentEntry, setCurrentEntry] = useState('');
   const [currentTitle, setCurrentTitle] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [loadTimedOut, setLoadTimedOut] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showCal, setShowCal] = useState(false);
   const [isIntimate, setIsIntimate] = useState(false);
-  const entryRefs = useRef({});
+  // The journal reads like a book: one day per page. Page 0 is the most
+  // recent day with entries; turning a page moves one day at a time.
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageNotice, setPageNotice] = useState('');
 
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -117,9 +125,32 @@ export default function JournalPage() {
     } finally { setLoading(false); }
   };
 
+  // Group entries into book pages: one page per day, newest day first.
+  // Within a page, entries read newest first.
+  const pages = useMemo(() => {
+    const byDay = new Map();
+    [...entries]
+      .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+      .forEach((e) => {
+        const day = (e.created_at || '').split('T')[0];
+        if (!day) return;
+        if (!byDay.has(day)) byDay.set(day, []);
+        byDay.get(day).push(e);
+      });
+    return [...byDay.entries()]
+      .map(([date, dayEntries]) => ({ date, entries: dayEntries }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [entries]);
+
+  // Keep the page pointer valid when entries are added or deleted.
+  useEffect(() => {
+    if (pageIndex > 0 && pageIndex >= pages.length) setPageIndex(Math.max(0, pages.length - 1));
+  }, [pages, pageIndex]);
+
   const handleSave = async () => {
     if (!currentEntry.trim()) return;
     setSaving(true);
+    setSaveError(false);
     try {
       await axios.post(`${API}/journal`, {
         title: currentTitle.trim() || new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
@@ -127,8 +158,13 @@ export default function JournalPage() {
         is_intimate: isIntimate
       }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
       setCurrentEntry(''); setCurrentTitle(''); setIsIntimate(false); setWriting(false);
+      setPageIndex(0); // the new entry lands on today's page, the first page
       fetchEntries();
-    } catch (err) { logger.error('Failed to save journal entry:', err); } finally { setSaving(false); }
+    } catch (err) {
+      // Never fail silently: keep her words on screen and tell her plainly.
+      logger.error('Failed to save journal entry:', err);
+      setSaveError(true);
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
@@ -148,13 +184,20 @@ export default function JournalPage() {
 
   const handleDateSelect = (dateStr) => {
     setSelectedDate(dateStr);
-    const target = entries.find(e => e.created_at?.startsWith(dateStr));
-    if (target && entryRefs.current[target.id]) {
-      entryRefs.current[target.id].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Turn straight to that day's page in the book, if she wrote that day.
+    const idx = pages.findIndex(p => p.date === dateStr);
+    if (idx >= 0) {
+      setPageIndex(idx);
+      setPageNotice('');
+    } else {
+      const label = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      setPageNotice(`No journal page for ${label} yet.`);
+      setTimeout(() => setPageNotice(''), 3000);
     }
   };
 
-  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const fmtDayLong = (dateStr) => new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const fmtTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
   if ((loading || rcLoading) && !loadTimedOut && !loadError) return <div className="flex items-center justify-center min-h-screen"><div className="cycle-orb orb-follicular w-16 h-16" /></div>;
 
@@ -193,7 +236,7 @@ export default function JournalPage() {
           <div className="rounded-xl p-4 mb-6 text-left" style={{ border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(212,168,83,0.04)' }}>
             <p className="text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.8)' }}>
               ✿&nbsp; Unlimited journal entries<br />
-              ✿&nbsp; Beautiful lined-paper journal with handwritten font<br />
+              ✿&nbsp; A journal that reads like a real book, one day to a page<br />
               ✿&nbsp; Mini-calendar to revisit any day<br />
               ✿&nbsp; Your Daily Read learns your voice
             </p>
@@ -267,8 +310,11 @@ export default function JournalPage() {
         {/* Writing Area */}
         {writing && (
           <div className="rounded-xl mb-5 overflow-hidden" style={{ border: '1px solid rgba(255,20,147,0.15)', background: 'rgba(255,255,255,0.03)' }} data-testid="journal-editor">
-            {/* Journal lines background */}
-            <div className="relative p-4" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 27px, rgba(201,184,240,0.06) 27px, rgba(201,184,240,0.06) 28px)' }}>
+            {/* No ruled-line background: it started at the top of the box
+                while the text starts lower, so the words never sat on the
+                lines. Clean, even line spacing instead (28px), which
+                always matches the text. */}
+            <div className="relative p-4">
               <input
                 type="text" value={currentTitle} onChange={(e) => setCurrentTitle(e.target.value)}
                 placeholder="Title..."
@@ -277,14 +323,19 @@ export default function JournalPage() {
                 data-testid="journal-title-input"
               />
               <textarea
-                value={currentEntry} onChange={(e) => setCurrentEntry(e.target.value)}
+                value={currentEntry} onChange={(e) => { setCurrentEntry(e.target.value); if (saveError) setSaveError(false); }}
                 placeholder="Write whatever is on your mind..."
-                className="w-full bg-transparent border-none text-white/90 min-h-[180px] resize-none outline-none placeholder-white/15 leading-7"
-                style={{ fontFamily: "'Satisfy', cursive", fontSize: '16px', lineHeight: '28px' }}
+                className="w-full bg-transparent border-none text-white/90 min-h-[180px] resize-none outline-none placeholder-white/15"
+                style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px' }}
                 autoFocus
                 data-testid="journal-content-input"
               />
             </div>
+            {saveError && (
+              <p className="px-4 pb-2 text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="journal-save-error">
+                That didn&apos;t save. Your words are still here. The server may be waking up, give it a moment and tap Save again.
+              </p>
+            )}
             <div className="flex gap-2 p-3 border-t border-white/5 items-center">
               <button
                 onClick={() => setIsIntimate(!isIntimate)}
@@ -311,53 +362,83 @@ export default function JournalPage() {
           </div>
         )}
 
-        {/* Entries */}
+        {/* The book: one day per page, turn pages with Older / Newer */}
+        {pageNotice && (
+          <p className="text-center text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }} data-testid="journal-page-notice">{pageNotice}</p>
+        )}
         {entries.length === 0 && !writing ? (
           <div className="text-center py-20">
             <p className="text-3xl mb-3" style={{ color: 'rgba(201,184,240,0.15)' }}>✿</p>
             <p className="text-white/30 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>No entries yet</p>
             <p className="text-white/15 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap + to write your first entry</p>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {entries.map((entry) => {
-              const eDate = entry.created_at?.split('T')[0];
-              const hl = selectedDate && eDate === selectedDate;
+        ) : pages.length > 0 ? (
+          <div data-testid="journal-book">
+            {(() => {
+              const page = pages[Math.min(pageIndex, pages.length - 1)];
               return (
-                <div key={entry.id} ref={el => entryRefs.current[entry.id] = el}
-                  className="rounded-xl overflow-hidden transition-all"
-                  style={{ border: hl ? '1px solid #FF1493' : '1px solid rgba(201,184,240,0.08)', background: 'rgba(255,255,255,0.02)', boxShadow: hl ? '0 0 15px rgba(255,20,147,0.1)' : 'none' }}
-                  data-testid={`journal-entry-${entry.id}`}>
-                  {/* Journal lines background */}
-                  <div className="p-4 relative" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 27px, rgba(201,184,240,0.04) 27px, rgba(201,184,240,0.04) 28px)' }}>
-                    <div className="flex items-start justify-between mb-1">
-                      <div>
-                        <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>{entry.title}</h3>
-                        <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtDate(entry.created_at)}</p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => handleToggleIntimate(entry)}
-                          title={entry.is_intimate ? 'Intimate — her eyes only' : 'Mark as intimate'}
-                          className="p-1" data-testid={`intimate-entry-${entry.id}`}>
-                          <Lock className="w-3.5 h-3.5" style={{ color: entry.is_intimate ? GOLD : 'rgba(255,255,255,0.15)' }} />
-                        </button>
-                        <button onClick={() => handleDelete(entry.id)} className="text-white/15 hover:text-red-400 p-1" data-testid={`delete-entry-${entry.id}`}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    {entry.is_intimate && (
-                      <p className="text-[10px] tracking-widest uppercase mb-1" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>
-                        Intimate · her eyes only
-                      </p>
-                    )}
-                    <p className="text-white/80 leading-7 whitespace-pre-wrap mt-2" style={{ fontFamily: "'Satisfy', cursive", fontSize: '15px', lineHeight: '28px' }}>{entry.content}</p>
+                <>
+                  <div className="flex items-end justify-between mb-2 px-1">
+                    <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: '#F4D3DC' }}>{fmtDayLong(page.date)}</p>
+                    <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>
+                      Page {Math.min(pageIndex, pages.length - 1) + 1} of {pages.length}
+                    </p>
                   </div>
-                </div>
+                  <div className="rounded-xl overflow-hidden"
+                    style={{ border: '1px solid rgba(201,184,240,0.12)', borderLeft: '3px solid rgba(255,20,147,0.45)', background: 'rgba(255,255,255,0.02)' }}>
+                    {page.entries.map((entry, i) => (
+                      <div key={entry.id} className="p-4"
+                        style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}}
+                        data-testid={`journal-entry-${entry.id}`}>
+                        <div className="flex items-start justify-between mb-1">
+                          <div>
+                            <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>{entry.title}</h3>
+                            <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtTime(entry.created_at)}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => handleToggleIntimate(entry)}
+                              title={entry.is_intimate ? 'Intimate — her eyes only' : 'Mark as intimate'}
+                              className="p-1" data-testid={`intimate-entry-${entry.id}`}>
+                              <Lock className="w-3.5 h-3.5" style={{ color: entry.is_intimate ? GOLD : 'rgba(255,255,255,0.15)' }} />
+                            </button>
+                            <button onClick={() => handleDelete(entry.id)} className="text-white/15 hover:text-red-400 p-1" data-testid={`delete-entry-${entry.id}`}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        {entry.is_intimate && (
+                          <p className="text-[10px] tracking-widest uppercase mb-1" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>
+                            Intimate · her eyes only
+                          </p>
+                        )}
+                        <p className="text-white/85 whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px' }}>{entry.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Page-turn controls */}
+                  <div className="flex items-center justify-between mt-4">
+                    <button
+                      onClick={() => setPageIndex(Math.min(pageIndex + 1, pages.length - 1))}
+                      disabled={pageIndex >= pages.length - 1}
+                      className="flex items-center gap-1 px-4 py-2 rounded-full text-xs disabled:opacity-30"
+                      style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(201,184,240,0.25)', color: '#c9b8f0', background: 'rgba(201,184,240,0.05)' }}
+                      data-testid="journal-older-page-btn">
+                      <ChevronLeft className="w-4 h-4" /> Older day
+                    </button>
+                    <button
+                      onClick={() => setPageIndex(Math.max(pageIndex - 1, 0))}
+                      disabled={pageIndex <= 0}
+                      className="flex items-center gap-1 px-4 py-2 rounded-full text-xs disabled:opacity-30"
+                      style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,20,147,0.3)', color: '#f4a7b9', background: 'rgba(255,20,147,0.06)' }}
+                      data-testid="journal-newer-page-btn">
+                      Newer day <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </>
               );
-            })}
+            })()}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

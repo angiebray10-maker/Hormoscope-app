@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Link } from 'react-router-dom';
-import { Heart, Loader2, Gift, Users, Copy, Check } from 'lucide-react';
+import { Heart, Loader2, Users, Copy, Check } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 
@@ -14,7 +14,7 @@ const poppins = { fontFamily: 'Poppins, sans-serif' };
 const script = { fontFamily: "'Poiret One', cursive" };
 
 // Attunement Mode home (Angelita, Oct 16-17): its own tab, pictures of both
-// kinds of couples, her circle, and the Secret Gift Shop's home base.
+// kinds of couples, and her circle.
 // Built honestly on the existing partner invite flow (POST /partner/invite,
 // code accepted in the Partner Hub). The backend today links ONE person at
 // a time and the inviter needs Pro to send an invite; where her full spec
@@ -197,36 +197,6 @@ export default function AttunementPage() {
           <p className="text-[#6c6c8a] text-[11px] leading-relaxed" style={poppins}>
             Right now HORMOscope links one person at a time while your whole circle is being built. Start with the person who loves you closest.
           </p>
-        </div>
-
-        {/* Secret Gift Shop: its home base lives on this tab */}
-        <div className="card p-5 mb-4" data-testid="attunement-gift-shop">
-          <div className="flex items-center gap-2 mb-2">
-            <Gift className="w-5 h-5" style={{ color: GOLD }} />
-            <h2 className="text-white text-xl" style={script}>The Secret Gift Shop</h2>
-          </div>
-          <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
-            This is where the gift shop lives. Your people, in tune with your cycle, can send little things that land right: comfort on the hard days, care right on time, love in a box.
-          </p>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {[
-              { name: 'Essentials', tagline: 'What she actually needs' },
-              { name: 'Comfort', tagline: 'For the hard days' },
-              { name: 'Treats', tagline: 'Because she deserves it' },
-            ].map((c) => (
-              <span key={c.name} className="px-3 py-1.5 rounded-full text-xs" style={{ ...poppins, border: `1px solid ${GOLD}50`, color: '#e8d9ae', background: 'rgba(212,168,83,0.06)' }}>
-                {c.name} · {c.tagline}
-              </span>
-            ))}
-          </div>
-          <Link
-            to="/gift-shop"
-            className="block w-full py-3 rounded-full text-center text-white text-sm"
-            style={{ ...script, letterSpacing: '0.05em', background: 'linear-gradient(135deg, #D4A853, #c9a030)' }}
-            data-testid="open-gift-shop-btn"
-          >
-            Open the Secret Gift Shop
-          </Link>
         </div>
 
         <p className="text-center text-[#6c6c8a] text-[10px] leading-relaxed" style={poppins}>
