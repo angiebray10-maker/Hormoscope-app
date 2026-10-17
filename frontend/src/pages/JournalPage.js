@@ -14,26 +14,68 @@ const JOURNAL_PREVIEW_IMG = '/pro-screenshots/journal.png';
 // in the WebView with no font download.
 const SERIF = "'Georgia', 'Noto Serif', 'Times New Roman', serif";
 
-function MiniCalendar({ token, selectedDate, onSelectDate, onClose }) {
+function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [cycleLogs, setCycleLogs] = useState([]);
   const [intimacyLogs, setIntimacyLogs] = useState([]);
+  const [dashboard, setDashboard] = useState(null);
 
   /* eslint-disable */
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [c, i] = await Promise.all([
+        const [c, i, d] = await Promise.all([
           axios.get(`${API}/cycle-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }),
-          axios.get(`${API}/intimacy-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
+          axios.get(`${API}/intimacy-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }),
+          axios.get(`${API}/dashboard`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }).catch(() => ({ data: null }))
         ]);
         setCycleLogs(c.data || []);
         setIntimacyLogs(i.data || []);
+        setDashboard(d.data || null);
       } catch (err) { logger.error('Failed to fetch calendar data:', err); }
     };
     if (token) fetchData();
   }, [token]);
   /* eslint-enable */
+
+  // Same ovulation math as the big Calendar tab (Angelita, Oct 17: the
+  // small corner calendar needs the green ovulation days lit up too).
+  // Next period comes from the dashboard when available, otherwise it is
+  // projected forward from her last period start and cycle length.
+  const getNextPeriodDate = () => {
+    if (dashboard?.cycle_info?.next_period_date) return dashboard.cycle_info.next_period_date;
+    if (!user?.last_period_date) return null;
+    const cycleLen = user.cycle_length || 28;
+    const next = new Date(user.last_period_date + 'T00:00:00');
+    const todayD = new Date();
+    todayD.setHours(0, 0, 0, 0);
+    while (next <= todayD) next.setDate(next.getDate() + cycleLen);
+    return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
+  };
+  const ovulationWindow = () => {
+    const npd = getNextPeriodDate();
+    if (!npd) return null;
+    const ov = new Date(npd + 'T00:00:00');
+    ov.setDate(ov.getDate() - 14);
+    const start = new Date(ov);
+    start.setDate(start.getDate() - 5);
+    const end = new Date(ov);
+    end.setDate(end.getDate() + 1);
+    return { ov, start, end };
+  };
+  const isOvulation = (d) => {
+    const w = ovulationWindow();
+    if (!w) return false;
+    const check = new Date(fmt(d) + 'T00:00:00');
+    return check >= w.start && check <= w.end;
+  };
+  const isPeak = (d) => {
+    const w = ovulationWindow();
+    if (!w) return false;
+    const check = new Date(fmt(d) + 'T00:00:00');
+    const diff = Math.floor((check - w.ov) / (1000 * 60 * 60 * 24));
+    return diff >= -1 && diff <= 0;
+  };
 
   const y = currentMonth.getFullYear(), m = currentMonth.getMonth();
   const firstDay = new Date(y, m, 1).getDay();
@@ -55,10 +97,12 @@ function MiniCalendar({ token, selectedDate, onSelectDate, onClose }) {
         {Array.from({length:firstDay}).map((_,i) => <span key={`e${i}`} />)}
         {Array.from({length:days},(_,i)=>i+1).map(day => {
           const ds = fmt(day), sel = selectedDate===ds, td = ds===today;
+          const ov = !sel && !isPeriod(day) && isOvulation(day);
+          const pk = ov && isPeak(day);
           return (
             <button key={day} onClick={() => { onSelectDate(ds); onClose(); }}
               className="relative w-6 h-6 flex items-center justify-center rounded text-[8px]"
-              style={{ background: sel?'#FF1493':isPeriod(day)?'rgba(232,90,107,0.25)':td?'rgba(255,255,255,0.08)':'transparent', color: sel?'#fff':td?'#fff':'#9A8B91', fontFamily:'Poppins,sans-serif' }}>
+              style={{ background: sel?'#FF1493':isPeriod(day)?'rgba(232,90,107,0.25)':pk?'rgba(93,187,138,0.4)':ov?'rgba(93,187,138,0.22)':td?'rgba(255,255,255,0.08)':'transparent', color: sel?'#fff':ov?'#7ED3A6':td?'#fff':'#9A8B91', fontFamily:'Poppins,sans-serif' }}>
               {day}
               {isIntimacy(day) && <Heart className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5" style={{color:'#FF1493'}} fill="#FF1493" />}
             </button>
@@ -70,7 +114,7 @@ function MiniCalendar({ token, selectedDate, onSelectDate, onClose }) {
 }
 
 export default function JournalPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { isPro, inFirstCycle, loading: rcLoading } = usePremium();
   const [entries, setEntries] = useState([]);
   const [writing, setWriting] = useState(false);
@@ -303,7 +347,7 @@ export default function JournalPage() {
         {/* Mini Calendar Dropdown */}
         {showCal && (
           <div className="absolute right-5 top-16 z-50">
-            <MiniCalendar token={token} selectedDate={selectedDate} onSelectDate={handleDateSelect} onClose={() => setShowCal(false)} />
+            <MiniCalendar token={token} user={user} selectedDate={selectedDate} onSelectDate={handleDateSelect} onClose={() => setShowCal(false)} />
           </div>
         )}
 
