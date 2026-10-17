@@ -267,7 +267,7 @@ export default function PartnerHubPage() {
             <Lock className="w-3.5 h-3.5" style={{ color: GOLD }} />
             <span className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>HORMOscope Pro</span>
           </div>
-          <h1 className="text-4xl text-white mb-3" style={{ fontFamily: "'Poiret One', cursive" }}>Attuned Partner Mode</h1>
+          <h1 className="text-4xl text-white mb-3" style={{ fontFamily: "'Poiret One', cursive" }}>Attunement Mode</h1>
           <p className="text-sm leading-relaxed mb-6" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
             Let him follow your cycle — ovulation, fertile days, and when to expect your period. He gets his own free account; only you need Pro.
           </p>
@@ -299,7 +299,7 @@ export default function PartnerHubPage() {
             <Link2 className="w-7 h-7 text-[#FF1493]" />
           </div>
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>
-            Attuned Partner Mode
+            Attunement Mode
           </p>
           <h1 className="text-2xl text-white mb-3" style={{ fontFamily: "'Poiret One', cursive" }}>Link Your Accounts</h1>
           <p className="text-[#9A8B91] text-sm mb-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
@@ -339,14 +339,14 @@ export default function PartnerHubPage() {
       <div className="max-w-md mx-auto">
         <div className="text-center mb-6">
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>
-            Attuned Partner Mode
+            Attunement Mode
           </p>
           <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', cursive" }}>
             {calData ? `${calData.name}'s Cycle` : 'Partner Hub'}
           </h1>
           {status.role === 'owner' && (
             <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              Linked with {status.partner_name} · this is what he sees
+              Linked with {status.partner_name} · this is what they see
             </p>
           )}
         </div>

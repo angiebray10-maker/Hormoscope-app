@@ -67,7 +67,7 @@ function MiniCalendar({ token, selectedDate, onSelectDate, onClose }) {
 
 export default function JournalPage() {
   const { token } = useAuth();
-  const { isPro, loading: rcLoading } = usePremium();
+  const { isPro, inFirstCycle, loading: rcLoading } = usePremium();
   const [entries, setEntries] = useState([]);
   const [writing, setWriting] = useState(false);
   const [currentEntry, setCurrentEntry] = useState('');
@@ -103,7 +103,8 @@ export default function JournalPage() {
     fetchEntries();
   };
 
-  // Journal is Pro-only — fully locked for free users (no trial entries)
+  // Journal gate: open for Pro, and open free during her first cycle
+  // (one full personal cycle from signup; see PremiumContext.inFirstCycle)
 
   const fetchEntries = async () => {
     setLoadError(false);
@@ -171,8 +172,8 @@ export default function JournalPage() {
     </div>
   );
 
-  // Pro-only gate: free users see a locked preview, no trial
-  if (!isPro) {
+  // Locked only outside the first free cycle and without Pro
+  if (!isPro && !inFirstCycle) {
     return (
       <div className="min-h-screen pb-20 lg:ml-64" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-testid="journal-locked">
         <div className="max-w-md mx-auto px-5 pt-10 text-center">
@@ -247,6 +248,14 @@ export default function JournalPage() {
         <button onClick={() => { setSelectedDate(new Date().toISOString().split('T')[0]); setWriting(true); }} className="mb-4">
           <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }}>{todayStr}</p>
         </button>
+
+        {!isPro && inFirstCycle && (
+          <div className="rounded-xl px-4 py-3 mb-4" style={{ border: '1px solid rgba(244,167,185,0.35)', background: 'rgba(244,167,185,0.07)' }} data-testid="journal-first-cycle-note">
+            <p className="text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: '#F4D3DC' }}>
+              Your Journal is open and free for your whole first cycle. Make yourself at home.
+            </p>
+          </div>
+        )}
 
         {/* Mini Calendar Dropdown */}
         {showCal && (

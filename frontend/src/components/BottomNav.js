@@ -1,19 +1,60 @@
-import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { Home, MessageCircle, Calendar, User, BookOpen, Crown } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Home, MessageCircle, Calendar, User, BookOpen, Crown, Heart } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/journal', icon: BookOpen, label: 'Journal' },
+  { path: '/attunement', icon: Heart, label: 'Attunement' },
   { path: '/pro', icon: Crown, label: 'Pro' },
   { path: '/calendar', icon: Calendar, label: 'Calendar' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
 
+const hiddenPaths = ['/auth', '/onboarding', '/privacy', '/terms'];
+
 export default function BottomNav() {
   const location = useLocation();
-  const hiddenPaths = ['/auth', '/onboarding', '/privacy', '/terms'];
-  
+  const navigate = useNavigate();
+  const touchRef = useRef(null);
+
+  // Swipe left / right moves between the main tabs (Angelita's fix list,
+  // Oct 16). Deliberate swipes only: long, mostly horizontal, quick.
+  // Ignored inside text fields and the quick-log dialog so logging and
+  // typing never trigger a tab change.
+  useEffect(() => {
+    const onStart = (e) => {
+      if (e.touches.length !== 1) { touchRef.current = null; return; }
+      const t = e.touches[0];
+      touchRef.current = { x: t.clientX, y: t.clientY, t: Date.now(), target: e.target };
+    };
+    const onEnd = (e) => {
+      const start = touchRef.current;
+      touchRef.current = null;
+      if (!start) return;
+      if (hiddenPaths.some((p) => location.pathname.startsWith(p))) return;
+      if (start.target && start.target.closest && start.target.closest('input, textarea, select, [data-testid^="quicklog-dialog"]')) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      if (Math.abs(dx) < 80) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.8) return;
+      if (Date.now() - start.t > 600) return;
+      const paths = navItems.map((i) => i.path);
+      const idx = paths.indexOf(location.pathname);
+      if (idx === -1) return;
+      const next = dx < 0 ? idx + 1 : idx - 1;
+      if (next < 0 || next >= paths.length) return;
+      navigate(paths[next]);
+    };
+    document.addEventListener('touchstart', onStart, { passive: true });
+    document.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchend', onEnd);
+    };
+  }, [location.pathname, navigate]);
+
   if (hiddenPaths.some(p => location.pathname.startsWith(p))) {
     return null;
   }
@@ -34,8 +75,8 @@ export default function BottomNav() {
                 key={path}
                 to={path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                  isActive 
-                    ? 'bg-[#ff8fab] text-[#1a1a2e]' 
+                  isActive
+                    ? 'bg-[#ff8fab] text-[#1a1a2e]'
                     : 'text-[#6c6c8a] hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -47,19 +88,21 @@ export default function BottomNav() {
         </nav>
       </aside>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="lg:hidden fixed bottom-12 left-4 right-4 z-[9999]">
-        <div className="backdrop-blur-xl rounded-full px-2 py-1 flex justify-around max-w-sm mx-auto" style={{ background: 'rgba(26,26,46,0.9)', border: '1.5px solid #FF1493' }}>
-          {navItems.map(({ path, icon: Icon }) => {
+      {/* Mobile Bottom Nav: smaller, transparent, outline only
+          (Angelita's fix list, Oct 16: no solid fill slicing into cards) */}
+      <nav className="lg:hidden fixed bottom-3 left-4 right-4 z-[9999]">
+        <div className="rounded-full px-1.5 py-0.5 flex justify-around max-w-sm mx-auto" style={{ background: 'transparent', border: '1.5px solid #FF1493' }}>
+          {navItems.map(({ path, icon: Icon, label }) => {
             const isActive = location.pathname === path;
             const isPro = path === '/pro';
             return (
               <NavLink
                 key={path}
                 to={path}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                  isActive 
-                    ? 'bg-[#FF1493] text-white' 
+                aria-label={label}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                  isActive
+                    ? 'bg-[#FF1493] text-white'
                     : isPro ? 'text-[#D4A853]' : 'text-[#6c6c8a]'
                 }`}
               >

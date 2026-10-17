@@ -22,6 +22,28 @@ const MOOD_OPTIONS = [
   { value: 5, emoji: '😄', label: 'Great' },
 ];
 
+// The full range of real feelings (Angelita's list, Oct 16). Multi-select.
+// Saved through the same quick-log path as `emotion:<name>` symptom tags,
+// so the payload shape stays compatible with /cycle-logs.
+const EMOTION_OPTIONS = [
+  { emoji: '😠', label: 'Anger' },
+  { emoji: '😢', label: 'Sad' },
+  { emoji: '🌧️', label: 'Melancholy' },
+  { emoji: '📷', label: 'Nostalgic' },
+  { emoji: '💔', label: 'Hurt' },
+  { emoji: '😣', label: 'Pain' },
+  { emoji: '😞', label: 'Disappointed' },
+  { emoji: '🫥', label: 'Misunderstood' },
+  { emoji: '🤢', label: 'Sick' },
+  { emoji: '😨', label: 'Scared' },
+  { emoji: '🥱', label: 'Bored' },
+  { emoji: '😵‍💫', label: 'Dumbfounded' },
+  { emoji: '😏', label: 'Horny' },
+  { emoji: '😘', label: 'Flirtatious' },
+  { emoji: '😒', label: 'Jealous' },
+  { emoji: '👀', label: 'Envious' },
+];
+
 const SYMPTOM_OPTIONS = [
   'cramps', 'headache', 'bloating', 'fatigue', 'nausea',
   'backache', 'tender breasts', 'acne', 'dizziness', 'spotting',
@@ -37,6 +59,7 @@ const todayISO = () => new Date().toISOString().split('T')[0];
 
 function QuickLogDialog({ category, token, onClose, onSaved }) {
   const [mood, setMood] = useState(3);
+  const [emotions, setEmotions] = useState([]);
   const [energy, setEnergy] = useState(3);
   const [symptoms, setSymptoms] = useState([]);
   const [cravings, setCravings] = useState([]);
@@ -55,8 +78,10 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
     let label = '';
     switch (category.id) {
       case 'mood':
-        payloadSymptoms = [`mood:${mood}`];
-        label = `Mood ${mood}/5`;
+        payloadSymptoms = [`mood:${mood}`, ...emotions.map((e) => `emotion:${e.toLowerCase()}`)];
+        label = emotions.length
+          ? `Feeling ${emotions.join(', ')} · Mood ${mood}/5`
+          : `Mood ${mood}/5`;
         break;
       case 'energy':
         payloadSymptoms = [`energy:${energy}`];
@@ -142,24 +167,46 @@ function QuickLogDialog({ category, token, onClose, onSaved }) {
         </p>
 
         {category.id === 'mood' && (
-          <div className="flex justify-between mb-5">
-            {MOOD_OPTIONS.map((m) => (
-              <button
-                key={m.value}
-                onClick={() => setMood(m.value)}
-                className="flex flex-col items-center gap-1 p-2 rounded-2xl transition-transform"
-                style={{
-                  background: mood === m.value ? `${category.color}22` : 'transparent',
-                  border: `1px solid ${mood === m.value ? category.color : 'transparent'}`,
-                  transform: mood === m.value ? 'scale(1.12)' : 'scale(1)',
-                }}
-                aria-label={m.label}
-              >
-                <span className="text-3xl">{m.emoji}</span>
-                <span className="text-[10px]" style={{ fontFamily: 'Poppins, sans-serif', color: mood === m.value ? '#fff' : '#9A8B91' }}>{m.label}</span>
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="flex justify-between mb-4">
+              {MOOD_OPTIONS.map((m) => (
+                <button
+                  key={m.value}
+                  onClick={() => setMood(m.value)}
+                  className="flex flex-col items-center gap-1 p-2 rounded-2xl transition-transform"
+                  style={{
+                    background: mood === m.value ? `${category.color}22` : 'transparent',
+                    border: `1px solid ${mood === m.value ? category.color : 'transparent'}`,
+                    transform: mood === m.value ? 'scale(1.12)' : 'scale(1)',
+                  }}
+                  aria-label={m.label}
+                >
+                  <span className="text-3xl">{m.emoji}</span>
+                  <span className="text-[10px]" style={{ fontFamily: 'Poppins, sans-serif', color: mood === m.value ? '#fff' : '#9A8B91' }}>{m.label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[#9A8B91] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              And what you are really feeling
+            </p>
+            <div className="flex flex-wrap gap-1.5 mb-5 max-h-36 overflow-y-auto pr-1">
+              {EMOTION_OPTIONS.map((e) => {
+                const active = emotions.includes(e.label);
+                return (
+                  <button
+                    key={e.label}
+                    onClick={() => toggleIn(emotions, setEmotions, e.label)}
+                    className="px-2.5 py-1.5 rounded-full text-[11px]"
+                    style={chip(active, category.color)}
+                    aria-label={e.label}
+                    aria-pressed={active}
+                  >
+                    {e.emoji} {e.label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
         )}
 
         {category.id === 'energy' && (
@@ -269,13 +316,11 @@ export default function FloatingCarousel({ token }) {
         Tap an icon to log today
       </p>
 
+      {/* No framing box: the icons sit directly on the page background
+          (Angelita's fix list, Oct 16). The track is only a positioning area. */}
       <div
-        className="hs-carousel-track relative overflow-hidden rounded-3xl"
-        style={{
-          height: 132,
-          background: 'linear-gradient(180deg, rgba(244,167,185,0.05) 0%, rgba(201,184,240,0.05) 100%)',
-          border: '1px solid rgba(255,255,255,0.06)',
-        }}
+        className="hs-carousel-track relative overflow-hidden"
+        style={{ height: 132 }}
       >
         {CATEGORIES.map((cat, i) => {
           const { Icon } = cat;

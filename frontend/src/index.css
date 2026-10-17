@@ -105,6 +105,13 @@ h1, h2, h3, .heading {
     50% { transform: scale(1.02); opacity: 0.9; }
 }
 
+/* Gentle breathing pulsate for the home cycle orb (fade + slight scale,
+   no floating) */
+@keyframes orbPulsate {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.03); opacity: 0.94; }
+}
+
 @keyframes glow {
     0%, 100% { box-shadow: 0 0 40px var(--orb-color, var(--pink)), 0 0 80px var(--orb-color, var(--pink)); }
     50% { box-shadow: 0 0 60px var(--orb-color, var(--pink)), 0 0 100px var(--orb-color, var(--pink)); }
@@ -118,7 +125,7 @@ h1, h2, h3, .heading {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    animation: pulse 3s ease-in-out infinite, glow 3s ease-in-out infinite;
+    animation: orbPulsate 4s ease-in-out infinite, glow 3s ease-in-out infinite;
     position: relative;
 }
 

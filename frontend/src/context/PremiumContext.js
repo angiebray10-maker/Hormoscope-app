@@ -75,18 +75,31 @@ export function PremiumProvider({ children }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // First-cycle window (Angelita's trial decision, Oct 15-16): the whole
+  // app is free for one full personal cycle, counted from the account's
+  // created_at for exactly her own cycle_length in days.
+  const inFirstCycle = useMemo(() => {
+    if (!user?.created_at) return false;
+    const created = new Date(user.created_at).getTime();
+    if (Number.isNaN(created)) return false;
+    const cycleLen = user.cycle_length || 28;
+    const daysSince = (Date.now() - created) / 86400000;
+    return daysSince >= 0 && daysSince < cycleLen;
+  }, [user?.created_at, user?.cycle_length]);
+
   const value = useMemo(() => ({
     isPro,
+    inFirstCycle,
     loading,
     initialized: true,
     refreshCustomerInfo: refresh,
-  }), [isPro, loading, refresh]);
+  }), [isPro, inFirstCycle, loading, refresh]);
 
   return <PremiumContext.Provider value={value}>{children}</PremiumContext.Provider>;
 }
 
 export function usePremium() {
   const ctx = useContext(PremiumContext);
-  if (!ctx) return { isPro: false, loading: false, initialized: false, refreshCustomerInfo: async () => {} };
+  if (!ctx) return { isPro: false, inFirstCycle: false, loading: false, initialized: false, refreshCustomerInfo: async () => {} };
   return ctx;
 }

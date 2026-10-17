@@ -62,7 +62,7 @@ function AttunedSection({ token }) {
           <Heart className="w-5 h-5 text-[#FF1493]" fill="#FF1493" />
         </div>
         <div>
-          <p className="text-[#F4D3DC] text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>Attuned Partner Mode</p>
+          <p className="text-[#F4D3DC] text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>Attunement Mode</p>
           <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Built by one woman, a breast cancer survivor, from real personal experience.</p>
         </div>
       </div>
@@ -78,9 +78,9 @@ function AttunedSection({ token }) {
             He can see your cycle calendar — ovulation, fertile days, and your next period. Your journal stays private.
           </p>
           <div className="flex gap-2">
-            <Link to="/partner-hub" className="flex-1 py-2.5 rounded-full text-white text-sm font-medium text-center"
+            <Link to="/attunement" className="flex-1 py-2.5 rounded-full text-white text-sm font-medium text-center"
               style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}>
-              Open Partner Hub
+              Open Attunement Mode
             </Link>
             <button onClick={handleUnlink} className="px-4 py-2.5 rounded-full text-white/50 text-xs"
               style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.12)' }}>
@@ -374,7 +374,7 @@ export default function ProfilePage() {
         </Link>
       )}
 
-      {/* Attuned Partner Mode */}
+      {/* Attunement Mode */}
       <AttunedSection token={token} />
 
       {/* Logout */}

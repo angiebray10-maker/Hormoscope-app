@@ -121,6 +121,7 @@ class UserResponse(BaseModel):
     notification_time: str = "09:00"
     notification_preferences: Dict[str, bool] = {}
     can_use_boyfriend_mode: bool = False
+    created_at: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -519,7 +520,8 @@ def build_user_response(user: dict) -> UserResponse:
         notifications_enabled=user.get("notifications_enabled", True),
         notification_time=user.get("notification_time", "09:00"),
         notification_preferences=user.get("notification_preferences", {}),
-        can_use_boyfriend_mode=can_use_bf
+        can_use_boyfriend_mode=can_use_bf,
+        created_at=user.get("created_at")
     )
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -2240,13 +2242,21 @@ def _partner_pair(rel: dict):
     """(owner_id, partner_id). The owner is the woman who sent the invite."""
     return rel["user_id"], rel["partner_user_id"]
 
+class PartnerInviteRequest(BaseModel):
+    partner_type: Optional[str] = None  # "woman" | "man" | None
+
 @api_router.post("/partner/invite")
-async def create_partner_invite(current_user: dict = Depends(get_current_user)):
-    # Pro-only: the owner must have Pro to invite a partner
-    if not current_user.get("is_premium"):
+async def create_partner_invite(payload: Optional[PartnerInviteRequest] = None, current_user: dict = Depends(get_current_user)):
+    # Angelita's Attunement rule (Oct 15-17): inviting a woman partner is
+    # free (she gets a link and her first cycle free too). Inviting a man is
+    # Pro only: pay now to link him right away, or it opens once her first
+    # free cycle ends and she is paying. Invites with no type keep the
+    # original Pro gate.
+    partner_type = payload.partner_type if payload else None
+    if not current_user.get("is_premium") and partner_type != "woman":
         raise HTTPException(
             status_code=402,  # Payment Required
-            detail="Attuned Partner Mode is a HORMOscope Pro feature. Upgrade to invite your partner."
+            detail="Attunement Mode is a HORMOscope Pro feature. Upgrade to invite your partner."
         )
     # One active invite at a time; revoke older pending ones
     await db.partner_invites.delete_many({"inviter_id": current_user["id"], "status": "pending"})
@@ -2258,6 +2268,7 @@ async def create_partner_invite(current_user: dict = Depends(get_current_user)):
         "id": str(uuid.uuid4()),
         "inviter_id": current_user["id"],
         "invite_code": code,
+        "partner_type": partner_type,
         "status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat()
     })
