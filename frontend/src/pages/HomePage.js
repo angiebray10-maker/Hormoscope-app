@@ -13,6 +13,16 @@ import logger from '../utils/logger';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Local-date helpers for the "This Time Last Cycle" card. Log dates are
+// stored as YYYY-MM-DD, so parse and format in local time to match the
+// Calendar's day view exactly (no UTC drift).
+const parseLocalDate = (s) => {
+  const [y, m, d] = String(s || '').slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+};
+const toISODateLocal = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+
 const phases = {
   menstrual: { orb: 'orb-menstrual', color: '#ff6b6b', name: 'Menstrual Phase' },
   follicular: { orb: 'orb-follicular', color: '#74b9ff', name: 'Follicular Phase' },
@@ -26,6 +36,7 @@ export default function HomePage() {
   const { user, token } = useAuth();
   const { isPro, refreshCustomerInfo } = usePremium();
   const [data, setData] = useState(null);
+  const [cycleLogs, setCycleLogs] = useState(null);
   const [rhythmData, setRhythmData] = useState(null);
   const [hormoneData, setHormoneData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -77,12 +88,14 @@ export default function HomePage() {
   const fetchData = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [dashRes, rhythmRes, hormoneRes] = await Promise.all([
+      const [dashRes, rhythmRes, hormoneRes, logsRes] = await Promise.all([
         axios.get(`${API}/dashboard`, { headers }),
         axios.get(`${API}/premium/daily-rhythm`, { headers }).catch(() => null),
         axios.get(`${API}/premium/hormone-map`, { headers }).catch(() => null),
+        axios.get(`${API}/cycle-logs`, { headers }).catch(() => null),
       ]);
       setData(dashRes.data);
+      if (logsRes) setCycleLogs(logsRes.data);
       if (rhythmRes) setRhythmData(rhythmRes.data);
       if (hormoneRes) setHormoneData(hormoneRes.data);
     } catch (err) {
@@ -112,6 +125,44 @@ export default function HomePage() {
   const mood = data?.mood_prediction || {};
   const periodIsLate = cycle.period_is_late || false;
   const daysLate = cycle.days_late || 0;
+
+  // "This Time Last Cycle": the same cycle day one cycle ago, and what she
+  // logged on it, in her own words. The current cycle start is her last
+  // period date walked forward in whole cycle lengths (the same projection
+  // the Calendar uses), so the match is truly the same cycle day, not just
+  // today minus a fixed number of days. Fails quietly: if the dashboard or
+  // her logs did not load, or there is no period date yet, no card renders.
+  let lastCycle = null;
+  if (data && cycleLogs && user?.last_period_date) {
+    const cycleLength = cycle.cycle_length || user.cycle_length || 28;
+    const firstStart = parseLocalDate(user.last_period_date);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (firstStart && firstStart <= todayStart && cycleLength > 0) {
+      let cycleStart = firstStart;
+      for (;;) {
+        const next = new Date(cycleStart);
+        next.setDate(next.getDate() + cycleLength);
+        if (next <= todayStart) cycleStart = next;
+        else break;
+      }
+      const cycleDay = Math.round((todayStart - cycleStart) / 86400000) + 1;
+      const matchDate = new Date(cycleStart);
+      matchDate.setDate(matchDate.getDate() - cycleLength + (cycleDay - 1));
+      const matchISO = toISODateLocal(matchDate);
+      const lines = [];
+      cycleLogs.filter((l) => l.date === matchISO).forEach((log) => {
+        const text = log.notes || (log.symptoms?.length ? log.symptoms.join(', ') : '');
+        if (text) lines.push(text);
+        if (log.flow) lines.push(`Flow: ${log.flow}`);
+      });
+      lastCycle = {
+        cycleDay,
+        dateLabel: matchDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        lines,
+      };
+    }
+  }
 
   return (
     <div className="min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8">
@@ -209,6 +260,31 @@ export default function HomePage() {
           </p>
         )}
       </div>
+
+      {/* This Time Last Cycle: her own record of this same cycle day, one
+          cycle ago. This is where she reads how she felt then. */}
+      {lastCycle && (
+        <div className="card p-5 mb-4" data-testid="this-time-last-cycle">
+          <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-1">This Time Last Cycle</p>
+          <p className="text-[#ff8fab] text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            {lastCycle.dateLabel} · Cycle day {lastCycle.cycleDay}
+          </p>
+          {lastCycle.lines.length > 0 ? (
+            <div className="space-y-2">
+              {lastCycle.lines.map((line, i) => (
+                <p key={`last-cycle-${i}`} className="text-[#b8b8d1] text-sm leading-relaxed">{line}</p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[#b8b8d1] text-sm leading-relaxed">
+              Nothing logged on this day last cycle yet. What you log today is what you will find waiting here next cycle.
+            </p>
+          )}
+          <p className="text-[#6c6c8a] text-xs mt-3 pt-3 border-t border-white/10">
+            Every day you log lives on the Calendar. Tap any day to see it.
+          </p>
+        </div>
+      )}
 
       {/* Today's Proverb — Angelita's daily chapter, free for everyone */}
       <DailyProverb />

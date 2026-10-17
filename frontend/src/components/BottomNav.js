@@ -33,7 +33,7 @@ export default function BottomNav() {
       touchRef.current = null;
       if (!start) return;
       if (hiddenPaths.some((p) => location.pathname.startsWith(p))) return;
-      if (start.target && start.target.closest && start.target.closest('input, textarea, select, [data-testid^="quicklog-dialog"]')) return;
+      if (start.target && start.target.closest && start.target.closest('input, textarea, select, [data-testid^="quicklog-"]')) return;
       const t = e.changedTouches[0];
       const dx = t.clientX - start.x;
       const dy = t.clientY - start.y;
