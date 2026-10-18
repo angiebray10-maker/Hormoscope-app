@@ -1,8 +1,8 @@
 """
-Test suite for HORMOscope new features:
-1. Camera/Image upload in Boyfriend Mode (Claude Sonnet 4.5 vision)
+Test suite for HORMOscope features:
+1. Camera/Image upload in the AI coach (Claude Sonnet 4.5 vision)
 2. Daily content caching (mood, wellness tip, nutrition, do/avoid activities)
-3. Chat functionality in both AI coach and Boyfriend mode
+3. Chat functionality in the AI coach (the removed Boyfriend Mode flag is ignored)
 4. Conversation history persistence
 """
 
@@ -35,13 +35,13 @@ class TestAuth:
         data = response.json()
         assert "access_token" in data
         assert data["user"]["is_premium"]
-        assert data["user"]["can_use_boyfriend_mode"]
+        assert "can_use_boyfriend_mode" not in data["user"]
         print(f"SUCCESS: Premium user login - is_premium={data['user']['is_premium']}")
         return data["access_token"]
 
 
 class TestCameraFeature:
-    """Camera/Image upload feature tests - Boyfriend Mode only"""
+    """Camera/Image upload feature tests (premium feature)"""
     
     @pytest.fixture
     def auth_token(self):
@@ -53,11 +53,11 @@ class TestCameraFeature:
         assert response.status_code == 200
         return response.json()["access_token"]
     
-    def test_image_upload_in_boyfriend_mode(self, auth_token):
-        """Test sending image in Boyfriend Mode - should work for premium users"""
+    def test_image_upload_with_legacy_boyfriend_flag(self, auth_token):
+        """Boyfriend Mode was removed: its old flag is ignored and image upload works as a premium coach feature"""
         headers = {"Authorization": f"Bearer {auth_token}"}
         
-        # Send image with message in boyfriend mode
+        # Send image with the legacy boyfriend flag, which the API now ignores
         response = requests.post(f"{BASE_URL}/api/chat", json={
             "message": "What do you think of this?",
             "is_boyfriend_mode": True,
@@ -67,15 +67,15 @@ class TestCameraFeature:
         assert response.status_code == 200, f"Image upload failed: {response.text}"
         data = response.json()
         assert "ai_response" in data
-        assert data["is_boyfriend_mode"]
+        assert "is_boyfriend_mode" not in data
         assert data["has_image"]
         assert data["conversation_id"] is not None
-        print(f"SUCCESS: Image upload in Boyfriend Mode - has_image={data['has_image']}")
+        print(f"SUCCESS: Image upload with legacy flag ignored - has_image={data['has_image']}")
         print(f"AI Response preview: {data['ai_response'][:100]}...")
         return data["conversation_id"]
     
     def test_image_upload_without_text(self, auth_token):
-        """Test sending image without text message in Boyfriend Mode"""
+        """Test sending image without text message (legacy mode flag ignored)"""
         headers = {"Authorization": f"Bearer {auth_token}"}
         
         response = requests.post(f"{BASE_URL}/api/chat", json={
@@ -88,26 +88,26 @@ class TestCameraFeature:
         data = response.json()
         assert data["has_image"]
         assert data["user_message"] == "[Photo]"
-        print(f"SUCCESS: Image-only upload in Boyfriend Mode")
+        print(f"SUCCESS: Image-only upload")
     
-    def test_image_blocked_in_coach_mode(self, auth_token):
-        """Test that image upload is blocked in regular AI coach mode"""
+    def test_image_allowed_in_standard_coach(self, auth_token):
+        """Boyfriend Mode was removed: image upload is a premium feature of the standard coach"""
         headers = {"Authorization": f"Bearer {auth_token}"}
         
         response = requests.post(f"{BASE_URL}/api/chat", json={
             "message": "What do you think?",
-            "is_boyfriend_mode": False,
             "image_base64": f"data:image/png;base64,{TEST_IMAGE_BASE64}"
         }, headers=headers)
         
-        assert response.status_code == 403, f"Expected 403, got {response.status_code}"
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
-        assert "Image feature is only available in Boyfriend Mode" in data["detail"]
-        print(f"SUCCESS: Image correctly blocked in AI coach mode")
+        assert data["has_image"]
+        assert "is_boyfriend_mode" not in data
+        print(f"SUCCESS: Image upload works in the standard AI coach")
 
 
 class TestChatFunctionality:
-    """Chat functionality tests for both modes"""
+    """Chat functionality tests for the AI coach"""
     
     @pytest.fixture
     def auth_token(self):
@@ -124,33 +124,32 @@ class TestChatFunctionality:
         headers = {"Authorization": f"Bearer {auth_token}"}
         
         response = requests.post(f"{BASE_URL}/api/chat", json={
-            "message": "What foods should I eat during my follicular phase?",
-            "is_boyfriend_mode": False
+            "message": "What foods should I eat during my follicular phase?"
         }, headers=headers)
         
         assert response.status_code == 200, f"Chat failed: {response.text}"
         data = response.json()
         assert "ai_response" in data
-        assert not data["is_boyfriend_mode"]
+        assert "is_boyfriend_mode" not in data
         assert len(data["ai_response"]) > 50  # Should have substantial response
         print(f"SUCCESS: AI coach mode chat works")
         print(f"Response preview: {data['ai_response'][:100]}...")
     
-    def test_chat_boyfriend_mode(self, auth_token):
-        """Test sending message in Boyfriend mode"""
+    def test_chat_legacy_boyfriend_flag_is_ignored(self, auth_token):
+        """Boyfriend Mode was removed: a request carrying its old flag gets the standard coach"""
         headers = {"Authorization": f"Bearer {auth_token}"}
         
         response = requests.post(f"{BASE_URL}/api/chat", json={
-            "message": "Hey babe, how was your day?",
+            "message": "Hello, how is my cycle looking today?",
             "is_boyfriend_mode": True
         }, headers=headers)
         
         assert response.status_code == 200, f"Chat failed: {response.text}"
         data = response.json()
         assert "ai_response" in data
-        assert data["is_boyfriend_mode"]
+        assert "is_boyfriend_mode" not in data
         assert len(data["ai_response"]) > 20
-        print(f"SUCCESS: Boyfriend mode chat works")
+        print(f"SUCCESS: Legacy boyfriend flag ignored, standard coach replied")
         print(f"Response preview: {data['ai_response'][:100]}...")
 
 
@@ -171,18 +170,12 @@ class TestConversationHistory:
         """Test fetching conversation list"""
         headers = {"Authorization": f"Bearer {auth_token}"}
         
-        # Get boyfriend mode conversations
-        response = requests.get(f"{BASE_URL}/api/chat/conversations?is_boyfriend_mode=true", headers=headers)
+        # Conversations are no longer split by mode (Boyfriend Mode was removed)
+        response = requests.get(f"{BASE_URL}/api/chat/conversations", headers=headers)
         assert response.status_code == 200, f"Failed to get conversations: {response.text}"
         data = response.json()
         assert isinstance(data, list)
-        print(f"SUCCESS: Got {len(data)} boyfriend mode conversations")
-        
-        # Get AI coach conversations
-        response = requests.get(f"{BASE_URL}/api/chat/conversations?is_boyfriend_mode=false", headers=headers)
-        assert response.status_code == 200
-        data = response.json()
-        print(f"SUCCESS: Got {len(data)} AI coach conversations")
+        print(f"SUCCESS: Got {len(data)} conversations")
     
     def test_conversation_history_load(self, auth_token):
         """Test loading a specific conversation's history"""
@@ -190,8 +183,7 @@ class TestConversationHistory:
         
         # First create a conversation
         response = requests.post(f"{BASE_URL}/api/chat", json={
-            "message": "Test message for history",
-            "is_boyfriend_mode": True
+            "message": "Test message for history"
         }, headers=headers)
         assert response.status_code == 200
         conv_id = response.json()["conversation_id"]
@@ -317,7 +309,7 @@ class TestProfileSubscription:
         data = response.json()
         
         assert data["is_premium"]
-        assert data["can_use_boyfriend_mode"]
+        assert "can_use_boyfriend_mode" not in data
         print(f"SUCCESS: User profile shows premium status correctly")
 
 

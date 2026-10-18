@@ -107,13 +107,11 @@ class TestOnboardingFlow:
         assert "age" in data
         assert data["age"] > 0
         
-        # Verify can_use_boyfriend_mode based on age (18+)
-        assert "can_use_boyfriend_mode" in data
-        expected_age = datetime.now().year - 1995
-        if expected_age >= 18:
-            assert data["can_use_boyfriend_mode"]
+        # Boyfriend Mode was removed (Oct 2026): its fields are never returned
+        assert "can_use_boyfriend_mode" not in data
+        assert "boyfriend_name" not in data
         
-        print(f"SUCCESS: Onboarding complete - Birthday: {data['birthday']}, Age: {data['age']}, BF Mode: {data['can_use_boyfriend_mode']}")
+        print(f"SUCCESS: Onboarding complete - Birthday: {data['birthday']}, Age: {data['age']}")
     
     def test_onboarding_not_sure_cycle_length(self):
         """Test 'not sure' option defaults cycle length to 31"""
@@ -227,8 +225,8 @@ class TestDashboardEndpoint:
         
         print(f"SUCCESS: is_birthday flag: {data['is_birthday']}")
     
-    def test_dashboard_returns_boyfriend_mode_flag(self):
-        """Test dashboard returns can_use_boyfriend_mode based on age"""
+    def test_dashboard_returns_no_boyfriend_mode_fields(self):
+        """Boyfriend Mode was removed: dashboard returns neither of its fields"""
         token = getattr(pytest, 'test_token', None)
         if not token:
             pytest.skip("No token available")
@@ -239,14 +237,11 @@ class TestDashboardEndpoint:
         assert response.status_code == 200
         data = response.json()
         
-        # Verify can_use_boyfriend_mode field
-        assert "can_use_boyfriend_mode" in data
-        assert isinstance(data["can_use_boyfriend_mode"], bool)
+        # Boyfriend Mode was removed: neither field is returned anymore
+        assert "can_use_boyfriend_mode" not in data
+        assert "boyfriend_name" not in data
         
-        # User born 1995 should be 18+ and have access
-        assert data["can_use_boyfriend_mode"]
-        
-        print(f"SUCCESS: can_use_boyfriend_mode: {data['can_use_boyfriend_mode']}")
+        print("SUCCESS: dashboard returns no boyfriend fields")
     
     def test_dashboard_returns_all_daily_content(self):
         """Test dashboard returns affirmation, nutrition_tip, wellness_tip"""
@@ -350,11 +345,11 @@ class TestProfileNotificationToggle:
         print(f"SUCCESS: Daily tips toggle saved immediately - daily_tips: {new_daily_tips}")
 
 
-class TestUnderageBoyfriendMode:
-    """Test that underage users cannot use boyfriend mode"""
+class TestUnderageUserFields:
+    """Boyfriend Mode was removed for everyone, underage users included"""
     
-    def test_underage_user_cannot_use_boyfriend_mode(self):
-        """Test user under 18 has can_use_boyfriend_mode=False"""
+    def test_underage_user_has_no_boyfriend_fields(self):
+        """Test user under 18 receives no boyfriend mode fields"""
         # Create new user
         new_email = f"test_underage_{uuid.uuid4().hex[:8]}@example.com"
         signup_res = requests.post(f"{BASE_URL}/api/auth/signup", json={
@@ -379,8 +374,8 @@ class TestUnderageBoyfriendMode:
         assert response.status_code == 200
         data = response.json()
         
-        # Verify can_use_boyfriend_mode is False for underage
-        assert not data["can_use_boyfriend_mode"]
+        # Verify no boyfriend mode field is returned for underage users
+        assert "can_use_boyfriend_mode" not in data
         
         # Also verify in dashboard
         dashboard_res = requests.get(f"{BASE_URL}/api/dashboard",
@@ -388,9 +383,9 @@ class TestUnderageBoyfriendMode:
         )
         assert dashboard_res.status_code == 200
         dashboard_data = dashboard_res.json()
-        assert not dashboard_data["can_use_boyfriend_mode"]
+        assert "can_use_boyfriend_mode" not in dashboard_data
         
-        print("SUCCESS: Underage user correctly blocked from boyfriend mode")
+        print("SUCCESS: Underage user response contains no boyfriend fields")
 
 
 if __name__ == "__main__":
