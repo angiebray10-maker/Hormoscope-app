@@ -1,0 +1,49 @@
+{
+  "name": "HORMOscope",
+  "short_name": "HORMOscope",
+  "description": "A daily mood prediction app using your menstrual cycle instead of astrology.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#ff8fab",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/logo512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["health", "lifestyle", "medical"],
+  "keywords": [
+    "hormoscope",
+    "menstrual cycle tracker",
+    "period tracker",
+    "cycle intelligence",
+    "follicular phase",
+    "ovulation phase",
+    "luteal phase",
+    "women's health",
+    "cycle syncing",
+    "hormone tracking"
+  ]
+}
