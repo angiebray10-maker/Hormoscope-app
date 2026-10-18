@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HORMOscope Account Deletion</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0D0714; color: #D9CBD4; max-width: 700px; margin: 0 auto; padding: 24px; line-height: 1.65; }
+  h1 { color: #FDF8FA; font-size: 30px; line-height: 1.25; }
+  h2 { color: #FDF8FA; margin-top: 34px; font-size: 21px; }
+  a { color: #FF8FB3; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 4px; }
+  .card { background: #1A0F26; border: 1px solid #3A2352; border-radius: 16px; padding: 22px; margin-top: 18px; }
+  label { display: block; color: #FDF8FA; font-weight: 600; margin: 14px 0 6px; }
+  input[type="email"], input[type="password"] { width: 100%; box-sizing: border-box; padding: 13px 14px; border-radius: 10px; border: 1px solid #4A3468; background: #120A1E; color: #FDF8FA; font-size: 16px; }
+  input:focus { outline: 2px solid #FF5C8A; outline-offset: 1px; }
+  button { font-size: 16px; border-radius: 999px; padding: 13px 22px; cursor: pointer; border: none; }
+  .btn-primary { background: linear-gradient(135deg, #FF5C8A, #FF1493); color: #fff; font-weight: 700; width: 100%; margin-top: 18px; }
+  .btn-danger { background: #C62F45; color: #fff; font-weight: 700; flex: 1; }
+  .btn-quiet { background: transparent; color: #FDF8FA; border: 1px solid #4A3468; flex: 1; }
+  button:disabled { opacity: 0.55; cursor: default; }
+  .row { display: flex; gap: 12px; margin-top: 18px; }
+  .msg { margin-top: 14px; min-height: 1.4em; }
+  .error { color: #FF9FB0; }
+  .ok { color: #8FE3B0; }
+  .note { background: #241238; border: 1px solid #3A2352; border-radius: 12px; padding: 14px 16px; margin-top: 18px; }
+  .footer { color: #8B7B8A; font-size: 14px; margin-top: 36px; padding-top: 16px; border-top: 1px solid #241631; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<h1>HORMOscope Account Deletion</h1>
+<p>HORMOscope is developed and operated by Angelita Braaten. This page lets you permanently delete your HORMOscope account and its associated personal information, without installing the app. Questions about deletion: <a href="mailto:hormoscope@gmail.com">hormoscope@gmail.com</a>.</p>
+
+<h2>Two ways to delete your account</h2>
+<ul>
+  <li><strong>In the app:</strong> open HORMOscope, go to Profile, and tap "Delete My Account" under Sign Out.</li>
+  <li><strong>On this page:</strong> use the secure form below. It signs you in the same way the app does, asks you to confirm, and then deletes your account right away in the same session.</li>
+</ul>
+
+<div class="card" id="step1">
+  <h2 style="margin-top:0">Delete your account here</h2>
+  <p>Enter the email and password of the account you want to delete. Your password is sent only to the HORMOscope server over an encrypted connection, exactly as when you sign in to the app. It is never shown publicly and never stored by this page.</p>
+  <form id="signin-form">
+    <label for="email">Account email</label>
+    <input type="email" id="email" name="email" autocomplete="email" required>
+    <label for="password">Account password</label>
+    <input type="password" id="password" name="password" autocomplete="current-password" required>
+    <button type="submit" class="btn-primary" id="continue-btn">Continue</button>
+    <p class="msg" id="msg1" role="status"></p>
+  </form>
+</div>
+
+<div class="card" id="step2" hidden>
+  <h2 style="margin-top:0">Are you sure?</h2>
+  <p>This permanently deletes the account for <strong id="confirm-email"></strong> and everything in it:</p>
+  <ul>
+    <li>Your cycle history and daily logs</li>
+    <li>Your journal, including sealed vault days</li>
+    <li>Your intimacy records</li>
+    <li>Your AI conversations and journal companion</li>
+    <li>Your partner connections (they are disconnected)</li>
+  </ul>
+  <p>This cannot be undone, and the email will no longer sign in.</p>
+  <div class="row">
+    <button class="btn-quiet" id="cancel-btn" type="button">Keep my account</button>
+    <button class="btn-danger" id="delete-btn" type="button">Permanently delete</button>
+  </div>
+  <p class="msg" id="msg2" role="status"></p>
+</div>
+
+<div class="card" id="step3" hidden>
+  <h2 style="margin-top:0">Your account is deleted</h2>
+  <p class="ok">Your account and your personal data have been removed. That email can no longer sign in to HORMOscope. Thank you for the time you spent here, and take good care of yourself.</p>
+</div>
+
+<h2>If you cannot sign in</h2>
+<p>Email <a href="mailto:hormoscope@gmail.com">hormoscope@gmail.com</a> from the email address on your account and ask us to delete it. We will reply to that same address to confirm the request really came from you before we delete anything. <strong>Never send your password by email. We will never ask for it.</strong> Only a request confirmed from the account's own email address will be processed, so nobody can delete another person's account this way.</p>
+
+<h2>What is deleted, and what is retained</h2>
+<p>When a deletion is confirmed, your account and personal data are deleted right away: your profile, cycle logs, journal entries, intimacy records, AI conversations, partner connections, notification settings, and account sign-in. There is no waiting period and no copy kept for you to come back to, so save anything you want before deleting.</p>
+<p>One narrow exception, for legal and accounting reasons: our own payment transaction logs are stripped of your name, email, and account link at the moment of deletion, and the remaining anonymous amounts and dates are kept as business accounting records. They no longer identify you. Records held by payment processors such as Google Play, Stripe, and RevenueCat are kept under those companies' own policies and are not ours to erase.</p>
+
+<div class="note">
+  <strong>Deleting your account does not cancel your subscription.</strong> If you have an active HORMOscope Pro subscription through Google Play, deleting your account does not stop Google Play billing. Cancel it in the Play Store under Payments and subscriptions, then Subscriptions.
+</div>
+
+<p class="footer">HORMOscope · Science, not stars. · See also our <a href="privacy.html">Privacy Policy</a>.</p>
+
+<script>
+(function () {
+  var API = "https://hormoscope-app.onrender.com/api";
+  var token = null;
+  var passwordValue = "";
+  var emailValue = "";
+
+  function setMsg(id, text, isError) {
+    var el = document.getElementById(id);
+    el.textContent = text;
+    el.className = "msg " + (isError ? "error" : "");
+  }
+
+  async function call(path, method, body, auth) {
+    var headers = { "Content-Type": "application/json" };
+    if (auth) headers["Authorization"] = "Bearer " + token;
+    var res = await fetch(API + path, {
+      method: method,
+      headers: headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+    var data = {};
+    try { data = await res.json(); } catch (e) {}
+    return { status: res.status, data: data };
+  }
+
+  async function signIn() {
+    // The free server sleeps when idle, so one automatic retry is built in.
+    try {
+      return await call("/auth/login", "POST", { email: emailValue, password: passwordValue });
+    } catch (e) {
+      await new Promise(function (r) { setTimeout(r, 4000); });
+      return await call("/auth/login", "POST", { email: emailValue, password: passwordValue });
+    }
+  }
+
+  document.getElementById("signin-form").addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    var btn = document.getElementById("continue-btn");
+    emailValue = document.getElementById("email").value.trim();
+    passwordValue = document.getElementById("password").value;
+    btn.disabled = true;
+    setMsg("msg1", "Signing you in to verify it is your account. If the server is waking up, this can take a minute.");
+    try {
+      var r = await signIn();
+      if (r.status === 200 && r.data.access_token) {
+        token = r.data.access_token;
+        document.getElementById("confirm-email").textContent = emailValue;
+        document.getElementById("step1").hidden = true;
+        document.getElementById("step2").hidden = false;
+        setMsg("msg1", "");
+      } else {
+        setMsg("msg1", "That email and password do not match an account. Nothing was changed.", true);
+        btn.disabled = false;
+      }
+    } catch (e) {
+      setMsg("msg1", "The server could not be reached. Please wait a moment and try again. Nothing was changed.", true);
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("cancel-btn").addEventListener("click", function () {
+    token = null; passwordValue = "";
+    document.getElementById("password").value = "";
+    document.getElementById("step2").hidden = true;
+    document.getElementById("step1").hidden = false;
+    document.getElementById("continue-btn").disabled = false;
+    setMsg("msg2", "");
+  });
+
+  document.getElementById("delete-btn").addEventListener("click", async function () {
+    var btn = document.getElementById("delete-btn");
+    btn.disabled = true;
+    setMsg("msg2", "Deleting your account and data...");
+    try {
+      var r = await call("/auth/account", "DELETE", { password: passwordValue }, true);
+      if (r.status === 200 && r.data.deleted) {
+        token = null; passwordValue = "";
+        document.getElementById("step2").hidden = true;
+        document.getElementById("step3").hidden = false;
+      } else {
+        setMsg("msg2", (r.data && r.data.detail) || "Deletion could not be completed. Nothing was finalized, so please try again.", true);
+        btn.disabled = false;
+      }
+    } catch (e) {
+      setMsg("msg2", "The server could not be reached. Your account may still exist; please try again to be sure.", true);
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
