@@ -1132,6 +1132,50 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     return build_user_response(current_user)
 
 
+# ==================== ACCOUNT DELETION ====================
+# Google Play requires a working in-app account deletion path. Only the
+# authenticated account owner can delete their own account, and only after
+# re-confirming their password. Personal data collections are cleared first
+# and the user record itself last, so a failed or interrupted run leaves the
+# account intact and the request can simply be repeated safely.
+
+class AccountDeleteRequest(BaseModel):
+    password: str
+
+@api_router.delete("/auth/account")
+async def delete_my_account(body: AccountDeleteRequest, current_user: dict = Depends(get_current_user)):
+    if not verify_password(body.password, current_user["password"]):
+        raise HTTPException(status_code=403, detail="That password does not match. Your account was not changed.")
+    uid = current_user["id"]
+    email = current_user.get("email")
+    removed = {}
+    try:
+        for coll in (db.cycle_logs, db.journal_entries, db.intimacy_logs,
+                     db.chat_messages, db.conversations, db.journal_companion,
+                     db.daily_content, db.daily_reads, db.push_subscriptions,
+                     db.analytics):
+            removed[coll.name] = (await coll.delete_many({"user_id": uid})).deleted_count
+        removed["partner_links"] = (await db.partner_links.delete_many({"user_id": uid})).deleted_count
+        removed["partner_invites"] = (await db.partner_invites.delete_many({"inviter_id": uid})).deleted_count
+        removed["partner_relationships"] = (await db.partner_relationships.delete_many(
+            {"$or": [{"user_id": uid}, {"partner_user_id": uid}]})).deleted_count
+        removed["partner_notes"] = (await db.partner_notes.delete_many(
+            {"$or": [{"author_id": uid}, {"recipient_id": uid}]})).deleted_count
+        if email:
+            removed["leads"] = (await db.leads.delete_many({"email": email})).deleted_count
+        # Payment transaction records are retained for legal and accounting
+        # purposes, stripped of every personal identifier, so nothing in them
+        # points back to this account.
+        anon = await db.payment_transactions.update_many(
+            {"user_id": uid},
+            {"$set": {"user_id": "deleted-user", "email": None}})
+        removed["payment_transactions_anonymized"] = anon.modified_count
+        await db.users.delete_one({"id": uid})
+    except Exception:
+        raise HTTPException(status_code=500, detail="Deletion could not be completed. Nothing was finalized, so please try again.")
+    return {"deleted": True, "removed": removed}
+
+
 # ==================== STRIPE CHECKOUT (Direct) ====================
 
 # Server-side, immutable. The frontend NEVER sends amounts.
