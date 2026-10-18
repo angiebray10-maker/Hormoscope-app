@@ -1741,33 +1741,10 @@ class JournalEntryCreate(BaseModel):
 class IntimateUpdate(BaseModel):
     is_intimate: bool
 
-def _in_first_cycle(user: dict) -> bool:
-    """True while the user is inside her first free cycle: fewer days since
-    account creation than her own cycle_length. Mirrors the frontend gate in
-    PremiumContext so the Journal opens for exactly the same users."""
-    created_raw = user.get("created_at")
-    if not created_raw:
-        return False
-    try:
-        created = datetime.fromisoformat(str(created_raw).replace("Z", "+00:00"))
-    except ValueError:
-        return False
-    if created.tzinfo is None:
-        created = created.replace(tzinfo=timezone.utc)
-    days_since = (datetime.now(timezone.utc) - created).total_seconds() / 86400
-    return 0 <= days_since < (user.get("cycle_length") or 28)
 
 @api_router.post("/journal")
 async def create_journal_entry(entry: JournalEntryCreate, current_user: dict = Depends(get_current_user)):
-    # Journal is Pro, and free during her first cycle (Angelita's rule,
-    # Oct 15-17). The frontend opened the editor for first-cycle users in
-    # v21 but this gate still blocked their saves with a 402 the UI
-    # swallowed silently, so nothing ever saved for them.
-    if not current_user.get("is_premium") and not _in_first_cycle(current_user):
-        raise HTTPException(
-            status_code=402,  # Payment Required
-            detail="The Journal is a HORMOscope Pro feature. Upgrade to unlock unlimited entries."
-        )
+    # The Journal is free for everyone (Angelita, Oct 18, 2026).
     entry_data = {
         "id": str(uuid.uuid4()),
         "user_id": current_user["id"],
