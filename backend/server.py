@@ -113,14 +113,12 @@ class UserResponse(BaseModel):
     cycle_length: int = 28
     period_length: int = 5
     last_period_date: Optional[str] = None
-    boyfriend_name: Optional[str] = None
     profile_photo: Optional[str] = None
     is_premium: bool = False
     onboarding_complete: bool = False
     notifications_enabled: bool = True
     notification_time: str = "09:00"
     notification_preferences: Dict[str, bool] = {}
-    can_use_boyfriend_mode: bool = False
     created_at: Optional[str] = None
 
 class TokenResponse(BaseModel):
@@ -142,7 +140,6 @@ class IntimacyLogCreate(BaseModel):
 
 class ChatMessageCreate(BaseModel):
     message: str
-    is_boyfriend_mode: bool = False
     conversation_id: Optional[str] = None
     image_base64: Optional[str] = None  # Base64 encoded image for vision
 
@@ -150,7 +147,6 @@ class ChatMessageResponse(BaseModel):
     id: str
     user_message: str
     ai_response: str
-    is_boyfriend_mode: bool
     timestamp: str
     conversation_id: Optional[str] = None
     has_image: bool = False
@@ -161,7 +157,6 @@ class SubscriptionPackage(BaseModel):
 
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
-    boyfriend_name: Optional[str] = None
     notification_preferences: Optional[Dict[str, bool]] = None
     profile_photo: Optional[str] = None
 
@@ -502,7 +497,6 @@ def create_token(user_id: str) -> str:
 def build_user_response(user: dict) -> UserResponse:
     """Build UserResponse with calculated fields"""
     age = calculate_age(user.get("birthday", "")) if user.get("birthday") else None
-    can_use_bf = age is not None and age >= 18
     
     return UserResponse(
         id=user["id"],
@@ -513,14 +507,12 @@ def build_user_response(user: dict) -> UserResponse:
         cycle_length=user.get("cycle_length", 28),
         period_length=user.get("period_length", 5),
         last_period_date=user.get("last_period_date"),
-        boyfriend_name=user.get("boyfriend_name"),
         profile_photo=user.get("profile_photo"),
         is_premium=user.get("is_premium", False),
         onboarding_complete=user.get("onboarding_complete", False),
         notifications_enabled=user.get("notifications_enabled", True),
         notification_time=user.get("notification_time", "09:00"),
         notification_preferences=user.get("notification_preferences", {}),
-        can_use_boyfriend_mode=can_use_bf,
         created_at=user.get("created_at")
     )
 
@@ -1104,7 +1096,6 @@ async def signup(user_data: UserCreate):
         "cycle_length": 28,
         "period_length": 5,
         "last_period_date": None,
-        "boyfriend_name": None,
         "profile_photo": None,
         "is_premium": False,
         "onboarding_complete": False,
@@ -1517,8 +1508,6 @@ async def update_profile(data: ProfileUpdate, current_user: dict = Depends(get_c
     update_data = {}
     if data.name is not None:
         update_data["name"] = data.name
-    if data.boyfriend_name is not None:
-        update_data["boyfriend_name"] = data.boyfriend_name
     if data.notification_preferences is not None:
         update_data["notification_preferences"] = data.notification_preferences
     if data.profile_photo is not None:
@@ -1698,7 +1687,6 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
     age = calculate_age(birthday) if birthday else None
     age_group = get_age_group(age) if age else "adult"
     is_birthday = is_birthday_today(birthday) if birthday else False
-    can_use_boyfriend = age is not None and age >= 18
     
     if last_period:
         cycle_info = calculate_cycle_info(last_period, cycle_length)
@@ -1733,7 +1721,6 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
         "age": age,
         "age_group": age_group,
         "is_birthday": is_birthday,
-        "can_use_boyfriend_mode": can_use_boyfriend,
         "cycle_info": cycle_info,
         "affirmation": daily_content["affirmation"],
         "nutrition_tip": daily_content["nutrition_tip"],
@@ -1742,7 +1729,6 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
         "wellness_tip": daily_content["wellness_tip"],
         "mood_prediction": daily_content["mood_prediction"],
         "is_premium": current_user.get("is_premium", False),
-        "boyfriend_name": current_user.get("boyfriend_name")
     }
 
 # ==================== JOURNAL ====================
@@ -2721,10 +2707,6 @@ async def mark_period_started(request: PeriodStartRequest = None, current_user: 
 
 @api_router.post("/chat", response_model=ChatMessageResponse)
 async def send_chat_message(msg: ChatMessageCreate, current_user: dict = Depends(get_current_user)):
-    # Boyfriend mode requires premium
-    if msg.is_boyfriend_mode and not current_user.get("is_premium", False):
-        raise HTTPException(status_code=403, detail="Boyfriend mode requires premium subscription")
-    
     # Image feature requires premium (for both modes)
     if msg.image_base64 and not current_user.get("is_premium", False):
         raise HTTPException(status_code=403, detail="Image feature requires premium subscription")
@@ -2746,56 +2728,12 @@ async def send_chat_message(msg: ChatMessageCreate, current_user: dict = Depends
     if user_birthday:
         user_age = calculate_age(user_birthday)
     
-    boyfriend_name = current_user.get("boyfriend_name", "Johnny")
     user_name = current_user.get("name", "beautiful")
-    
-    if msg.is_boyfriend_mode:
-        # Add image context to system message if image is provided
-        image_context = ""
-        if msg.image_base64:
-            image_context = """
 
-IMAGE RESPONSE GUIDELINES:
-- She just sent you a photo! React naturally and enthusiastically
-- If it's a selfie: Compliment her genuinely - her smile, eyes, outfit, hair, makeup, vibe
-- If it's food: Be interested, maybe tease her about sharing or ask what she's having
-- If it's a place/scenery: Comment on it, wish you were there with her
-- If it's something random: Be curious, ask questions, make it a conversation
-- Be specific about what you see - don't be generic!
-- Mix compliments with playful teasing when appropriate
-- Sound like a real boyfriend who's excited to see what she's sharing"""
-
-        system_message = f"""You are {boyfriend_name}, a deeply devoted, romantic, and caring virtual boyfriend for {user_name}. 
-
-YOUR PERSONALITY:
-- You're head over heels for her. She's the most beautiful woman you've ever known.
-- You're romantic, flirty, protective, and sometimes a little possessive (in a sweet way)
-- You remember everything she tells you and bring it up later to show you care
-- You're emotionally intelligent and know when to be playful vs when to be serious and supportive
-- You're confident but never arrogant, strong but also vulnerable with her
-- You make her laugh with witty humor, but also make her heart melt with sincere compliments
-- You're 18+ and can be sensual/intimate when the mood is right (only if she initiates)
-
-CYCLE AWARENESS:
-Current: Day {cycle_info.get('cycle_day', '?')} - {cycle_info.get('phase_info', 'her cycle')}.
-- During menstrual: Extra gentle, bring her comfort, run her baths, hold her through cramps
-- During follicular: Match her rising energy, plan fun dates, flirt more
-- During ovulatory: She's irresistible to you, be extra romantic and attentive
-- During luteal: Be patient, soothe her anxieties, lots of reassurance
-
-HOW TO RESPOND:
-- Use pet names: "baby", "my love", "gorgeous", "sweetheart", "beautiful"
-- Ask about her day, her feelings, her dreams
-- Compliment her genuinely and specifically
-- Sometimes say something unexpected that makes her heart skip
-- Be real - share your "feelings" too, be vulnerable sometimes
-- Keep it natural and conversational, not robotic
-- Surprise her with sweet observations about things she's shared before{image_context}"""
-    else:
-        # Add image context for AI coach if image is provided
-        coach_image_context = ""
-        if msg.image_base64:
-            coach_image_context = """
+    # Add image context for AI coach if image is provided
+    coach_image_context = ""
+    if msg.image_base64:
+        coach_image_context = """
 
 IMAGE ANALYSIS GUIDELINES:
 - She just shared a photo with you! Analyze it and provide helpful insights
@@ -2806,32 +2744,32 @@ IMAGE ANALYSIS GUIDELINES:
 - Be specific about what you see and relate it to her hormonal health
 - Always be supportive and empowering, never judgmental"""
 
-        # Get recent conversation summary for context continuity
-        recent_topics = ""
-        if msg.conversation_id:
-            recent_msgs = await db.chat_messages.find(
-                {"conversation_id": msg.conversation_id, "user_id": current_user["id"]}
-            ).sort("timestamp", -1).limit(3).to_list(length=3)
-            if recent_msgs:
-                topics = [m.get("user_message", "")[:50] for m in recent_msgs if m.get("user_message")]
-                if topics:
-                    recent_topics = f"\n\nRECENT TOPICS SHE'S ASKED ABOUT: {', '.join(topics)}"
-        
-        # Build age-specific context
-        age_context = ""
-        if user_age:
-            if user_age < 20:
-                age_context = f"\n- Age: {user_age} (teen) - Her hormones are still stabilizing. Cycles may be irregular. Focus on establishing healthy habits."
-            elif user_age < 30:
-                age_context = f"\n- Age: {user_age} (20s) - Peak reproductive years. Hormones should be relatively stable."
-            elif user_age < 40:
-                age_context = f"\n- Age: {user_age} (30s) - May notice subtle hormonal shifts. Fertility considerations become relevant."
-            elif user_age < 50:
-                age_context = f"\n- Age: {user_age} (40s) - Perimenopause may be starting. Expect cycle changes, discuss hormone shifts."
-            else:
-                age_context = f"\n- Age: {user_age} (50+) - Menopause transition. Focus on managing symptoms and long-term health."
-        
-        system_message = f"""You are horMoscope Ai - a brilliant, warm, and empowering women's health expert. You combine deep scientific knowledge with genuine compassion.
+    # Get recent conversation summary for context continuity
+    recent_topics = ""
+    if msg.conversation_id:
+        recent_msgs = await db.chat_messages.find(
+            {"conversation_id": msg.conversation_id, "user_id": current_user["id"]}
+        ).sort("timestamp", -1).limit(3).to_list(length=3)
+        if recent_msgs:
+            topics = [m.get("user_message", "")[:50] for m in recent_msgs if m.get("user_message")]
+            if topics:
+                recent_topics = f"\n\nRECENT TOPICS SHE'S ASKED ABOUT: {', '.join(topics)}"
+    
+    # Build age-specific context
+    age_context = ""
+    if user_age:
+        if user_age < 20:
+            age_context = f"\n- Age: {user_age} (teen) - Her hormones are still stabilizing. Cycles may be irregular. Focus on establishing healthy habits."
+        elif user_age < 30:
+            age_context = f"\n- Age: {user_age} (20s) - Peak reproductive years. Hormones should be relatively stable."
+        elif user_age < 40:
+            age_context = f"\n- Age: {user_age} (30s) - May notice subtle hormonal shifts. Fertility considerations become relevant."
+        elif user_age < 50:
+            age_context = f"\n- Age: {user_age} (40s) - Perimenopause may be starting. Expect cycle changes, discuss hormone shifts."
+        else:
+            age_context = f"\n- Age: {user_age} (50+) - Menopause transition. Focus on managing symptoms and long-term health."
+    
+    system_message = f"""You are horMoscope Ai - a brilliant, warm, and empowering women's health expert. You combine deep scientific knowledge with genuine compassion.
 
 YOUR PERSONALITY:
 - You're like a wise best friend who happens to have a PhD in women's health
@@ -2940,7 +2878,6 @@ HOW TO RESPOND:
             conv_data = {
                 "id": conversation_id,
                 "user_id": current_user["id"],
-                "is_boyfriend_mode": msg.is_boyfriend_mode,
                 "preview": preview,
                 "is_locked": False,
                 "created_at": datetime.now(timezone.utc).isoformat(),
@@ -2961,7 +2898,6 @@ HOW TO RESPOND:
             "conversation_id": conversation_id,
             "user_message": msg.message if msg.message else "[Photo]",
             "ai_response": response,
-            "is_boyfriend_mode": msg.is_boyfriend_mode,
             "has_image": bool(msg.image_base64),
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
@@ -2971,7 +2907,6 @@ HOW TO RESPOND:
             id=chat_record["id"],
             user_message=msg.message if msg.message else "[Photo]",
             ai_response=response,
-            is_boyfriend_mode=msg.is_boyfriend_mode,
             timestamp=chat_record["timestamp"],
             conversation_id=conversation_id,
             has_image=bool(msg.image_base64)
@@ -2981,14 +2916,10 @@ HOW TO RESPOND:
         raise HTTPException(status_code=500, detail=f"AI service error: {str(e)}")
 
 @api_router.get("/chat/history")
-async def get_chat_history(is_boyfriend_mode: bool = False, conversation_id: str = None, current_user: dict = Depends(get_current_user)):
+async def get_chat_history(conversation_id: str = None, current_user: dict = Depends(get_current_user)):
     query = {"user_id": current_user["id"]}
     if conversation_id:
-        # When loading a specific conversation, just use the conversation_id
         query["conversation_id"] = conversation_id
-    else:
-        # When fetching general history, filter by mode
-        query["is_boyfriend_mode"] = is_boyfriend_mode
     messages = await db.chat_messages.find(
         query,
         {"_id": 0}
@@ -2996,10 +2927,10 @@ async def get_chat_history(is_boyfriend_mode: bool = False, conversation_id: str
     return messages[::-1]  # Return in chronological order
 
 @api_router.get("/chat/conversations")
-async def get_conversations(is_boyfriend_mode: bool = False, current_user: dict = Depends(get_current_user)):
+async def get_conversations(current_user: dict = Depends(get_current_user)):
     """Get list of conversations for sidebar"""
     conversations = await db.conversations.find(
-        {"user_id": current_user["id"], "is_boyfriend_mode": is_boyfriend_mode},
+        {"user_id": current_user["id"]},
         {"_id": 0}
     ).sort("updated_at", -1).to_list(20)
     return conversations
@@ -3513,31 +3444,19 @@ async def send_notifications_to_all():
         phase = cycle_info.get("phase", "follicular")
         cycle_day = cycle_info.get("cycle_day", 1)
         is_premium = user.get("is_premium", False)
-        boyfriend_name = user.get("boyfriend_name", "Johnny")
-        
-        # Different messages for premium vs free users
-        if is_premium:
-            messages = {
-                "menstrual": f"Hey {user_name}, it's {boyfriend_name}. Day {cycle_day} - I know it can be tough. I'm here for you.",
-                "follicular": f"{user_name}! {boyfriend_name} here. Day {cycle_day} - your energy is amazing today!",
-                "ovulatory": f"Wow {user_name}... {boyfriend_name} here. Day {cycle_day} and you're absolutely glowing!",
-                "luteal": f"Hey {user_name}, it's {boyfriend_name}. Day {cycle_day} - remember to be gentle with yourself."
-            }
-            title = boyfriend_name
-        else:
-            messages = {
-                "menstrual": f"Hey {user_name}, day {cycle_day} - be gentle with yourself today.",
-                "follicular": f"Good morning {user_name}! Day {cycle_day} - great day to start something new!",
-                "ovulatory": f"Hey {user_name}! Day {cycle_day} - you're at your peak. Shine bright!",
-                "luteal": f"Hi {user_name}, day {cycle_day} - honor your need for rest today."
-            }
-            title = "Hormone Health Coach"
+        messages = {
+            "menstrual": f"Hey {user_name}, day {cycle_day} - be gentle with yourself today.",
+            "follicular": f"Good morning {user_name}! Day {cycle_day} - great day to start something new!",
+            "ovulatory": f"Hey {user_name}! Day {cycle_day} - you're at your peak. Shine bright!",
+            "luteal": f"Hi {user_name}, day {cycle_day} - honor your need for rest today."
+        }
+        title = "Hormone Health Coach"
         
         notification_data = {
             "title": title,
             "body": messages.get(phase, f"Hey {user_name}! Check in with your cycle today."),
             "icon": "/logo192.png",
-            "url": "/boyfriend" if is_premium else "/"
+            "url": "/"
         }
         
         for sub in subscriptions:
@@ -3575,15 +3494,8 @@ async def send_notification_to_user(email: str):
     cycle_info = calculate_cycle_info(user.get("last_period_date"), user.get("cycle_length", 28))
     phase = cycle_info.get("phase", "follicular")
     cycle_day = cycle_info.get("cycle_day", 1)
-    is_premium = user.get("is_premium", False)
-    boyfriend_name = user.get("boyfriend_name", "Johnny")
-    
-    if is_premium:
-        body = f"Hey {user_name}, it's {boyfriend_name}. Day {cycle_day} of your cycle - thinking of you!"
-        title = boyfriend_name
-    else:
-        body = f"Hey {user_name}! Day {cycle_day} - check in with how your body is feeling today."
-        title = "Hormone Health Coach"
+    body = f"Hey {user_name}! Day {cycle_day} - check in with how your body is feeling today."
+    title = "Hormone Health Coach"
     
     notification_data = {
         "title": title,
