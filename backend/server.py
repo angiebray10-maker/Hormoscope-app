@@ -1848,7 +1848,7 @@ async def _companion_exchanges_for(user_id: str, date_str: str):
 # apart. Usage records hold counts and token totals only, never message
 # or journal content, and nothing here logs the API key.
 COMPANION_MESSAGE_CHAR_LIMIT = 1000
-COMPANION_DAILY_REPLY_LIMIT = 30
+COMPANION_DAILY_REPLY_LIMIT = 2  # TEMPORARY TEST VALUE (Rio, Oct 19, 2026): restored to 30 in the next deploy
 COMPANION_MIN_SECONDS_BETWEEN_REQUESTS = 5
 
 
@@ -2050,10 +2050,7 @@ HOW TO ANSWER:
             detail=f"{name} has written back {COMPANION_DAILY_REPLY_LIMIT} times today and is resting until tomorrow. Your journal is still here, and everything you write in it is saved as always.",
         )
     try:
-        # TEMPORARY TEST OVERRIDE (Rio, Oct 19, 2026): forces this call to
-        # the known-bad model id so the failure path can be verified live.
-        # Removed in the very next deploy.
-        reply_text, usage = await call_anthropic(system_message, anthropic_messages, max_tokens=600, return_usage=True, model="claude-sonnet-4-5-20250929")
+        reply_text, usage = await call_anthropic(system_message, anthropic_messages, max_tokens=600, return_usage=True)
     except Exception:
         await _companion_release_daily_reply(current_user["id"], today_str)
         logger.exception("Journal companion reply failed")
