@@ -65,14 +65,14 @@ def get_anthropic_client() -> AsyncAnthropic:
     return _anthropic_client
 
 
-async def call_anthropic(system_message: str, messages: list, max_tokens: int = 1024, return_usage: bool = False, model: str = None):
+async def call_anthropic(system_message: str, messages: list, max_tokens: int = 1024, return_usage: bool = False):
     """Send a message list to Anthropic and return the concatenated text reply.
 
     With return_usage=True, returns (text, {"input_tokens": n,
     "output_tokens": n}) using the counts Anthropic itself reports."""
     client = get_anthropic_client()
     response = await client.messages.create(
-        model=model or ANTHROPIC_MODEL,
+        model=ANTHROPIC_MODEL,
         max_tokens=max_tokens,
         system=system_message,
         messages=messages,
@@ -1848,7 +1848,7 @@ async def _companion_exchanges_for(user_id: str, date_str: str):
 # apart. Usage records hold counts and token totals only, never message
 # or journal content, and nothing here logs the API key.
 COMPANION_MESSAGE_CHAR_LIMIT = 1000
-COMPANION_DAILY_REPLY_LIMIT = 2  # TEMPORARY TEST VALUE (Rio, Oct 19, 2026): restored to 30 in the next deploy
+COMPANION_DAILY_REPLY_LIMIT = 30
 COMPANION_MIN_SECONDS_BETWEEN_REQUESTS = 5
 
 
