@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Heart, Sun, ShieldAlert, Cookie, BedDouble, X, Check } from 'lucide-react';
+import { Heart, Sun, ShieldAlert, Cookie, BedDouble, Droplet, X, Check } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 
@@ -22,10 +22,25 @@ const MOOD_OPTIONS = [
   { value: 5, emoji: '😄', label: 'Great' },
 ];
 
-// The full range of real feelings (Angelita's list, Oct 16). Multi-select.
-// Saved through the same quick-log path as `emotion:<name>` symptom tags,
-// so the payload shape stays compatible with /cycle-logs.
+// The full range of real feelings: Angelita's list (Oct 16) was nearly
+// all heavy feelings, so the positive ones lead now (her correction,
+// Oct 17): a woman logging a good day finds her feelings first, and the
+// hard ones are all still here. Multi-select. Saved through the same
+// quick-log path as `emotion:<name>` symptom tags, so the payload shape
+// stays compatible with /cycle-logs.
 const EMOTION_OPTIONS = [
+  { emoji: '😊', label: 'Happy' },
+  { emoji: '😁', label: 'Joyful' },
+  { emoji: '😌', label: 'Calm' },
+  { emoji: '🕊️', label: 'Peaceful' },
+  { emoji: '🍃', label: 'Relaxed' },
+  { emoji: '☺️', label: 'Content' },
+  { emoji: '🥰', label: 'Loved' },
+  { emoji: '🙏', label: 'Grateful' },
+  { emoji: '🌈', label: 'Hopeful' },
+  { emoji: '🤩', label: 'Excited' },
+  { emoji: '💪', label: 'Confident' },
+  { emoji: '😜', label: 'Playful' },
   { emoji: '😠', label: 'Anger' },
   { emoji: '😢', label: 'Sad' },
   { emoji: '🌧️', label: 'Melancholy' },
@@ -53,6 +68,14 @@ const CRAVING_OPTIONS = [
   'chocolate', 'salty snacks', 'sweets', 'carbs', 'spicy food', 'ice cream', 'fruit',
 ];
 
+// How she collected the blood that day (Angelita, Oct 17). Multi-select:
+// any number can be on at once, including all of them (a mixture is just
+// several picked). Saved as `collection:<name>` symptom tags, the same
+// way cravings are saved.
+const COLLECTION_OPTIONS = [
+  'Tampon', 'Pads', 'Cup', 'Disc', 'Period Underwear',
+];
+
 const SLEEP_QUALITY = ['restless', 'okay', 'deep'];
 
 const todayISO = () => new Date().toISOString().split('T')[0];
@@ -73,8 +96,8 @@ function SectionTitle({ Icon, color, children }) {
 // ONE sheet with everything in it (Angelita, Oct 17): tapping any floaty
 // icon opens this, so she never has to wait for the orbiting icons to come
 // around. "How do you feel?" (mood faces + the full feelings grid, the
-// negative ones included) comes first, then symptoms, cravings, energy and
-// sleep, all in the same scrollable sheet. Every control still saves to
+// negative ones included) comes first, then symptoms, cravings, collection,
+// energy and sleep, all in the same scrollable sheet. Every control still saves to
 // today the moment it is tapped, exactly like the per-category dialogs did.
 function QuickLogSheet({ token, onClose, onSaved }) {
   const [mood, setMood] = useState(3);
@@ -82,6 +105,7 @@ function QuickLogSheet({ token, onClose, onSaved }) {
   const [energy, setEnergy] = useState(3);
   const [symptoms, setSymptoms] = useState([]);
   const [cravings, setCravings] = useState([]);
+  const [collection, setCollection] = useState([]);
   const [sleepHours, setSleepHours] = useState(7);
   const [sleepQuality, setSleepQuality] = useState('okay');
   const [note, setNote] = useState('');
@@ -101,6 +125,7 @@ function QuickLogSheet({ token, onClose, onSaved }) {
     const energyVal = ov.energy !== undefined ? ov.energy : energy;
     const syms = ov.symptoms !== undefined ? ov.symptoms : symptoms;
     const cravs = ov.cravings !== undefined ? ov.cravings : cravings;
+    const colls = ov.collection !== undefined ? ov.collection : collection;
     const hours = ov.sleepHours !== undefined ? ov.sleepHours : sleepHours;
     const qual = ov.sleepQuality !== undefined ? ov.sleepQuality : sleepQuality;
     let payloadSymptoms = [];
@@ -123,6 +148,10 @@ function QuickLogSheet({ token, onClose, onSaved }) {
       case 'cravings':
         payloadSymptoms = cravs.map((c) => `craving:${c}`);
         label = cravs.length ? cravs.join(', ') : 'No cravings';
+        break;
+      case 'collection':
+        payloadSymptoms = colls.map((c) => `collection:${c}`);
+        label = colls.length ? `Collection: ${colls.join(', ')}` : 'No collection';
         break;
       case 'sleep':
         payloadSymptoms = [`sleep:${hours}h`, `sleep_quality:${qual}`];
@@ -183,6 +212,15 @@ function QuickLogSheet({ token, onClose, onSaved }) {
     setCravings(next);
     setLastKind('cravings');
     if (next.length > 0) saveNow('cravings', { cravings: next });
+  };
+
+  // Tapping a collection chip saves the updated set at once, exactly
+  // like cravings: any mix can be on, and the tap saves right away.
+  const handleCollectionToggle = (c) => {
+    const next = collection.includes(c) ? collection.filter((v) => v !== c) : [...collection, c];
+    setCollection(next);
+    setLastKind('collection');
+    if (next.length > 0) saveNow('collection', { collection: next });
   };
 
   const handleSleepQuality = (q) => {
@@ -298,6 +336,19 @@ function QuickLogSheet({ token, onClose, onSaved }) {
                 key={c} onClick={() => handleCravingToggle(c)}
                 className="px-3 py-1.5 rounded-full text-xs capitalize"
                 style={chip(cravings.includes(c), colorOf('cravings'))}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+
+          <SectionTitle Icon={Droplet} color="#ff7096">Collection</SectionTitle>
+          <div className="flex flex-wrap gap-2">
+            {COLLECTION_OPTIONS.map((c) => (
+              <button
+                key={c} onClick={() => handleCollectionToggle(c)}
+                className="px-3 py-1.5 rounded-full text-xs"
+                style={chip(collection.includes(c), '#ff7096')}
               >
                 {c}
               </button>

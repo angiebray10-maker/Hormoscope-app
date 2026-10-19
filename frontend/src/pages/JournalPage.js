@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Link } from 'react-router-dom';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Calendar, X, Lock } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Calendar, X, Lock, Settings2, Send } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 
@@ -115,7 +115,7 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
 
 export default function JournalPage() {
   const { token, user } = useAuth();
-  const { isPro, inFirstCycle, loading: rcLoading } = usePremium();
+  const { loading: rcLoading } = usePremium();
   const [entries, setEntries] = useState([]);
   const [writing, setWriting] = useState(false);
   const [currentEntry, setCurrentEntry] = useState('');
@@ -132,6 +132,55 @@ export default function JournalPage() {
   // recent day with entries; turning a page moves one day at a time.
   const [pageIndex, setPageIndex] = useState(0);
   const [pageNotice, setPageNotice] = useState('');
+
+  // Her first name, so the app speaks to her like a person, not a
+  // username (Angelita, Oct 17). Falls back quietly when there is none.
+  const firstName = (user?.name || '').trim().split(/\s+/).filter(Boolean)[0] || null;
+  const todayISO = () => new Date().toISOString().split('T')[0];
+
+  // ---- The Vault (Angelita, Oct 17) ----
+  // The book now holds today's page only. Everything before today is a
+  // sealed day, and sealed days open only in the vault, behind a
+  // password she sets herself. The password lives in this component's
+  // state just long enough to unlock, and closing the vault clears it
+  // and the sealed days from memory: locked means locked.
+  const [vaultOpen, setVaultOpen] = useState(false);
+  const [vaultHasPw, setVaultHasPw] = useState(null); // null = not asked yet
+  const [vaultBusy, setVaultBusy] = useState(false);
+  const [vaultError, setVaultError] = useState('');
+  const [vaultPw, setVaultPw] = useState('');       // unlock field
+  const [vaultNew1, setVaultNew1] = useState('');   // set form: new password
+  const [vaultNew2, setVaultNew2] = useState('');   // set form: say it again
+  const [vaultDays, setVaultDays] = useState(null); // sealed days, once unlocked
+  const [vaultPage, setVaultPage] = useState(0);
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [changeCur, setChangeCur] = useState('');
+  const [changeNew, setChangeNew] = useState('');
+  const [changeMsg, setChangeMsg] = useState('');
+
+  // ---- Her Journal Companion (Angelita, Oct 17) ----
+  // The journal can talk back, in a companion she names herself and
+  // can turn off completely. Settings come from GET /journal/companion;
+  // today's exchanges ride along with GET /journal, and past days'
+  // exchanges seal into the vault with the day. When the companion is
+  // off, none of it renders at all: just her and her private journal.
+  const [companion, setCompanion] = useState(null); // { enabled, name } | null = not asked yet
+  const [companionExchanges, setCompanionExchanges] = useState([]);
+  const [companionInput, setCompanionInput] = useState('');
+  const [companionBusy, setCompanionBusy] = useState(false);
+  const [companionError, setCompanionError] = useState('');
+  const [companionLocked, setCompanionLocked] = useState(false);
+  const [companionSettingsOpen, setCompanionSettingsOpen] = useState(false);
+  const [companionNameDraft, setCompanionNameDraft] = useState('');
+  const [companionSaving, setCompanionSaving] = useState(false);
+  const [companionMsg, setCompanionMsg] = useState('');
+  // Two backend generations, one page (Oct 17): the live backend still
+  // answers GET /journal with a plain array of ALL entries and has no
+  // companion endpoints at all; the new one returns an object and knows
+  // the companion. If the companion settings cannot be reached at all,
+  // the companion is simply unavailable for this session: no card, no
+  // settings button, no error text, and never a crash.
+  const [companionUnavailable, setCompanionUnavailable] = useState(false);
 
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -155,18 +204,116 @@ export default function JournalPage() {
     fetchEntries();
   };
 
-  // Journal gate: open for Pro, and open free during her first cycle
-  // (one full personal cycle from signup; see PremiumContext.inFirstCycle)
+  // The Journal and the Journal Vault are free for everyone.
+
+  // Normalize-or-default for GET /journal, both backend generations:
+  // the old one returns a plain array of ALL her entries (the book then
+  // pages every day, newest first, exactly as it used to, and there are
+  // no companion exchanges); the new one returns an object whose
+  // entries are today's page plus today's companion exchanges. Anything
+  // else, or any field that is not an array, becomes an empty list, so
+  // no undefined ever reaches state.
+  const normalizeJournalPayload = (data) => {
+    if (Array.isArray(data)) return { entries: data, companionExchanges: [] };
+    return {
+      entries: Array.isArray(data?.entries) ? data.entries : [],
+      companionExchanges: Array.isArray(data?.companion_exchanges) ? data.companion_exchanges : [],
+    };
+  };
 
   const fetchEntries = async () => {
     setLoadError(false);
     try {
       const res = await axios.get(`${API}/journal`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setEntries(res.data);
+      const { entries: nextEntries, companionExchanges: nextExchanges } = normalizeJournalPayload(res.data);
+      setEntries(nextEntries);
+      setCompanionExchanges(nextExchanges);
     } catch (err) {
       logger.error('Failed to fetch journal entries:', err);
       setLoadError(true);
     } finally { setLoading(false); }
+  };
+
+  const fetchCompanion = async () => {
+    try {
+      const res = await axios.get(`${API}/journal/companion`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      if (res.data && typeof res.data === 'object' && !Array.isArray(res.data)) {
+        setCompanion(res.data);
+        setCompanionNameDraft(res.data?.name || '');
+      } else {
+        // A reply we cannot read as settings is no settings at all.
+        setCompanionUnavailable(true);
+      }
+    } catch (err) {
+      // The journal itself still works without the companion settings.
+      // On the old backend this endpoint does not exist yet (404), so
+      // any failure at all means the companion is unavailable for this
+      // session: it renders nothing, offers no settings, and shows no
+      // error. The journal carries on exactly as it was.
+      logger.error('Failed to fetch companion settings:', err);
+      setCompanionUnavailable(true);
+      setCompanionSettingsOpen(false);
+    }
+  };
+
+  /* eslint-disable */
+  useEffect(() => { if (token) fetchCompanion(); }, [token]);
+  /* eslint-enable */
+
+  const handleSendToCompanion = async () => {
+    const text = companionInput.trim();
+    if (!text || companionBusy) return;
+    setCompanionBusy(true);
+    setCompanionError('');
+    setCompanionLocked(false);
+    try {
+      const res = await axios.post(`${API}/journal/companion/reply`, { message: text },
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 });
+      if (res.data?.exchange) setCompanionExchanges(prev => [...prev, res.data.exchange]);
+      setCompanionInput('');
+    } catch (err) {
+      // Plain words, her words stay in the box: the companion being
+      // unavailable (503) reads as resting, never as a broken journal.
+      const detail = err?.response?.data?.detail;
+      setCompanionError(typeof detail === 'string' ? detail : 'Your companion could not answer just now. Give it a moment and try again.');
+      // The gate's 403 means "not subscribed yet": offer the way in.
+      if (err?.response?.status === 403 && typeof detail === 'string' && detail.includes('not available yet')) {
+        setCompanionLocked(true);
+      }
+    } finally { setCompanionBusy(false); }
+  };
+
+  const handleToggleCompanion = async () => {
+    if (!companion || companionSaving) return;
+    setCompanionSaving(true);
+    setCompanionMsg('');
+    try {
+      const res = await axios.put(`${API}/journal/companion`, { enabled: !companion.enabled },
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setCompanion(res.data);
+      setCompanionMsg(res.data?.enabled ? 'Your companion is here with you again.' : 'Your companion is off. This page is just yours now.');
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setCompanionMsg(typeof detail === 'string' ? detail : 'That did not save. Try again in a moment.');
+    } finally { setCompanionSaving(false); }
+  };
+
+  const handleRenameCompanion = async () => {
+    if (!companion || companionSaving) return;
+    const name = companionNameDraft.trim();
+    if (!name) { setCompanionMsg('Give your companion a name first.'); return; }
+    setCompanionSaving(true);
+    setCompanionMsg('');
+    try {
+      const res = await axios.put(`${API}/journal/companion`, { name },
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setCompanion(res.data);
+      setCompanionNameDraft(res.data?.name || name);
+      setCompanionMsg(`Saved. Say hello to ${res.data?.name || name}.`);
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setCompanionMsg(typeof detail === 'string' ? detail : 'That name did not save. Try again in a moment.');
+    } finally { setCompanionSaving(false); }
   };
 
   // Group entries into book pages: one page per day, newest day first.
@@ -228,16 +375,111 @@ export default function JournalPage() {
 
   const handleDateSelect = (dateStr) => {
     setSelectedDate(dateStr);
-    // Turn straight to that day's page in the book, if she wrote that day.
+    // The book only holds today's page now. A past day lives in the
+    // vault, so point her there warmly instead of turning a page.
     const idx = pages.findIndex(p => p.date === dateStr);
     if (idx >= 0) {
       setPageIndex(idx);
       setPageNotice('');
+    } else if (dateStr < todayISO()) {
+      setPageNotice('That day is sealed in your vault now. Tap the lock up top to open it.');
+      setTimeout(() => setPageNotice(''), 4000);
     } else {
       const label = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
       setPageNotice(`No journal page for ${label} yet.`);
       setTimeout(() => setPageNotice(''), 3000);
     }
+  };
+
+  const openVault = async () => {
+    setVaultOpen(true);
+    setVaultError('');
+    if (vaultHasPw === null) {
+      try {
+        const res = await axios.get(`${API}/journal/vault/status`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+        setVaultHasPw(!!res.data?.has_password);
+      } catch (err) {
+        logger.error('Vault status failed:', err);
+        setVaultError('Your vault could not be reached. The server may be waking up, close this and try again in a moment.');
+      }
+    }
+  };
+
+  const closeVault = () => {
+    // Closing locks it again: password fields and sealed days leave memory.
+    setVaultOpen(false);
+    setVaultPw(''); setVaultNew1(''); setVaultNew2('');
+    setChangeCur(''); setChangeNew(''); setChangeMsg('');
+    setShowChangePw(false);
+    setVaultDays(null); setVaultPage(0); setVaultError('');
+  };
+
+  const unlockVault = async (password) => {
+    setVaultBusy(true); setVaultError('');
+    try {
+      const [entriesRes, logsRes] = await Promise.all([
+        axios.post(`${API}/journal/vault/entries`, { password }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }),
+        axios.get(`${API}/cycle-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }).catch(() => ({ data: [] })),
+      ]);
+      // A sealed day is any day before today with something in it: her
+      // writing (from the unlock call), her quick logs (the same cycle
+      // logs the Calendar reads), and/or that day's companion
+      // exchanges, which seal with the day. Newest sealed day first.
+      const vaultData = entriesRes.data || {};
+      const today = todayISO();
+      const byDay = new Map();
+      const dayOf = (d) => {
+        if (!byDay.has(d)) byDay.set(d, { date: d, entries: [], logs: [], companion: [] });
+        return byDay.get(d);
+      };
+      [...(vaultData.entries || [])]
+        .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+        .forEach((e) => {
+          const d = (e.created_at || '').split('T')[0];
+          if (d && d < today) dayOf(d).entries.push(e);
+        });
+      (logsRes.data || []).forEach((l) => {
+        if (l.date && l.date < today) dayOf(l.date).logs.push(l);
+      });
+      Object.entries(vaultData.companion || {}).forEach(([d, exs]) => {
+        if (d && d < today) dayOf(d).companion = exs || [];
+      });
+      setVaultDays([...byDay.values()].sort((a, b) => b.date.localeCompare(a.date)));
+      setVaultPage(0);
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setVaultError(typeof detail === 'string' ? detail : 'That did not open your vault. The server may be waking up, give it a moment and try again.');
+    } finally { setVaultBusy(false); }
+  };
+
+  const handleSetVaultPassword = async () => {
+    if (vaultNew1.length < 4) { setVaultError('Your vault password needs at least 4 characters.'); return; }
+    if (vaultNew1 !== vaultNew2) { setVaultError('Those two do not match. Type them once more, slowly.'); return; }
+    setVaultBusy(true); setVaultError('');
+    try {
+      await axios.post(`${API}/journal/vault/set`, { password: vaultNew1 }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setVaultHasPw(true);
+      const pw = vaultNew1;
+      setVaultNew1(''); setVaultNew2('');
+      await unlockVault(pw); // she just set it, so open the vault for her
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setVaultError(typeof detail === 'string' ? detail : 'That did not save. The server may be waking up, try again.');
+      setVaultBusy(false);
+    }
+  };
+
+  const handleChangeVaultPassword = async () => {
+    if (changeNew.length < 4) { setChangeMsg('Your new vault password needs at least 4 characters.'); return; }
+    setVaultBusy(true); setChangeMsg('');
+    try {
+      await axios.post(`${API}/journal/vault/set`, { current_password: changeCur, password: changeNew }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setChangeCur(''); setChangeNew('');
+      setChangeMsg('Your vault password is changed.');
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setChangeMsg(typeof detail === 'string' ? detail : 'That did not change. Try again in a moment.');
+    } finally { setVaultBusy(false); }
   };
 
   const fmtDayLong = (dateStr) => new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -259,44 +501,6 @@ export default function JournalPage() {
     </div>
   );
 
-  // Locked only outside the first free cycle and without Pro
-  if (!isPro && !inFirstCycle) {
-    return (
-      <div className="min-h-screen pb-20 lg:ml-64" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-testid="journal-locked">
-        <div className="max-w-md mx-auto px-5 pt-10 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4" style={{ border: `1px solid ${GOLD}`, background: 'rgba(212,168,83,0.08)' }}>
-            <Lock className="w-3.5 h-3.5" style={{ color: GOLD }} />
-            <span className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>HORMOscope Pro</span>
-          </div>
-          <h1 className="text-4xl text-white mb-3" style={{ fontFamily: "'Poiret One', cursive" }}>The Journal</h1>
-          <p className="text-sm leading-relaxed mb-6" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
-            Your private space — that makes Your Daily Read smarter with every entry.
-          </p>
-
-          <div className="rounded-2xl overflow-hidden mb-6" style={{ border: `1.5px solid ${GOLD}`, boxShadow: '0 0 40px rgba(212,168,83,0.2)' }}>
-            <img src={JOURNAL_PREVIEW_IMG} alt="Journal preview" className="w-full block" />
-          </div>
-
-          <div className="rounded-xl p-4 mb-6 text-left" style={{ border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(212,168,83,0.04)' }}>
-            <p className="text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.8)' }}>
-              ✿&nbsp; Unlimited journal entries<br />
-              ✿&nbsp; A journal that reads like a real book, one day to a page<br />
-              ✿&nbsp; Mini-calendar to revisit any day<br />
-              ✿&nbsp; Your Daily Read learns your voice
-            </p>
-          </div>
-
-          <Link to="/pro?from=journal" data-testid="journal-locked-cta" className="block w-full py-3.5 rounded-full text-center text-white text-base" style={{ fontFamily: "'Poiret One', cursive", letterSpacing: '0.05em', background: 'linear-gradient(135deg, #D4A853, #c9a030)', boxShadow: '0 0 25px rgba(212,168,83,0.3)' }}>
-            Unlock HORMOscope Pro
-          </Link>
-          <p className="text-[10px] mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.4)' }}>
-            $6.99/mo or $49.99/yr · Cancel anytime
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const handleNewEntryClick = () => {
     setWriting(true);
   };
@@ -316,10 +520,19 @@ export default function JournalPage() {
         {/* Header Row */}
         <div className="flex items-start justify-between mb-1">
           <div>
-            <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>My Journal</p>
-            <h1 className="text-3xl text-white" style={{ fontFamily: "'Poiret One', cursive" }}>Journal</h1>
+            <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Yours only</p>
+            <h1 className="text-3xl text-white" style={{ fontFamily: "'Poiret One', cursive" }}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={openVault} className="flex items-center gap-1.5 h-8 px-3 rounded-full" style={{ border: `1px solid rgba(212,168,83,0.4)`, background: 'rgba(212,168,83,0.08)' }} data-testid="journal-vault-btn" aria-label="Open your vault">
+              <Lock className="w-3.5 h-3.5" style={{ color: GOLD }} />
+              <span className="text-[10px] whitespace-nowrap" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>{firstName ? `${firstName}'s Vault` : 'Your Vault'}</span>
+            </button>
+            {!companionUnavailable && (
+              <button onClick={() => setCompanionSettingsOpen(!companionSettingsOpen)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(244,167,185,0.3)', background: companionSettingsOpen ? 'rgba(244,167,185,0.15)' : 'rgba(244,167,185,0.05)' }} data-testid="companion-settings-btn" aria-label="Companion settings" title="Your journal companion">
+                <Settings2 className="w-4 h-4" style={{ color: '#f4a7b9' }} />
+              </button>
+            )}
             {!writing && (
               <button onClick={handleNewEntryClick} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(255,20,147,0.3)', background: 'rgba(255,20,147,0.1)' }} data-testid="new-entry-btn">
                 <Plus className="w-4 h-4" style={{ color: '#FF1493' }} />
@@ -336,13 +549,63 @@ export default function JournalPage() {
           <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }}>{todayStr}</p>
         </button>
 
-        {!isPro && inFirstCycle && (
-          <div className="rounded-xl px-4 py-3 mb-4" style={{ border: '1px solid rgba(244,167,185,0.35)', background: 'rgba(244,167,185,0.07)' }} data-testid="journal-first-cycle-note">
-            <p className="text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: '#F4D3DC' }}>
-              Your Journal is open and free for your whole first cycle. Make yourself at home.
-            </p>
+        {/* Companion settings: her name for it, and the off switch.
+            This little panel is the only trace that stays when the
+            companion is off, so she can always bring it back. */}
+        {companionSettingsOpen && !companionUnavailable && (
+          <div className="rounded-xl p-4 mb-4" style={{ border: '1px solid rgba(244,167,185,0.3)', background: 'rgba(244,167,185,0.05)' }} data-testid="companion-settings">
+            <p className="text-sm text-white mb-1" style={{ fontFamily: "'Poiret One', cursive", fontSize: '17px' }}>Your journal companion</p>
+            {companion ? (
+              <>
+                <p className="text-xs leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }}>
+                  Your journal can talk back to you, in a companion who knows your cycle and keeps what you share
+                  inside these pages only. Name your companion anything you like, or turn it off and this book is
+                  just you and your own words.
+                </p>
+                <p className="text-[10px] tracking-widest uppercase mb-1.5" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>Companion&apos;s name</p>
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text" value={companionNameDraft} onChange={(e) => setCompanionNameDraft(e.target.value)}
+                    maxLength={30} placeholder="Name your companion"
+                    className="flex-1 rounded-xl px-3 py-2.5 text-sm outline-none placeholder-white/25 text-white"
+                    style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(244,167,185,0.25)' }}
+                    data-testid="companion-name-input"
+                  />
+                  <button onClick={handleRenameCompanion} disabled={companionSaving || !companionNameDraft.trim()}
+                    className="px-4 py-2.5 rounded-full text-white text-xs font-medium disabled:opacity-40"
+                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
+                    data-testid="companion-name-save">
+                    {companionSaving ? 'Saving...' : 'Save name'}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
+                    {companion.enabled ? `${companion.name} is here with you` : 'Companion is off'}
+                  </p>
+                  <button onClick={handleToggleCompanion} disabled={companionSaving}
+                    className="px-4 py-2 rounded-full text-xs disabled:opacity-40"
+                    style={{
+                      fontFamily: 'Poppins, sans-serif',
+                      color: companion.enabled ? '#f4a7b9' : '#fff',
+                      border: companion.enabled ? '1px solid rgba(244,167,185,0.4)' : 'none',
+                      background: companion.enabled ? 'transparent' : '#FF1493'
+                    }}
+                    data-testid="companion-toggle">
+                    {companion.enabled ? 'Turn off' : 'Turn on'}
+                  </button>
+                </div>
+                {companionMsg && (
+                  <p className="text-xs mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }} data-testid="companion-settings-msg">{companionMsg}</p>
+                )}
+              </>
+            ) : (
+              <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.45)' }}>
+                Your companion settings could not be reached just now. The server may be waking up, close this and try again in a moment.
+              </p>
+            )}
           </div>
         )}
+
 
         {/* Mini Calendar Dropdown */}
         {showCal && (
@@ -413,8 +676,8 @@ export default function JournalPage() {
         {entries.length === 0 && !writing ? (
           <div className="text-center py-20">
             <p className="text-3xl mb-3" style={{ color: 'rgba(201,184,240,0.15)' }}>✿</p>
-            <p className="text-white/30 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>No entries yet</p>
-            <p className="text-white/15 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap + to write your first entry</p>
+            <p className="text-white/30 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing written yet today</p>
+            <p className="text-white/15 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap + to write. Your past days are sealed in your vault, under the lock up top.</p>
           </div>
         ) : pages.length > 0 ? (
           <div data-testid="journal-book">
@@ -483,7 +746,289 @@ export default function JournalPage() {
             })()}
           </div>
         ) : null}
+
+        {/* Her companion, inside today's page of the book. Renders
+            only when the companion is on: off means no trace at all,
+            just her and her private journal. Replies wear the book's
+            serif and a soft pink tint, with the companion's name as
+            the speaker, so the page still reads like her book. */}
+        {companion?.enabled && (
+          <div className="rounded-xl overflow-hidden mt-6" style={{ border: '1px solid rgba(244,167,185,0.25)', borderLeft: '3px solid #f4a7b9', background: 'rgba(244,167,185,0.04)' }} data-testid="journal-companion">
+            <div className="flex items-center gap-2 px-4 pt-4 pb-1">
+              <Heart className="w-4 h-4" style={{ color: '#FF1493' }} fill="#FF1493" />
+              <h2 className="text-white text-base" style={{ fontFamily: "'Poiret One', cursive", fontSize: '18px' }}>{companion.name} is here with you</h2>
+            </div>
+            <p className="px-4 pb-3 text-[11px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.45)' }}>
+              Write to {companion.name} here. {companion.name} knows where you are in your cycle and what today has
+              held, and answers you inside these pages only. Nothing here is ever shared with anyone.
+            </p>
+            {companionExchanges.length > 0 && (
+              <div className="px-4 pb-2">
+                {companionExchanges.map((ex) => (
+                  <div key={ex.id} className="mb-4">
+                    <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>
+                      You{ex.created_at ? ` · ${fmtTime(ex.created_at)}` : ''}
+                    </p>
+                    <p className="text-white/85 whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px' }}>{ex.user_message}</p>
+                    <div className="rounded-lg px-3 py-2.5 mt-2" style={{ background: 'rgba(244,167,185,0.08)', border: '1px solid rgba(244,167,185,0.15)' }}>
+                      <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>{ex.companion_name || companion.name}</p>
+                      <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {companionError && (
+              <p className="px-4 pb-2 text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="companion-error">{companionError}</p>
+            )}
+            {companionLocked && (
+              <p className="px-4 pb-2 text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                <Link to="/pro" style={{ color: '#FF1493', textDecoration: 'underline' }} data-testid="companion-subscribe-link">See the Journal Companion subscription</Link>
+              </p>
+            )}
+            <div className="flex gap-2 p-3" style={{ borderTop: '1px solid rgba(244,167,185,0.12)' }}>
+              <input
+                type="text" value={companionInput}
+                onChange={(e) => { setCompanionInput(e.target.value); if (companionError) setCompanionError(''); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSendToCompanion(); }}
+                placeholder={`Write to ${companion.name}...`}
+                className="flex-1 rounded-full px-4 py-2.5 text-sm outline-none placeholder-white/25 text-white"
+                style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(244,167,185,0.25)' }}
+                data-testid="companion-input"
+              />
+              <button onClick={handleSendToCompanion} disabled={companionBusy || !companionInput.trim()}
+                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40"
+                style={{ background: '#FF1493' }}
+                data-testid="companion-send" aria-label={`Send to ${companion.name}`}>
+                <Send className="w-4 h-4 text-white" />
+              </button>
+            </div>
+            {companionBusy && (
+              <p className="px-4 pb-3 text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }}>{companion.name} is writing back...</p>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* The Vault: her sealed days, behind a password only she knows.
+          Full-screen like the phase cards, above the bottom nav, and
+          data-no-swipe keeps the tab-swipe handler out while it is open. */}
+      {vaultOpen && (
+        <div className="fixed inset-0 z-[80] flex flex-col" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-no-swipe="true" data-testid="journal-vault">
+          <div className="flex items-center justify-between px-5 py-4 max-w-2xl mx-auto w-full flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <Lock className="w-5 h-5" style={{ color: GOLD }} />
+              <h2 className="text-white text-xl" style={{ fontFamily: "'Poiret One', cursive" }}>{firstName ? `${firstName}'s Vault` : 'Your Vault'}</h2>
+            </div>
+            <button onClick={closeVault} aria-label="Close vault" className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white active:opacity-70">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-5 pb-10">
+            <div className="max-w-2xl mx-auto">
+              <p className="text-sm leading-relaxed mb-5" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
+                This is yours only. No one else can open this, not even someone linked to your account. When a day ends, everything you wrote and logged seals in here, safe.
+              </p>
+
+              {vaultDays ? (
+                <div data-testid="vault-unlocked">
+                  {vaultDays.length === 0 ? (
+                    <div className="text-center py-16">
+                      <p className="text-3xl mb-3" style={{ color: 'rgba(212,168,83,0.25)' }}>✿</p>
+                      <p className="text-white/40 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing sealed yet.</p>
+                      <p className="text-white/25 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>When today ends, it will be waiting here for you tomorrow.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {(() => {
+                        const day = vaultDays[Math.min(vaultPage, vaultDays.length - 1)];
+                        return (
+                          <>
+                            <div className="flex items-end justify-between mb-2 px-1">
+                              <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: '#F4D3DC' }}>{fmtDayLong(day.date)}</p>
+                              <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>
+                                Sealed day {Math.min(vaultPage, vaultDays.length - 1) + 1} of {vaultDays.length}
+                              </p>
+                            </div>
+                            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(201,184,240,0.12)', borderLeft: `3px solid ${GOLD}`, background: 'rgba(255,255,255,0.02)' }}>
+                              {day.entries.map((entry, i) => (
+                                <div key={entry.id} className="p-4" style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`vault-entry-${entry.id}`}>
+                                  <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>{entry.title}</h3>
+                                  <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtTime(entry.created_at)}</p>
+                                  {entry.is_intimate && (
+                                    <p className="text-[10px] tracking-widest uppercase mt-1" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>
+                                      Intimate · her eyes only
+                                    </p>
+                                  )}
+                                  <p className="text-white/85 whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px' }}>{entry.content}</p>
+                                </div>
+                              ))}
+                              {day.logs.length > 0 && (
+                                <div className="p-4" style={day.entries.length > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}}>
+                                  <p className="text-[#9A8B91] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Logged this day</p>
+                                  <div className="space-y-2">
+                                    {day.logs.map((log) => (
+                                      <div key={log.id}>
+                                        {log.notes && (
+                                          <p className="text-[#FDF8FA] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.notes}</p>
+                                        )}
+                                        {!log.notes && log.symptoms?.length > 0 && (
+                                          <p className="text-[#FDF8FA] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.symptoms.join(', ')}</p>
+                                        )}
+                                        {log.flow && (
+                                          <p className="text-[#9A8B91] text-[11px] capitalize" style={{ fontFamily: 'Poppins, sans-serif' }}>Flow: {log.flow}</p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {day.companion?.length > 0 && (
+                                <div className="p-4" style={(day.entries.length > 0 || day.logs.length > 0) ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`vault-companion-${day.date}`}>
+                                  <p className="text-[#9A8B91] text-[10px] tracking-widest uppercase mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                                    With {day.companion[0].companion_name || 'your companion'}
+                                  </p>
+                                  {day.companion.map((ex) => (
+                                    <div key={ex.id} className="mb-4">
+                                      <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>
+                                        You{ex.created_at ? ` · ${fmtTime(ex.created_at)}` : ''}
+                                      </p>
+                                      <p className="text-white/85 whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px' }}>{ex.user_message}</p>
+                                      <div className="rounded-lg px-3 py-2.5 mt-2" style={{ background: 'rgba(244,167,185,0.08)', border: '1px solid rgba(244,167,185,0.15)' }}>
+                                        <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>{ex.companion_name}</p>
+                                        <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between mt-4">
+                              <button
+                                onClick={() => setVaultPage(Math.min(vaultPage + 1, vaultDays.length - 1))}
+                                disabled={vaultPage >= vaultDays.length - 1}
+                                className="flex items-center gap-1 px-4 py-2 rounded-full text-xs disabled:opacity-30"
+                                style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(201,184,240,0.25)', color: '#c9b8f0', background: 'rgba(201,184,240,0.05)' }}
+                                data-testid="vault-older-btn">
+                                <ChevronLeft className="w-4 h-4" /> Older day
+                              </button>
+                              <button
+                                onClick={() => setVaultPage(Math.max(vaultPage - 1, 0))}
+                                disabled={vaultPage <= 0}
+                                className="flex items-center gap-1 px-4 py-2 rounded-full text-xs disabled:opacity-30"
+                                style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,20,147,0.3)', color: '#f4a7b9', background: 'rgba(255,20,147,0.06)' }}
+                                data-testid="vault-newer-btn">
+                                Newer day <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </>
+                  )}
+
+                  {/* Change the vault password, from inside the vault */}
+                  <div className="mt-8 pt-5" style={{ borderTop: '1px solid rgba(201,184,240,0.12)' }}>
+                    {!showChangePw ? (
+                      <button onClick={() => setShowChangePw(true)} className="text-xs underline" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }} data-testid="vault-change-toggle">
+                        Change vault password
+                      </button>
+                    ) : (
+                      <div data-testid="vault-change-form">
+                        <input
+                          type="password" value={changeCur} onChange={(e) => setChangeCur(e.target.value)}
+                          placeholder="Current vault password" autoComplete="current-password"
+                          className="w-full rounded-xl px-4 py-3 text-sm mb-3 outline-none placeholder-white/25 text-white"
+                          style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,184,240,0.25)' }}
+                        />
+                        <input
+                          type="password" value={changeNew} onChange={(e) => setChangeNew(e.target.value)}
+                          placeholder="New vault password" autoComplete="new-password"
+                          className="w-full rounded-xl px-4 py-3 text-sm mb-3 outline-none placeholder-white/25 text-white"
+                          style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,184,240,0.25)' }}
+                        />
+                        {changeMsg && (
+                          <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }}>{changeMsg}</p>
+                        )}
+                        <div className="flex gap-2">
+                          <button onClick={() => { setShowChangePw(false); setChangeMsg(''); setChangeCur(''); setChangeNew(''); }}
+                            className="flex-1 py-2.5 rounded-full text-white/50 text-xs" style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            Cancel
+                          </button>
+                          <button onClick={handleChangeVaultPassword} disabled={vaultBusy || !changeCur || !changeNew}
+                            className="flex-1 py-2.5 rounded-full text-white text-xs font-medium disabled:opacity-40"
+                            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
+                            data-testid="vault-change-btn">
+                            {vaultBusy ? 'Saving...' : 'Save new password'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : vaultHasPw === null ? (
+                vaultError ? (
+                  <p className="text-xs text-center py-10" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="vault-error">{vaultError}</p>
+                ) : (
+                  <p className="text-white/40 text-sm text-center py-10" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening your vault...</p>
+                )
+              ) : vaultHasPw ? (
+                <div data-testid="vault-unlock-form">
+                  <p className="text-sm leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.65)' }}>
+                    Your sealed days are behind your vault password. Type it to open them.
+                  </p>
+                  <input
+                    type="password" value={vaultPw} onChange={(e) => { setVaultPw(e.target.value); if (vaultError) setVaultError(''); }}
+                    placeholder="Vault password" autoComplete="current-password"
+                    className="w-full rounded-xl px-4 py-3 text-sm mb-3 outline-none placeholder-white/25 text-white"
+                    style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,184,240,0.25)' }}
+                    data-testid="vault-password-input"
+                  />
+                  {vaultError && (
+                    <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="vault-error">{vaultError}</p>
+                  )}
+                  <button onClick={() => unlockVault(vaultPw)} disabled={vaultBusy || !vaultPw}
+                    className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
+                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
+                    data-testid="vault-unlock-btn">
+                    {vaultBusy ? 'Opening...' : 'Open my vault'}
+                  </button>
+                </div>
+              ) : (
+                <div data-testid="vault-set-form">
+                  <p className="text-sm leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.65)' }}>
+                    Set the password for your vault. You will need it to open your sealed days, so pick one you will remember. It is yours alone, and no one can reset it for you.
+                  </p>
+                  <input
+                    type="password" value={vaultNew1} onChange={(e) => { setVaultNew1(e.target.value); if (vaultError) setVaultError(''); }}
+                    placeholder="New vault password" autoComplete="new-password"
+                    className="w-full rounded-xl px-4 py-3 text-sm mb-3 outline-none placeholder-white/25 text-white"
+                    style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,184,240,0.25)' }}
+                    data-testid="vault-new-password-input"
+                  />
+                  <input
+                    type="password" value={vaultNew2} onChange={(e) => { setVaultNew2(e.target.value); if (vaultError) setVaultError(''); }}
+                    placeholder="Type it once more" autoComplete="new-password"
+                    className="w-full rounded-xl px-4 py-3 text-sm mb-3 outline-none placeholder-white/25 text-white"
+                    style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,184,240,0.25)' }}
+                    data-testid="vault-confirm-password-input"
+                  />
+                  {vaultError && (
+                    <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="vault-error">{vaultError}</p>
+                  )}
+                  <button onClick={handleSetVaultPassword} disabled={vaultBusy || !vaultNew1 || !vaultNew2}
+                    className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
+                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
+                    data-testid="vault-set-btn">
+                    {vaultBusy ? 'Setting...' : 'Set my vault password'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

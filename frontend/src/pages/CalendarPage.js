@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Calendar as CalendarIcon, Heart, Droplet, ChevronLeft, ChevronRight, Plus, X, Lock, RotateCcw, Baby, Sparkles, HelpCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Heart, Droplet, ChevronLeft, ChevronRight, Plus, X, RotateCcw, Baby, Sparkles, HelpCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import DateSelect from '../components/DateSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -25,7 +25,6 @@ export default function CalendarPage() {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showPartnerInput, setShowPartnerInput] = useState(false);
   const [partnerNames, setPartnerNames] = useState('');
-  const [showCalendarGuide, setShowCalendarGuide] = useState(false);
   const [longPressDate, setLongPressDate] = useState(null);
   const longPressTimer = useRef(null);
   const [loading, setLoading] = useState(true);
@@ -91,16 +90,6 @@ export default function CalendarPage() {
     fetchCycleStats();
   }, [fetchLogs, fetchDashboard, fetchCycleStats]);
   /* eslint-enable */
-
-  // Show guide once — lazy init state, no effect needed
-  useState(() => {
-    const seen = localStorage.getItem('calendar-guide-seen');
-    if (!seen) {
-      localStorage.setItem('calendar-guide-seen', 'true');
-      // Defer set to next tick so initial render completes first
-      setTimeout(() => setShowCalendarGuide(true), 0);
-    }
-  });
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -433,7 +422,7 @@ export default function CalendarPage() {
           <span className="w-3.5 h-3.5 rounded bg-[#E85A6B]/10 border border-dashed border-[#E85A6B]/40" /> Expected
         </span>
         <span className="flex items-center gap-1.5 text-[#9A8B91] text-xs">
-          <span className="w-3 h-3 rounded bg-[#5DBB8A]/30" /> Fertile
+          <span className="w-3 h-3 rounded bg-[#5DBB8A]/30" /> Fertile (estimated)
         </span>
         <span className="flex items-center gap-1.5 text-[#9A8B91] text-xs">
           <Heart className="w-3 h-3" style={{ color: '#FF1493' }} fill="#FF1493" strokeWidth={2.5} /> Intimacy
@@ -646,7 +635,7 @@ export default function CalendarPage() {
               })()}
             </p>
             <p className="text-[#5DBB8A] text-xs mt-1">
-              High fertility
+              Estimated from your logged cycle, not a measurement
             </p>
           </div>
         )}
@@ -771,7 +760,7 @@ export default function CalendarPage() {
               <div className="p-2 rounded-lg bg-[#5DBB8A]/10 border border-[#5DBB8A]/30">
                 <p className="text-[#5DBB8A] text-xs flex items-center gap-2">
                   <Baby className="w-3 h-3" />
-                  Fertile window
+                  Fertile window (estimated)
                 </p>
               </div>
             )}
@@ -897,43 +886,6 @@ export default function CalendarPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* First-time Calendar Guide */}
-      <Dialog open={showCalendarGuide} onOpenChange={setShowCalendarGuide}>
-        <DialogContent className="bg-[#1a1a2e] border border-[#FF1493]/30 text-white max-w-sm mx-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-[#FF1493] text-center" style={{ fontFamily: "'Poiret One', cursive" }}>How to Use Your Calendar</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              <div className="flex items-start gap-3">
-                <Droplet className="w-4 h-4 text-[#E85A6B] flex-shrink-0 mt-0.5" fill="#E85A6B" />
-                <p className="text-xs text-white/80"><strong className="text-white">Tap</strong> any date to log your period start or intimacy.</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <Heart className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#FF1493' }} fill="#FF1493" />
-                <p className="text-xs text-white/80">When you log <strong className="text-white">intimacy</strong>, a small pink heart appears on that date.</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <Lock className="w-4 h-4 text-[#D4A853] flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-white/80"><strong className="text-white">Tap and hold</strong> any date with a heart to privately log the name(s) of who you were with. Only you will ever see this.</p>
-              </div>
-            </div>
-            <p className="text-[10px] text-[#9A8B91] text-center leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              This is a one-time message. The tap-and-hold feature for logging partner names will not be shown or explained again. Only you will know it exists.
-            </p>
-            <button
-              onClick={() => setShowCalendarGuide(false)}
-              className="w-full py-3 rounded-full text-white text-sm font-medium"
-              style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
-              data-testid="guide-got-it-btn"
-            >
-              Got It
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
 
     </div>
   );

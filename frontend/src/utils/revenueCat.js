@@ -31,6 +31,12 @@ const OFFERING_ID = process.env.REACT_APP_REVENUECAT_OFFERING_ID || 'default';
 const YEARLY_PACKAGE_ID = process.env.REACT_APP_REVENUECAT_YEARLY_PACKAGE_ID || '';
 const MONTHLY_PACKAGE_ID = process.env.REACT_APP_REVENUECAT_MONTHLY_PACKAGE_ID || '';
 
+// Journal Companion is a SEPARATE product from Pro (Angelita, Oct 19, 2026):
+// its own entitlement and its own offering. Pro state never unlocks it.
+const COMPANION_ENTITLEMENT_ID = process.env.REACT_APP_REVENUECAT_COMPANION_ENTITLEMENT_ID || 'journal_companion';
+const COMPANION_OFFERING_ID = process.env.REACT_APP_REVENUECAT_COMPANION_OFFERING_ID || 'journal_companion';
+export const COMPANION_ENTITLEMENT = COMPANION_ENTITLEMENT_ID;
+
 export const isNativeApp = () => {
   try {
     return Capacitor.isNativePlatform();
@@ -153,6 +159,105 @@ export function hasProEntitlement(customerInfo) {
     return Boolean(customerInfo?.entitlements?.active?.[ENTITLEMENT_ID]);
   } catch {
     return false;
+  }
+}
+
+// ---------- Journal Companion (separate from Pro) ----------
+
+export function companionEntitlementInfo(customerInfo) {
+  try {
+    const ent = customerInfo?.entitlements?.active?.[COMPANION_ENTITLEMENT_ID];
+    if (!ent) return { active: false, willRenew: false, expiresDate: null };
+    return {
+      active: true,
+      willRenew: ent.willRenew !== false,
+      expiresDate: ent.expirationDate || null,
+    };
+  } catch {
+    return { active: false, willRenew: false, expiresDate: null };
+  }
+}
+
+export function hasCompanionEntitlement(customerInfo) {
+  return companionEntitlementInfo(customerInfo).active;
+}
+
+function companionPeriodText(pkg) {
+  const period = (pkg?.product?.subscriptionPeriod || '').toUpperCase();
+  if (period.includes('Y')) return '/year';
+  if (period.includes('W')) return '/week';
+  return '/month';
+}
+
+// The monthly package from the dedicated journal_companion offering (never
+// the current/default offering), with the real Google Play price attached.
+export async function getCompanionPackage() {
+  if (!isBillingConfigured()) return null;
+  const P = await loadPurchases();
+  if (!P) return null;
+  try {
+    const offerings = await P.getOfferings();
+    const offering = offerings?.all?.[COMPANION_OFFERING_ID] || null;
+    if (!offering) return null;
+    const pkgs = offering.availablePackages || [];
+    const monthly = pkgs.find((p) => (p.packageType || '').toUpperCase() === 'MONTHLY')
+      || pkgs.find((p) => p.identifier === '$rc_monthly')
+      || pkgs[0];
+    if (!monthly) return null;
+    return {
+      pkg: monthly,
+      priceString: monthly.product?.priceString || '',
+      periodText: companionPeriodText(monthly),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Returns { status: 'active' | 'pending' | 'cancelled' | 'error', info?, message? }
+// 'pending' covers Google Play deferred/pending payments: the purchase went
+// through but the entitlement is not active until Google completes it.
+export async function purchaseCompanion() {
+  const found = await getCompanionPackage();
+  if (!found) return { status: 'error', message: 'The subscription is not available right now.' };
+  const P = await loadPurchases();
+  if (!P) return { status: 'error', message: 'Purchases are not available on this device.' };
+  try {
+    const { customerInfo } = await P.purchasePackage({ aPackage: found.pkg });
+    const info = companionEntitlementInfo(customerInfo);
+    if (info.active) return { status: 'active', info };
+    return { status: 'pending' };
+  } catch (err) {
+    if (err && err.userCancelled) return { status: 'cancelled' };
+    const text = `${(err && err.code) || ''} ${(err && err.message) || ''}`.toLowerCase();
+    if (text.includes('pending')) return { status: 'pending' };
+    return { status: 'error', message: (err && err.message) || 'Purchase could not be completed.' };
+  }
+}
+
+// Returns { status: 'active' | 'none' | 'error', info?, message? }
+export async function restoreCompanion() {
+  if (!isBillingConfigured()) return { status: 'error', message: 'Purchases are not available on this device.' };
+  const P = await loadPurchases();
+  if (!P) return { status: 'error', message: 'Purchases are not available on this device.' };
+  try {
+    const { customerInfo } = await P.restorePurchases();
+    const info = companionEntitlementInfo(customerInfo);
+    return info.active ? { status: 'active', info } : { status: 'none' };
+  } catch (err) {
+    return { status: 'error', message: (err && err.message) || 'Restore could not be completed.' };
+  }
+}
+
+export async function checkNativeCompanionEntitlement() {
+  if (!isBillingConfigured()) return { active: false, willRenew: false, expiresDate: null };
+  const P = await loadPurchases();
+  if (!P || configuredWithUserId === null) return { active: false, willRenew: false, expiresDate: null };
+  try {
+    const { customerInfo } = await P.getCustomerInfo();
+    return companionEntitlementInfo(customerInfo);
+  } catch {
+    return { active: false, willRenew: false, expiresDate: null };
   }
 }
 

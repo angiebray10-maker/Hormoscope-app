@@ -124,7 +124,7 @@ export default function AuthPage() {
             </button>
           </div>
           <p className="text-xs flex items-center justify-center sm:justify-start gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-            <Shield className="w-3.5 h-3.5" /> One full cycle free. No credit card needed.
+            <Shield className="w-3.5 h-3.5" /> Free to use. No credit card needed.
           </p>
         </div>
         <button onClick={() => scrollTo(scenariosRef)} className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce" style={{ color: PINK_MUTED }}>
@@ -168,17 +168,17 @@ export default function AuthPage() {
             {[
               {
                 before: 'Someone makes a small comment and you replay it 47 times, convinced they meant it in the worst way possible.',
-                after: 'Your progesterone is crashing. You\'re on Day 24. Your sensitivity is spiking. This is textbook biology, not a personality flaw.',
+                after: 'You\'re on Day 24, late in your cycle, when many women feel more sensitive and replay things. That is a pattern worth knowing, not a personality flaw.',
                 day: '24'
               },
               {
                 before: 'You snap at your partner over nothing and spend the rest of the night feeling guilty.',
-                after: 'Your estrogen just dropped to its lowest point this cycle. You\'re not mean. You\'re on Day 3.',
+                after: 'You\'re on Day 3, the early days of a new cycle, when energy often runs low and patience runs thin. You\'re not mean. You\'re on Day 3.',
                 day: '3'
               },
               {
                 before: 'Some weeks you feel unstoppable. Other weeks you can barely get off the couch.',
-                after: 'Day 13: estrogen is peaking. That\'s your energy window. HORMOscope shows you when it\'s coming.',
+                after: 'Day 13: right before ovulation, the stretch when many women feel their energy peak. HORMOscope helps you see that window coming.',
                 day: '13'
               }
             ].map((s) => (
@@ -218,8 +218,8 @@ export default function AuthPage() {
           <div className="space-y-4 mb-10">
             {[
               { num: '1', title: 'Your cycle length anchors the timeline', desc: 'A 28-day cycle means ovulation is around Day 14. A 32-day cycle shifts it to Day 18. Your number tells us your map.' },
-              { num: '2', title: 'Your last period date tells us where you are today', desc: 'If your period started 11 days ago, we know estrogen is rising. Your energy is building. Your mood is lifting. That\'s not a guess. That\'s endocrinology.' },
-              { num: '3', title: 'Universal hormonal patterns do the rest', desc: 'Estrogen, progesterone, and LH follow the same pattern in every cycle. We know when they spike, when they crash, and exactly how that affects your mood, energy, focus, and pain tolerance.' }
+              { num: '2', title: 'Your last period date tells us where you are today', desc: 'If your period started 11 days ago, you are likely in the part of the cycle when energy often builds. Knowing where you are helps the hard days make sense.' },
+              { num: '3', title: 'Known cycle patterns do the rest', desc: 'Hormones follow a familiar pattern across the cycle, rising and falling in a rhythm researchers know well. HORMOscope uses that pattern, together with what you log, to offer guidance that fits where you are. It works from your dates, so it is thoughtful guidance, never a measurement.' }
             ].map((step) => (
               <div key={step.num} className="p-5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }} data-testid={`science-step-${step.num}`}>
                 <div className="flex items-start gap-4">
@@ -235,7 +235,7 @@ export default function AuthPage() {
 
           <div className="text-center">
             <p className="text-xs leading-relaxed max-w-md mx-auto mb-6" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-              We&apos;re not reading your texts or tracking your behavior. We&apos;re doing the math on your endocrine system. That&apos;s it.
+              We&apos;re not reading your texts or tracking your behavior. We use your logged cycle dates to help you understand patterns and possibilities. That&apos;s it.
             </p>
             <button onClick={openSignup} className="px-8 py-3.5 rounded-full text-white font-medium text-sm transition-all" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)' }} data-testid="science-cta-btn">
               Try It Free <ArrowRight className="w-4 h-4 inline ml-1" />
@@ -268,7 +268,7 @@ export default function AuthPage() {
               </div>
               <div className="ml-8 p-3 rounded-xl" style={{ background: 'rgba(123,79,166,0.1)' }}>
                 <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: HEADING_FONT }}>
-                  HORMOscope says you&apos;re in a high-cortisol, low-resilience phase. <strong className="text-white">You reschedule to Thursday — a high-estrogen day</strong> when you&apos;ll be more receptive and articulate. Argument avoided. Problem still solved.
+                  HORMOscope shows you are in a stretch where you usually feel more on edge. <strong className="text-white">You reschedule to Thursday</strong>, a part of your cycle that tends to feel steadier for you. Argument avoided. Problem still solved.
                 </p>
               </div>
             </div>
@@ -280,7 +280,7 @@ export default function AuthPage() {
               </div>
               <div className="ml-8 p-3 rounded-xl" style={{ background: 'rgba(123,79,166,0.1)' }}>
                 <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: HEADING_FONT }}>
-                  Instead of spiraling into guilt, you show your partner: <strong className="text-white">&ldquo;I&apos;m on Day 26. My progesterone is peaking. I need quiet tonight.&rdquo;</strong> They get it. You both feel better.
+                  Instead of spiraling into guilt, you show your partner: <strong className="text-white">&ldquo;I&apos;m on Day 26, late in my cycle. I need quiet tonight.&rdquo;</strong> They get it. You both feel better.
                 </p>
               </div>
             </div>
@@ -336,7 +336,7 @@ export default function AuthPage() {
             Start tracking <br /><span style={{ color: '#D4A853' }}>for free.</span>
           </h2>
           <p className="text-xs sm:text-sm leading-relaxed mb-7" style={{ fontFamily: HEADING_FONT, color: PINK_SOFT }}>
-            Track your cycle, mood, and intimacy. No credit card needed. Upgrade anytime for personalized daily readings, hormone maps, and your private journal.
+            Track your cycle, mood, and intimacy. No credit card needed. Your daily readings and your private journal are free, always.
           </p>
           <button onClick={openSignup} data-testid="start-free-cta" className="px-8 py-3.5 rounded-full text-white text-base transition-all" style={{ fontFamily: "'Poiret One', cursive", letterSpacing: '0.05em', background: 'linear-gradient(135deg, #D4A853, #c9a030)', boxShadow: '0 0 25px rgba(212,168,83,0.3)' }}>
             Get Started Free

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PremiumProvider } from './context/PremiumContext';
 import { BottomNav } from './components/BottomNav';
@@ -10,14 +10,15 @@ import InstallPrompt from './components/InstallPrompt';
 import AuthPage from './pages/AuthPage';
 import OnboardingPage from './pages/OnboardingPage';
 import HomePage from './pages/HomePage';
+import DevotionalPage from './pages/DevotionalPage';
 import CalendarPage from './pages/CalendarPage';
 import JournalPage from './pages/JournalPage';
-import InsightsPage from './pages/InsightsPage';
 import ProfilePage from './pages/ProfilePage';
 import ProPage from './pages/ProPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import FoundersNotePage from './pages/FoundersNotePage';
+import GuidePage from './pages/GuidePage';
 import ContactPage from './pages/ContactPage';
 import PartnerViewPage from './pages/PartnerViewPage';
 import PartnerHubPage from './pages/PartnerHubPage';
@@ -29,6 +30,7 @@ import './index.css';
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -42,7 +44,11 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  if (!user.onboarding_complete && window.location.pathname !== '/onboarding') {
+  // Compare the ROUTER path, not window.location.pathname: under a
+  // basename (the web preview lives at /Hormoscope-app/preview) the
+  // window path carries the prefix, never equals '/onboarding', and
+  // this guard redirected to onboarding forever (blank screen).
+  if (!user.onboarding_complete && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
 
@@ -69,6 +75,7 @@ const AppContent = () => {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/founders-note" element={<FoundersNotePage />} />
+        <Route path="/guide" element={<GuidePage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/partner/:linkCode" element={<PartnerViewPage />} />
 
@@ -83,6 +90,11 @@ const AppContent = () => {
             <HomePage />
           </ProtectedRoute>
         } />
+        <Route path="/devotional" element={
+          <ProtectedRoute>
+            <DevotionalPage />
+          </ProtectedRoute>
+        } />
         <Route path="/calendar" element={
           <ProtectedRoute>
             <CalendarPage />
@@ -91,11 +103,6 @@ const AppContent = () => {
         <Route path="/journal" element={
           <ProtectedRoute>
             <JournalPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/insights" element={
-          <ProtectedRoute>
-            <InsightsPage />
           </ProtectedRoute>
         } />
         <Route path="/profile" element={

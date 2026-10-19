@@ -6,6 +6,7 @@ import {
   isBillingConfigured,
   ensureRevenueCatUser,
   checkNativeProEntitlement,
+  checkNativeCompanionEntitlement,
 } from '../utils/revenueCat';
 
 const PremiumContext = createContext(null);
@@ -34,6 +35,44 @@ export function PremiumProvider({ children }) {
   const { token, user } = useAuth();
   const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Journal Companion entitlement is tracked SEPARATELY from Pro: it comes
+  // only from RevenueCat's journal_companion entitlement as verified by our
+  // backend (companion_entitled) or the on-device customer info. The tester
+  // allowlist above must never grant it (Angelita, Oct 19, 2026).
+  const [companionEntitled, setCompanionEntitled] = useState(false);
+  const [companionExpires, setCompanionExpires] = useState(null);
+  const [companionWillRenew, setCompanionWillRenew] = useState(true);
+
+  const refreshCompanion = useCallback(async () => {
+    if (!token) {
+      setCompanionEntitled(false);
+      return;
+    }
+    if (isBillingConfigured()) {
+      try {
+        const ready = await ensureRevenueCatUser(user?.id);
+        if (ready) {
+          const info = await checkNativeCompanionEntitlement();
+          if (info.active) {
+            setCompanionEntitled(true);
+            setCompanionExpires(info.expiresDate);
+            setCompanionWillRenew(info.willRenew);
+            return;
+          }
+        }
+      } catch (err) {
+        logger.error('Companion entitlement check failed:', err);
+      }
+    }
+    try {
+      const res = await axios.get(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setCompanionEntitled(res.data?.companion_entitled === true);
+    } catch (err) {
+      logger.error('Companion status check failed:', err);
+    }
+  }, [token, user?.id]);
+
+  useEffect(() => { refreshCompanion(); }, [refreshCompanion]);
 
   const refresh = useCallback(async () => {
     if (!token) {
@@ -75,31 +114,22 @@ export function PremiumProvider({ children }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  // First-cycle window (Angelita's trial decision, Oct 15-16): the whole
-  // app is free for one full personal cycle, counted from the account's
-  // created_at for exactly her own cycle_length in days.
-  const inFirstCycle = useMemo(() => {
-    if (!user?.created_at) return false;
-    const created = new Date(user.created_at).getTime();
-    if (Number.isNaN(created)) return false;
-    const cycleLen = user.cycle_length || 28;
-    const daysSince = (Date.now() - created) / 86400000;
-    return daysSince >= 0 && daysSince < cycleLen;
-  }, [user?.created_at, user?.cycle_length]);
-
   const value = useMemo(() => ({
     isPro,
-    inFirstCycle,
     loading,
     initialized: true,
     refreshCustomerInfo: refresh,
-  }), [isPro, inFirstCycle, loading, refresh]);
+    companionEntitled,
+    companionExpires,
+    companionWillRenew,
+    refreshCompanion,
+  }), [isPro, loading, refresh, companionEntitled, companionExpires, companionWillRenew, refreshCompanion]);
 
   return <PremiumContext.Provider value={value}>{children}</PremiumContext.Provider>;
 }
 
 export function usePremium() {
   const ctx = useContext(PremiumContext);
-  if (!ctx) return { isPro: false, inFirstCycle: false, loading: false, initialized: false, refreshCustomerInfo: async () => {} };
+  if (!ctx) return { isPro: false, loading: false, initialized: false, refreshCustomerInfo: async () => {}, companionEntitled: false, companionExpires: null, companionWillRenew: true, refreshCompanion: async () => {} };
   return ctx;
 }

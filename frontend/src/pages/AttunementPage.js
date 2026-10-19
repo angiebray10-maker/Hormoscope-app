@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { usePremium } from '../context/PremiumContext';
+
 import { Link } from 'react-router-dom';
-import { Heart, Loader2, Users, Copy, Check } from 'lucide-react';
+import { Heart, Loader2, Share2, Copy, Check } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 
@@ -14,15 +14,18 @@ const poppins = { fontFamily: 'Poppins, sans-serif' };
 const script = { fontFamily: "'Poiret One', cursive" };
 
 // Attunement Mode home (Angelita, Oct 16-17): its own tab, pictures of both
-// kinds of couples, and her circle.
+// kinds of couples, the two invite cards, and one simple share link for
+// anyone else she would like (the circle list of relationship types came
+// off by her word on Oct 17).
 // Built honestly on the existing partner invite flow (POST /partner/invite,
 // code accepted in the Partner Hub). The backend today links ONE person at
-// a time and the inviter needs Pro to send an invite; where her full spec
-// (whole circle at once, two-cycle sync for a woman partner) goes beyond
-// that, the copy below says so plainly instead of pretending.
+// a time; a woman invite is free, while a man invite and a no-type share
+// invite keep the Pro gate; where her fuller ideas (everyone at once,
+// two-cycle sync for a woman partner) go beyond that, the copy below says
+// so plainly instead of pretending.
 export default function AttunementPage() {
   const { token } = useAuth();
-  const { isPro } = usePremium();
+
   const [status, setStatus] = useState(null);
   const [inviteCode, setInviteCode] = useState(null);
   const [generating, setGenerating] = useState(false);
@@ -44,8 +47,7 @@ export default function AttunementPage() {
       const res = await axios.post(`${API}/partner/invite`, { partner_type: partnerType }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
       setInviteCode(res.data.invite_code);
     } catch (err) {
-      if (err.response?.status === 402) setInviteError('pro');
-      else setInviteError(err.response?.data?.detail || 'Could not create an invite just now. Try again in a moment.');
+      setInviteError(err.response?.data?.detail || 'Could not create an invite just now. Try again in a moment.');
       logger.error('Attunement invite error:', err);
     } finally {
       setGenerating(false);
@@ -75,25 +77,35 @@ export default function AttunementPage() {
           </button>
         </div>
       )}
-      {inviteError === 'pro' && (
-        <div className="rounded-2xl p-4 mb-4 text-center" style={{ border: `1px solid ${GOLD}40`, background: 'rgba(212,168,83,0.05)' }}>
-          <p className="text-white/80 text-sm leading-relaxed mb-3" style={poppins}>
-            Sending an invite is a Pro perk. Turn on Pro now to link your person right away, or it opens once your first free cycle ends and Pro begins.
-          </p>
-          <Link to="/pro?from=attunement" className="inline-block px-6 py-2.5 rounded-full text-white text-sm" style={{ ...script, background: 'linear-gradient(135deg, #D4A853, #c9a030)' }}>
-            See HORMOscope Pro
-          </Link>
-        </div>
-      )}
-      {inviteError && inviteError !== 'pro' && (
+      {inviteError && (
         <p className="text-red-400 text-xs text-center mb-4" style={poppins}>{inviteError}</p>
       )}
     </>
   );
 
   return (
-    <div className="min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-testid="attunement-page">
-      <div className="max-w-md mx-auto">
+    <div className="relative min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-testid="attunement-page">
+      {/* Couples wallpaper (Angelita, Oct 17): both couple pictures faded
+          into the background of the whole page, every word on top. The
+          dancing couple covers the upper part, the two women the lower
+          part; each is masked at its inner edge so they blend into each
+          other, and a plum veil over both keeps the wording easy to read. */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" data-testid="attunement-wallpaper">
+        <img
+          src="/images/attunement-couple.png"
+          alt=""
+          className="absolute inset-x-0 top-0 w-full object-cover"
+          style={{ height: '56%', opacity: 0.28, maskImage: 'linear-gradient(180deg, black 68%, transparent 100%)', WebkitMaskImage: 'linear-gradient(180deg, black 68%, transparent 100%)' }}
+        />
+        <img
+          src="/images/attunement-two-women.webp"
+          alt=""
+          className="absolute inset-x-0 bottom-0 w-full object-cover"
+          style={{ height: '56%', opacity: 0.28, maskImage: 'linear-gradient(180deg, transparent 0%, black 32%)', WebkitMaskImage: 'linear-gradient(180deg, transparent 0%, black 32%)' }}
+        />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(26,16,48,0.45) 0%, rgba(15,10,26,0.55) 45%, rgba(10,10,26,0.65) 100%)' }} />
+      </div>
+      <div className="relative max-w-md mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="w-14 h-14 rounded-full bg-[#FF1493]/15 flex items-center justify-center mx-auto mb-4">
@@ -124,11 +136,10 @@ export default function AttunementPage() {
           <>
             {/* Choice 1: partner is a woman */}
             <div className="card overflow-hidden mb-4" data-testid="attunement-woman">
-              <img src="/images/attunement-two-women.webp" alt="Two women laughing together, foreheads touching" className="w-full h-44 object-cover" />
               <div className="p-5">
                 <h2 className="text-white text-xl mb-2" style={script}>My partner is a woman</h2>
                 <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
-                  You track side by side, in tune with each other. Send her a sign-up link and her first cycle is free too, just like yours.
+                  You track side by side, in tune with each other. Send her a sign-up link: the app is free for her too, just like it is for you.
                 </p>
                 <button
                   onClick={() => handleInvite('woman')}
@@ -147,36 +158,22 @@ export default function AttunementPage() {
 
             {/* Choice 2: partner is a man */}
             <div className="card overflow-hidden mb-4" data-testid="attunement-man">
-              <img src="/images/attunement-couple.png" alt="A man and woman laughing and dancing together at golden hour" className="w-full h-44 object-cover" />
               <div className="p-5">
                 <h2 className="text-white text-xl mb-2" style={script}>My partner is a man</h2>
                 <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
-                  He follows your cycle, so he knows when to bring tea, when to give you room, and when you are glowing. Linking him is a Pro perk: turn on Pro now to link him right away, or it opens once your first free cycle ends and Pro begins.
+                  He follows your cycle, so he knows when to bring tea, when to give you room, and when you are glowing.
                 </p>
-                {isPro ? (
-                  <button
-                    onClick={() => handleInvite('man')}
-                    disabled={generating}
-                    className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
-                    style={{ ...poppins, background: '#FF1493' }}
-                    data-testid="invite-him-btn"
-                  >
-                    {generating ? 'Making your link…' : 'Invite him'}
-                  </button>
-                ) : (
-                  <Link
-                    to="/pro?from=attunement"
-                    className="block w-full py-3 rounded-full text-center text-white text-sm"
-                    style={{ ...script, letterSpacing: '0.05em', background: 'linear-gradient(135deg, #D4A853, #c9a030)' }}
-                    data-testid="invite-him-pro-btn"
-                  >
-                    Link him with Pro
-                  </Link>
-                )}
+                <button
+                  onClick={() => handleInvite('man')}
+                  disabled={generating}
+                  className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
+                  style={{ ...poppins, background: '#FF1493' }}
+                  data-testid="invite-him-btn"
+                >
+                  {generating ? 'Making your link…' : 'Invite him'}
+                </button>
               </div>
             </div>
-
-            {inviteBlock}
 
             <p className="text-center text-[#9A8B91] text-xs mb-8" style={poppins}>
               Already have an invite code from someone?{' '}
@@ -185,19 +182,33 @@ export default function AttunementPage() {
           </>
         )}
 
-        {/* Her circle */}
-        <div className="card p-5 mb-4" data-testid="attunement-circle">
+        {/* Share with anyone else (Angelita, Oct 17: the circle list of
+            relationship types came off; one simple share link instead.
+            No partner_type, so the backend's plain Pro gate applies, and
+            the shared inviteBlock below shows the code or the reason.) */}
+        <div className="card p-5 mb-4" data-testid="attunement-share">
           <div className="flex items-center gap-2 mb-2">
-            <Users className="w-5 h-5" style={{ color: PINK }} />
-            <h2 className="text-white text-xl" style={script}>It is your circle, not just one person</h2>
+            <Share2 className="w-5 h-5" style={{ color: PINK }} />
+            <h2 className="text-white text-xl" style={script}>Share your cycle</h2>
           </div>
-          <p className="text-[#b8b8d1] text-sm leading-relaxed mb-3" style={poppins}>
-            Your partner. Your sister or brother. Your mother or father. A caregiver. A dear friend. The people who hold your life with you belong inside your cycle, and you choose every single one of them.
+          <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
+            Share your cycle with anyone else you would like.
           </p>
+          <button
+            onClick={() => handleInvite()}
+            disabled={generating}
+            className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40 mb-3"
+            style={{ ...poppins, background: '#FF1493' }}
+            data-testid="share-cycle-btn"
+          >
+            {generating ? 'Making your link…' : 'Share my cycle'}
+          </button>
           <p className="text-[#6c6c8a] text-[11px] leading-relaxed" style={poppins}>
-            Right now HORMOscope links one person at a time while your whole circle is being built. Start with the person who loves you closest.
+            Right now HORMOscope links one person at a time, so choose the person you want closest to your cycle.
           </p>
         </div>
+
+        {inviteBlock}
 
         <p className="text-center text-[#6c6c8a] text-[10px] leading-relaxed" style={poppins}>
           Your journal and private entries are never shared. Your people only see what you chose to share.

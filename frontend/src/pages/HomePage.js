@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
-import { Droplet } from 'lucide-react';
+import { Droplet, X, Check } from 'lucide-react';
 import axios from 'axios';
-import DailyRhythmReport from '../components/DailyRhythmReport';
-import HormoneMap from '../components/HormoneMap';
 import ProUpsellBanner from '../components/ProUpsellBanner';
 import DailyRead from '../components/DailyRead';
-import DailyProverb from '../components/DailyProverb';
 import FloatingCarousel from '../components/FloatingCarousel';
 import logger from '../utils/logger';
 
@@ -23,6 +20,26 @@ const parseLocalDate = (s) => {
 };
 const toISODateLocal = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 
+// Educational card that opens when a phase row is tapped (Angelita's phase
+// cards, approved Oct 17). Rows carry no hint text; tapping is discovered.
+const PHASE_CARDS = {
+  menstrual: { src: '/images/phase-menstrual.png', name: 'Menstrual Phase' },
+  follicular: { src: '/images/phase-follicular.png', name: 'Follicular Phase' },
+  ovulatory: { src: '/images/phase-ovulatory.png', name: 'Ovulatory Phase' },
+  luteal: { src: '/images/phase-luteal.png', name: 'Luteal Phase' },
+};
+
+// The five feeling faces, same faces and values as the quick log sheet
+// (FloatingCarousel MOOD_OPTIONS), so a pick here and a pick there are
+// the same mood:1..5 tag on today's cycle log.
+const CHECKIN_MOODS = [
+  { value: 1, emoji: '😞', label: 'Low' },
+  { value: 2, emoji: '😟', label: 'Meh' },
+  { value: 3, emoji: '😐', label: 'Okay' },
+  { value: 4, emoji: '🙂', label: 'Good' },
+  { value: 5, emoji: '😄', label: 'Great' },
+];
+
 const phases = {
   menstrual: { orb: 'orb-menstrual', color: '#ff6b6b', name: 'Menstrual Phase' },
   follicular: { orb: 'orb-follicular', color: '#74b9ff', name: 'Follicular Phase' },
@@ -37,11 +54,16 @@ export default function HomePage() {
   const { isPro, refreshCustomerInfo } = usePremium();
   const [data, setData] = useState(null);
   const [cycleLogs, setCycleLogs] = useState(null);
-  const [rhythmData, setRhythmData] = useState(null);
-  const [hormoneData, setHormoneData] = useState(null);
+  const [openPhaseCard, setOpenPhaseCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentBanner, setPaymentBanner] = useState(null); // 'pending' | 'success' | 'failed'
   const [showWelcome, setShowWelcome] = useState(false);
+  // Daily emotional check-in (Angelita, Oct 17): her pick IS today's
+  // mood, saved through the same mood:<1-5> cycle-log tag the quick log
+  // sheet uses, with the same visible "Saved to today" confirmation.
+  const [checkinMood, setCheckinMood] = useState(null);
+  const [checkinSave, setCheckinSave] = useState('idle'); // idle | saving | saved | error
+  const checkinTimer = useRef(null);
 
   // Welcome message after onboarding completes
   useEffect(() => {
@@ -88,16 +110,12 @@ export default function HomePage() {
   const fetchData = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [dashRes, rhythmRes, hormoneRes, logsRes] = await Promise.all([
+      const [dashRes, logsRes] = await Promise.all([
         axios.get(`${API}/dashboard`, { headers }),
-        axios.get(`${API}/premium/daily-rhythm`, { headers }).catch(() => null),
-        axios.get(`${API}/premium/hormone-map`, { headers }).catch(() => null),
         axios.get(`${API}/cycle-logs`, { headers }).catch(() => null),
       ]);
       setData(dashRes.data);
       if (logsRes) setCycleLogs(logsRes.data);
-      if (rhythmRes) setRhythmData(rhythmRes.data);
-      if (hormoneRes) setHormoneData(hormoneRes.data);
     } catch (err) {
       logger.error(err);
     } finally {
@@ -111,6 +129,46 @@ export default function HomePage() {
   }, [fetchData]);
   /* eslint-enable */
 
+  // If she already logged a mood today (here or in the quick log sheet),
+  // the check-in card lights up with that pick. The latest mood tag of
+  // the day wins, matching how the sheet overwrites by saving anew.
+  useEffect(() => {
+    if (!cycleLogs) return;
+    const today = new Date().toISOString().split('T')[0];
+    const todays = cycleLogs
+      .filter((l) => l.date === today)
+      .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+    let found = null;
+    todays.forEach((l) => {
+      (l.symptoms || []).forEach((s) => {
+        if (typeof s === 'string' && s.startsWith('mood:')) {
+          const v = parseInt(s.split(':')[1], 10);
+          if (v >= 1 && v <= 5) found = v;
+        }
+      });
+    });
+    if (found !== null) setCheckinMood((prev) => (prev === null ? found : prev));
+  }, [cycleLogs]);
+
+  const handleCheckinPick = async (value) => {
+    setCheckinMood(value);
+    setCheckinSave('saving');
+    try {
+      await axios.post(`${API}/cycle-logs`, {
+        date: new Date().toISOString().split('T')[0],
+        is_period: false,
+        symptoms: [`mood:${value}`],
+        notes: `Mood ${value}/5`,
+      }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setCheckinSave('saved');
+      if (checkinTimer.current) clearTimeout(checkinTimer.current);
+      checkinTimer.current = setTimeout(() => setCheckinSave('idle'), 2200);
+    } catch (err) {
+      logger.error('Check-in save failed:', err);
+      setCheckinSave('error');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -123,6 +181,15 @@ export default function HomePage() {
   const config = phases[phase] || phases.unknown;
   const cycle = data?.cycle_info || {};
   const mood = data?.mood_prediction || {};
+
+  // Address her by her first name wherever the app greets her
+  // (Angelita, Oct 17). The dashboard's user_name falls back to
+  // "Beautiful" server-side when she has not given a name, so that word
+  // is not a name and never becomes a first name.
+  const rawName = (user?.name || data?.user_name || '').trim();
+  const firstName = rawName && rawName !== 'Beautiful' ? rawName.split(/\s+/)[0] : null;
+  const hourNow = new Date().getHours();
+  const dayGreeting = hourNow < 12 ? 'Good morning' : hourNow < 18 ? 'Good afternoon' : 'Good evening';
   const periodIsLate = cycle.period_is_late || false;
   const daysLate = cycle.days_late || 0;
 
@@ -173,7 +240,7 @@ export default function HomePage() {
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
         <h1 className="text-3xl text-white mb-3 font-script">
-          Hello, {data?.user_name || 'Beautiful'}
+          {firstName ? `${dayGreeting}, ${firstName}` : `Hello, ${data?.user_name || 'Beautiful'}`}
         </h1>
       </div>
 
@@ -242,6 +309,64 @@ export default function HomePage() {
       {/* Floating quick-log carousel */}
       <FloatingCarousel token={token} />
 
+      {/* Daily emotional check-in (Angelita, Oct 17): one warm question,
+          five feeling orbs. Her pick is today's mood and sets the tone
+          for the day; it saves the moment she taps, like the quick log. */}
+      <div className="card p-5 mb-4" data-testid="emotional-checkin">
+        <h3 className="text-white text-xl font-script mb-1">
+          How do you feel emotionally today{firstName ? `, ${firstName}` : ''}?
+        </h3>
+        <p className="text-[#9A8B91] text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          Pick the face that fits. It sets the tone for your day, and it saves to today the moment you tap.
+        </p>
+        <div className="flex justify-between">
+          {CHECKIN_MOODS.map((m) => {
+            const selected = checkinMood === m.value;
+            return (
+              <button
+                key={m.value}
+                type="button"
+                onClick={() => handleCheckinPick(m.value)}
+                className="flex flex-col items-center gap-1.5 transition-transform"
+                style={{ transform: selected ? 'scale(1.1)' : 'scale(1)' }}
+                aria-label={m.label}
+                aria-pressed={selected}
+                data-testid={`checkin-mood-${m.value}`}
+              >
+                <span
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{
+                    background: selected
+                      ? 'radial-gradient(circle at 35% 35%, rgba(244,167,185,0.55), rgba(244,167,185,0.22))'
+                      : 'radial-gradient(circle at 35% 35%, rgba(244,167,185,0.28), rgba(244,167,185,0.08))',
+                    border: `1.5px solid ${selected ? '#f4a7b9' : 'rgba(244,167,185,0.4)'}`,
+                    boxShadow: selected ? '0 0 22px rgba(244,167,185,0.45)' : '0 0 12px rgba(244,167,185,0.18)',
+                  }}
+                >
+                  <span className="text-2xl">{m.emoji}</span>
+                </span>
+                <span className="text-[10px]" style={{ fontFamily: 'Poppins, sans-serif', color: selected ? '#fff' : '#9A8B91' }}>{m.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="h-5 mt-2 flex items-center justify-center" aria-live="polite">
+          {checkinSave === 'saving' && (
+            <span className="text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>Saving to today…</span>
+          )}
+          {checkinSave === 'saved' && (
+            <span className="text-[11px] flex items-center gap-1 animate-in" style={{ fontFamily: 'Poppins, sans-serif', color: '#55efc4' }}>
+              <Check className="w-3.5 h-3.5" /> Saved to today
+            </span>
+          )}
+          {checkinSave === 'error' && (
+            <span className="text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }}>
+              That didn&apos;t save. The server may be waking up, tap again.
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Mood Card: highlighted and outlined in pink (fix list, Oct 16) */}
       <div
         className="card card-pink p-5 mb-4"
@@ -286,36 +411,10 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Today's Proverb — Angelita's daily chapter, free for everyone */}
-      <DailyProverb />
-
       {/* Your Daily Read — Pro */}
       {isPro && (
         <div className="mb-4">
           <DailyRead />
-        </div>
-      )}
-
-      {/* Daily Rhythm Report — Premium */}
-      {isPro && rhythmData?.rhythm && (
-        <div className="mb-4">
-          <DailyRhythmReport
-            rhythm={rhythmData.rhythm}
-            phase={rhythmData.phase}
-            cycleDay={rhythmData.cycle_day}
-          />
-        </div>
-      )}
-
-      {/* Hormone Map — Premium */}
-      {isPro && hormoneData?.data && (
-        <div className="mb-4">
-          <HormoneMap
-            data={hormoneData.data}
-            cycleDay={hormoneData.cycle_day}
-            cycleLength={hormoneData.cycle_length}
-            phase={hormoneData.phase}
-          />
         </div>
       )}
 
@@ -330,38 +429,38 @@ export default function HomePage() {
       <div className="card p-5 mb-4">
         <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-4">YOUR CYCLE PHASES</p>
         <div className="space-y-3">
-          <div className={`flex items-center gap-3 p-3 rounded-xl ${phase === 'menstrual' ? 'bg-[#ff6b6b]/20 border border-[#ff6b6b]/40' : 'bg-white/5'}`}>
+          <button type="button" onClick={() => setOpenPhaseCard('menstrual')} className={`w-full text-left cursor-pointer active:opacity-80 transition-opacity flex items-center gap-3 p-3 rounded-xl ${phase === 'menstrual' ? 'bg-[#ff6b6b]/20 border border-[#ff6b6b]/40' : 'bg-white/5'}`}>
             <div className="w-3 h-3 rounded-full bg-[#ff6b6b]" />
             <div className="flex-1">
               <p className={`text-sm font-medium ${phase === 'menstrual' ? 'text-[#ff6b6b]' : 'text-white/70'}`}>Menstrual Phase</p>
               <p className="text-[#6c6c8a] text-xs">Days 1-5 • Rest & renewal</p>
             </div>
             {phase === 'menstrual' && <span className="text-[#ff6b6b] text-xs font-medium">NOW</span>}
-          </div>
-          <div className={`flex items-center gap-3 p-3 rounded-xl ${phase === 'follicular' ? 'bg-[#74b9ff]/20 border border-[#74b9ff]/40' : 'bg-white/5'}`}>
+          </button>
+          <button type="button" onClick={() => setOpenPhaseCard('follicular')} className={`w-full text-left cursor-pointer active:opacity-80 transition-opacity flex items-center gap-3 p-3 rounded-xl ${phase === 'follicular' ? 'bg-[#74b9ff]/20 border border-[#74b9ff]/40' : 'bg-white/5'}`}>
             <div className="w-3 h-3 rounded-full bg-[#74b9ff]" />
             <div className="flex-1">
               <p className={`text-sm font-medium ${phase === 'follicular' ? 'text-[#74b9ff]' : 'text-white/70'}`}>Follicular Phase</p>
               <p className="text-[#6c6c8a] text-xs">Days 6-12 • Rising energy</p>
             </div>
             {phase === 'follicular' && <span className="text-[#74b9ff] text-xs font-medium">NOW</span>}
-          </div>
-          <div className={`flex items-center gap-3 p-3 rounded-xl ${phase === 'ovulatory' ? 'bg-[#55efc4]/20 border border-[#55efc4]/40' : 'bg-white/5'}`}>
+          </button>
+          <button type="button" onClick={() => setOpenPhaseCard('ovulatory')} className={`w-full text-left cursor-pointer active:opacity-80 transition-opacity flex items-center gap-3 p-3 rounded-xl ${phase === 'ovulatory' ? 'bg-[#55efc4]/20 border border-[#55efc4]/40' : 'bg-white/5'}`}>
             <div className="w-3 h-3 rounded-full bg-[#55efc4]" />
             <div className="flex-1">
               <p className={`text-sm font-medium ${phase === 'ovulatory' ? 'text-[#55efc4]' : 'text-white/70'}`}>Ovulatory Phase</p>
               <p className="text-[#6c6c8a] text-xs">Days 13-19 • Peak confidence</p>
             </div>
             {phase === 'ovulatory' && <span className="text-[#55efc4] text-xs font-medium">NOW</span>}
-          </div>
-          <div className={`flex items-center gap-3 p-3 rounded-xl ${phase === 'luteal' ? 'bg-[#a29bfe]/20 border border-[#a29bfe]/40' : 'bg-white/5'}`}>
+          </button>
+          <button type="button" onClick={() => setOpenPhaseCard('luteal')} className={`w-full text-left cursor-pointer active:opacity-80 transition-opacity flex items-center gap-3 p-3 rounded-xl ${phase === 'luteal' ? 'bg-[#a29bfe]/20 border border-[#a29bfe]/40' : 'bg-white/5'}`}>
             <div className="w-3 h-3 rounded-full bg-[#a29bfe]" />
             <div className="flex-1">
               <p className={`text-sm font-medium ${phase === 'luteal' ? 'text-[#a29bfe]' : 'text-white/70'}`}>Luteal Phase</p>
               <p className="text-[#6c6c8a] text-xs">Days 20+ • Slow down</p>
             </div>
             {phase === 'luteal' && <span className="text-[#a29bfe] text-xs font-medium">NOW</span>}
-          </div>
+          </button>
           {/* Period Expected - shows when late */}
           {periodIsLate && (
             <div className="flex items-center gap-3 p-3 rounded-xl bg-[#ff6b6b]/20 border border-[#ff6b6b]/40 animate-pulse">
@@ -433,6 +532,37 @@ export default function HomePage() {
         <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-3">WELLNESS TIP</p>
         <p className="text-[#b8b8d1] text-sm leading-relaxed">{data?.wellness_tip}</p>
       </div>
+
+      {/* Phase card overlay — opens from a phase row, covers the whole
+          screen including the bottom nav, scrolls vertically. data-no-swipe
+          keeps the tab-swipe handler out while it is open. */}
+      {openPhaseCard && PHASE_CARDS[openPhaseCard] && (
+        <div
+          className="fixed inset-0 z-[80] flex flex-col"
+          style={{ background: '#0a0a1a' }}
+          data-no-swipe="true"
+          data-testid="phase-card-overlay"
+        >
+          <div className="flex items-center justify-between px-5 py-4 flex-shrink-0">
+            <h2 className="text-white text-xl font-script">{PHASE_CARDS[openPhaseCard].name}</h2>
+            <button
+              type="button"
+              onClick={() => setOpenPhaseCard(null)}
+              aria-label="Close"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white active:opacity-70"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 pb-10">
+            <img
+              src={PHASE_CARDS[openPhaseCard].src}
+              alt={`${PHASE_CARDS[openPhaseCard].name} card`}
+              className="w-full max-w-md mx-auto rounded-2xl"
+            />
+          </div>
+        </div>
+      )}
 
     </div>
   );

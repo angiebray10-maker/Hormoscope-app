@@ -1,27 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { usePremium } from '../context/PremiumContext';
 import { useAuth } from '../context/AuthContext';
-import { Crown, Check, Shield, Loader2, RotateCcw, Sun, BarChart3, TrendingUp, ChevronDown, BookOpen, Calendar } from 'lucide-react';
+import { Shield, Loader2, RotateCcw, Sun, ChevronDown, BookOpen } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
   isBillingConfigured,
   ensureRevenueCatUser,
-  getPackages,
-  findPackageForPlan,
-  purchasePlan,
-  restorePurchases,
+  getCompanionPackage,
+  purchaseCompanion,
+  restoreCompanion,
 } from '../utils/revenueCat';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#D4A853';
-
-// Hardcoded display prices are only a fallback for the WEB (Stripe) flow.
-// On native, prices come from the Play Store via RevenueCat (localized).
-const FALLBACK_PRICES = {
-  yearly: { price: '$49.99', per: '/yr', note: '$4.17/mo · Save $10' },
-  monthly: { price: '$6.99', per: '/mo', note: 'Cancel anytime' },
-};
 
 const trackEvent = (token, event, context = '', plan = '') => {
   if (!token) return;
@@ -32,46 +24,29 @@ const trackEvent = (token, event, context = '', plan = '') => {
 
 const PRO_FEATURES = [
   {
-    icon: Sun,
-    title: 'Your Daily Read',
-    subtitle: 'Personalized readings that grow with you',
-    description: 'Every morning, a fresh reading woven from your journal entries, cycle biology, symptoms, and patterns. The more you invest, the more powerfully it attunes to your unique body.',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Daily Rhythm Report',
-    subtitle: 'Know what to expect every single day',
-    description: 'A personalized daily briefing covering your energy, mood, focus, movement, recovery, self-care, libido, and pain tolerance. Updated every morning based on where you are in your cycle.',
-  },
-  {
-    icon: BarChart3,
-    title: 'Hormone Map',
-    subtitle: 'See your hormones in motion',
-    description: 'An interactive chart showing your estrogen, progesterone, and LH levels across your entire cycle. See exactly where you are today and what it means for how you feel.',
-  },
-  {
     icon: BookOpen,
-    title: 'The Journal',
-    subtitle: 'It talks back to you',
-    description: 'A smart journal that responds with insights personalized just for you. Talk about anything. Your deepest thoughts are safe here. There is nothing your journal cannot handle.',
+    title: 'Journal Companion',
+    subtitle: 'Our one subscription',
+    description: 'A caring companion who lives inside your private Journal: you choose the name, and it answers you in the book, knowing your cycle and what your day has held. The Journal itself, and your Vault, are free forever. The companion is the one feature offered as a subscription, $4.99 a month through Google Play.',
   },
   {
-    icon: Calendar,
-    title: 'Stealth Calendar',
-    subtitle: 'Your secret, kept',
-    description: 'Discreetly track intimacy with a simple heart on any date. Only you know what it means. No more guessing, no more wondering.',
+    icon: Sun,
+    title: 'Everything Else Is Free',
+    subtitle: 'Tracking, readings, journal, and Attunement',
+    description: 'Cycle tracking, your Calendar, your Daily Read, your Journal and Journal Vault, and Attuned Partner Mode are all free for every user. No trial clock, no locked pages. This page exists for the one companion subscription.',
   },
 ];
 
 export default function ProPage() {
-  const { isPro, refreshCustomerInfo } = usePremium();
+  const { companionEntitled, companionExpires, companionWillRenew, refreshCompanion, refreshCustomerInfo } = usePremium();
   const { token, user } = useAuth();
   const location = useLocation();
-  const [selectedPlan, setSelectedPlan] = useState('yearly');
-  const [purchasing, setPurchasing] = useState(null);
-  const [expandedFeature, setExpandedFeature] = useState(null);
-  const [rcPackages, setRcPackages] = useState([]);
+  const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [expandedFeature, setExpandedFeature] = useState(null);
+  const [companionPkg, setCompanionPkg] = useState(null);
+  const [pkgLoading, setPkgLoading] = useState(false);
+  const [status, setStatus] = useState('');
   const nativeBilling = isBillingConfigured();
 
   useEffect(() => {
@@ -79,36 +54,26 @@ export default function ProPage() {
     trackEvent(token, 'paywall_view', source);
   }, [location.search, token]);
 
-  // Native: load RevenueCat packages (prices come from the Play Store).
+  // Native: load the dedicated journal_companion offering's monthly package.
+  // The price shown is the real Google Play price, read through RevenueCat.
   useEffect(() => {
     if (!nativeBilling) return;
     let cancelled = false;
     (async () => {
+      setPkgLoading(true);
       await ensureRevenueCatUser(user?.id);
-      const pkgs = await getPackages();
-      if (!cancelled) setRcPackages(pkgs);
+      const found = await getCompanionPackage();
+      if (!cancelled) {
+        setCompanionPkg(found);
+        setPkgLoading(false);
+      }
     })();
     return () => { cancelled = true; };
   }, [nativeBilling, user?.id]);
 
-  const priceFor = (plan) => {
-    if (nativeBilling) {
-      const pkg = findPackageForPlan(rcPackages, plan);
-      const priceString = pkg?.product?.priceString;
-      if (priceString) {
-        return {
-          price: priceString,
-          per: plan === 'yearly' ? '/yr' : '/mo',
-          note: plan === 'yearly' ? '' : 'Cancel anytime',
-        };
-      }
-    }
-    return FALLBACK_PRICES[plan];
-  };
-
-  // Sync a native RevenueCat purchase to our backend so server-side
-  // premium gates (is_premium) stay consistent.
-  const syncNativePurchase = async () => {
+  // After any purchase or restore, ask our backend to verify with
+  // RevenueCat server-side and refresh both entitlement views.
+  const syncWithBackend = async () => {
     try {
       await axios.post(`${API}/subscription/revenuecat/sync`, {}, {
         headers: { Authorization: `Bearer ${token}` },
@@ -116,126 +81,136 @@ export default function ProPage() {
     } catch {
       // Non-fatal: the RevenueCat webhook will sync it shortly.
     }
+    await refreshCompanion();
     await refreshCustomerInfo();
   };
 
-  const handleNativePurchase = async (plan) => {
+  const handleCompanionPurchase = async () => {
     if (purchasing) return;
-    setPurchasing(plan);
-    trackEvent(token, 'play_billing_start', '', plan);
+    setPurchasing(true);
+    setStatus('');
+    trackEvent(token, 'companion_purchase_start', '', 'journal_companion_monthly');
     try {
       await ensureRevenueCatUser(user?.id);
-      const pkgs = rcPackages.length ? rcPackages : await getPackages();
-      const result = await purchasePlan(pkgs, plan);
-      if (result.cancelled) {
-        trackEvent(token, 'play_billing_cancelled', '', plan);
-      } else if (result.isPro) {
-        trackEvent(token, 'play_billing_success', '', plan);
-        await syncNativePurchase();
+      const result = await purchaseCompanion();
+      if (result.status === 'active') {
+        trackEvent(token, 'companion_purchase_success', '', 'journal_companion_monthly');
+        await syncWithBackend();
+        setStatus('Your Journal Companion is active. Welcome.');
+      } else if (result.status === 'pending') {
+        setStatus('Your purchase is pending with Google Play. Your companion opens as soon as Google completes it, and there is nothing more you need to do.');
+      } else if (result.status === 'cancelled') {
+        trackEvent(token, 'companion_purchase_cancelled', '', 'journal_companion_monthly');
+        setStatus('');
       } else {
-        trackEvent(token, 'play_billing_failed', result.error || '', plan);
-        alert('Purchase could not be completed. Please try again.');
+        trackEvent(token, 'companion_purchase_failed', result.message || '', 'journal_companion_monthly');
+        setStatus('That purchase could not be completed. Nothing was charged. Please try again.');
       }
-    } catch (err) {
-      alert('Purchase could not be completed. Please try again.');
+    } catch {
+      setStatus('That purchase could not be completed. Nothing was charged. Please try again.');
     } finally {
-      setPurchasing(null);
+      setPurchasing(false);
     }
   };
 
-  const handleRestore = async () => {
+  const handleCompanionRestore = async () => {
     if (restoring) return;
     setRestoring(true);
+    setStatus('');
     try {
       await ensureRevenueCatUser(user?.id);
-      const { isPro: restored } = await restorePurchases();
-      if (restored) {
-        await syncNativePurchase();
-        alert('Purchases restored. Welcome back to Pro.');
+      const result = await restoreCompanion();
+      if (result.status === 'active') {
+        await syncWithBackend();
+        setStatus('Your Journal Companion subscription is restored.');
+      } else if (result.status === 'none') {
+        setStatus('No Journal Companion subscription was found for this Google account.');
       } else {
-        alert('No previous purchases found for this account.');
+        setStatus('Restore could not be completed. Please try again.');
       }
     } finally {
       setRestoring(false);
     }
   };
 
-  const handlePurchase = (plan) => {
-    if (nativeBilling) return handleNativePurchase(plan);
-    return handleStripeCheckout(plan);
-  };
-
-  const handleStripeCheckout = async (plan) => {
-    if (purchasing) return;
-    setPurchasing(plan);
-    trackEvent(token, 'stripe_checkout_start', '', plan);
+  const renewalLine = () => {
+    if (!companionExpires) return '';
     try {
-      const res = await axios.post(
-        `${API}/payments/v1/checkout/session`,
-        { plan, origin_url: window.location.origin },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.data?.url) {
-        window.location.href = res.data.url;
-      } else {
-        throw new Error('No checkout URL');
-      }
-    } catch (err) {
-      setPurchasing(null);
-      alert('Could not start checkout. Please try again or contact support.');
+      const d = new Date(companionExpires);
+      const label = d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+      return companionWillRenew ? `Renews ${label}` : `Access until ${label}`;
+    } catch {
+      return '';
     }
   };
 
-  // Already Pro — show welcome state
-  if (isPro) {
+  const featureList = (
+    <div className="space-y-2 mb-6 mt-4">
+      {PRO_FEATURES.map((f, i) => (
+        <button
+          key={f.title}
+          onClick={() => setExpandedFeature(expandedFeature === i ? null : i)}
+          className="w-full rounded-xl p-4 text-left transition-all"
+          style={{ border: '1px solid rgba(212,168,83,0.35)', background: 'rgba(212,168,83,0.04)' }}
+          data-testid={`pro-feature-${f.title}`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(212,168,83,0.12)' }}>
+              <f.icon className="w-4 h-4" style={{ color: GOLD }} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>{f.title}</h3>
+              <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>{f.subtitle}</p>
+            </div>
+            <ChevronDown className={`w-4 h-4 transition-transform ${expandedFeature === i ? 'rotate-180' : ''}`} style={{ color: GOLD }} />
+          </div>
+          {expandedFeature === i && (
+            <p className="text-white/60 text-xs leading-relaxed mt-3 ml-12" style={{ fontFamily: 'Poppins, sans-serif' }}>{f.description}</p>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+
+  // Already subscribed to the Journal Companion.
+  if (companionEntitled) {
     return (
-      <div className="min-h-screen pb-32 px-5 lg:ml-64 pt-6" style={{ background: 'linear-gradient(180deg, rgba(212,168,83,0.12) 0%, rgba(212,168,83,0.04) 30%, #0a0a1a 60%)' }} data-testid="pro-page-active">
+      <div className="min-h-screen pb-32 px-5 lg:ml-64 pt-6" style={{ background: 'linear-gradient(180deg, rgba(212,168,83,0.12) 0%, rgba(212,168,83,0.04) 30%, #0a0a1a 60%)' }} data-testid="companion-active-page">
         <div className="max-w-lg mx-auto">
           <div className="text-center py-6 mb-4">
             <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(212,168,83,0.2)', boxShadow: '0 0 30px rgba(212,168,83,0.15)' }}>
-              <Crown className="w-7 h-7" style={{ color: GOLD }} />
+              <BookOpen className="w-7 h-7" style={{ color: GOLD }} />
             </div>
-            <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', cursive" }}>HORMOscope Pro</h1>
-            <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>Your Pro Self, Cycle by Cycle</p>
+            <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', cursive" }}>Journal Companion</h1>
+            <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>Your companion is with you</p>
+            {renewalLine() && (
+              <p className="text-xs mt-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }}>{renewalLine()}</p>
+            )}
           </div>
 
-          <div className="space-y-3 mb-6">
-            {PRO_FEATURES.map((f, i) => (
-              <button
-                key={f.title}
-                onClick={() => setExpandedFeature(expandedFeature === i ? null : i)}
-                className="w-full rounded-xl p-4 text-left transition-all"
-                style={{ border: '1px solid rgba(212,168,83,0.35)', background: 'rgba(212,168,83,0.04)' }}
-                data-testid={`pro-feature-${f.title}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(212,168,83,0.12)' }}>
-                    <f.icon className="w-4 h-4" style={{ color: GOLD }} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm" style={{ fontFamily: "'Poiret One', cursive", color: '#FF1493' }}>{f.title}</h3>
-                    <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>{f.subtitle}</p>
-                  </div>
-                  <ChevronDown className={`w-4 h-4 transition-transform ${expandedFeature === i ? 'rotate-180' : ''}`} style={{ color: GOLD }} />
-                </div>
-                {expandedFeature === i && (
-                  <p className="text-white/60 text-xs leading-relaxed mt-3 ml-12" style={{ fontFamily: 'Poppins, sans-serif' }}>{f.description}</p>
-                )}
-              </button>
-            ))}
-          </div>
+          {featureList}
 
-          <Link to="/" className="block w-full py-3.5 rounded-full text-white font-semibold text-sm text-center" style={{ fontFamily: 'Poppins, sans-serif', background: 'linear-gradient(135deg, #D4A853, #c9a030)', boxShadow: '0 0 25px rgba(212,168,83,0.3)' }} data-testid="ultimate-cta-btn">
-            Start Your Pro Experience
+          <Link to="/journal" className="block w-full py-3.5 rounded-full text-white font-semibold text-sm text-center" style={{ fontFamily: 'Poppins, sans-serif', background: 'linear-gradient(135deg, #D4A853, #c9a030)', boxShadow: '0 0 25px rgba(212,168,83,0.3)' }} data-testid="companion-open-journal-btn">
+            Open Your Journal
           </Link>
+          {nativeBilling && (
+            <button
+              onClick={() => window.open('https://play.google.com/store/account/subscriptions', '_blank')}
+              className="block w-full mt-3 py-2 text-center text-xs"
+              style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.5)' }}
+              data-testid="companion-manage-btn"
+            >
+              Manage subscription in Google Play
+            </button>
+          )}
         </div>
       </div>
     );
   }
 
-  // Free user — paywall (renders INSTANTLY, no SDK loading)
+  // Purchase screen for the Journal Companion subscription.
   return (
-    <div className="min-h-screen pb-44 px-0 lg:ml-64 pt-0" style={{ background: 'linear-gradient(180deg, #0a0a1a 0%, #0a0a1a 100%)' }} data-testid="pro-page">
+    <div className="min-h-screen pb-32 px-0 lg:ml-64 pt-0" style={{ background: 'linear-gradient(180deg, #0a0a1a 0%, #0a0a1a 100%)' }} data-testid="pro-page">
 
       {/* HERO */}
       <section className="py-12 px-5 relative overflow-hidden">
@@ -246,12 +221,12 @@ export default function ProPage() {
           <div className="text-center mb-8">
             <p className="text-xs sm:text-sm tracking-[0.3em] uppercase mb-3" style={{ fontFamily: "'Poiret One', cursive", color: GOLD }}>Introducing</p>
             <h1 className="text-white leading-[1.05]" style={{ fontFamily: "'Poiret One', cursive", fontSize: 'clamp(2.5rem, 9vw, 4.5rem)' }} data-testid="paywall-headline">
-              HORMOscope
+              Journal
               <br />
-              <span style={{ color: GOLD }}>Pro</span>
+              <span style={{ color: GOLD }}>Companion</span>
             </h1>
             <p className="text-xs sm:text-sm leading-relaxed mt-5 max-w-md mx-auto" style={{ fontFamily: "'Poiret One', cursive", color: 'rgba(255,255,255,0.75)' }} data-testid="paywall-tagline">
-              Unlock deeper self-understanding with personalized daily reads.
+              HORMOscope is a free app. This page is for its one companion subscription.
             </p>
           </div>
 
@@ -261,16 +236,6 @@ export default function ProPage() {
               <div className="rounded-lg overflow-hidden relative" style={{ border: '1px solid rgba(212,168,83,0.4)' }}>
                 <img src="/pro-screenshots/daily_read.png" alt="Your Daily Read" className="w-full block" loading="lazy" />
                 <p className="absolute bottom-0 left-0 right-0 text-center py-1 text-[10px]" style={{ background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.7))', fontFamily: 'Poppins, sans-serif', color: '#FFFFFF' }}>Your Daily Read</p>
-              </div>
-              <div className="rounded-lg overflow-hidden relative" style={{ border: '1px solid rgba(212,168,83,0.4)' }}>
-                <img src="/pro-screenshots/rhythm.png" alt="Daily Rhythm Report" className="w-full block" loading="lazy" />
-                <p className="absolute bottom-0 left-0 right-0 text-center py-1 text-[10px]" style={{ background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.7))', fontFamily: 'Poppins, sans-serif', color: '#FFFFFF' }}>Daily Rhythm Report</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <div className="rounded-lg overflow-hidden relative" style={{ border: '1px solid rgba(212,168,83,0.4)' }}>
-                <img src="/pro-screenshots/hormone.png" alt="Hormone Map" className="w-full block" loading="lazy" />
-                <p className="absolute bottom-0 left-0 right-0 text-center py-1 text-[10px]" style={{ background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.7))', fontFamily: 'Poppins, sans-serif', color: '#FFFFFF' }}>Hormone Map</p>
               </div>
               <div className="rounded-lg overflow-hidden relative" style={{ border: '1px solid rgba(212,168,83,0.4)' }}>
                 <img src="/pro-screenshots/journal.png" alt="The Journal" className="w-full block" loading="lazy" />
@@ -285,113 +250,73 @@ export default function ProPage() {
             </div>
           </div>
           <p className="text-center text-[10px] mt-4" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Poppins, sans-serif' }}>
-            Scroll down to learn more &amp; subscribe
+            Scroll down to subscribe
           </p>
         </div>
       </section>
 
       <div className="max-w-lg mx-auto px-5">
 
-        {/* Feature list */}
-        <div className="space-y-2 mb-6 mt-4">
-          {PRO_FEATURES.map((f, i) => (
-            <button
-              key={f.title}
-              onClick={() => setExpandedFeature(expandedFeature === i ? null : i)}
-              className="w-full rounded-xl p-4 text-left transition-all"
-              style={{ border: '1px solid rgba(212,168,83,0.35)', background: 'rgba(212,168,83,0.04)' }}
-              data-testid={`pro-feature-${f.title}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(212,168,83,0.12)' }}>
-                  <f.icon className="w-4 h-4" style={{ color: GOLD }} />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>{f.title}</h3>
-                  <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>{f.subtitle}</p>
-                </div>
-                <ChevronDown className={`w-4 h-4 transition-transform ${expandedFeature === i ? 'rotate-180' : ''}`} style={{ color: GOLD }} />
-              </div>
-              {expandedFeature === i && (
-                <p className="text-white/60 text-xs leading-relaxed mt-3 ml-12" style={{ fontFamily: 'Poppins, sans-serif' }}>{f.description}</p>
-              )}
-            </button>
-          ))}
-        </div>
+        {featureList}
 
-        {/* Pricing */}
+        {/* The one plan: Journal Companion, monthly, priced by Google Play */}
         <div className="text-center mb-4">
-          <h2 className="text-lg text-white" style={{ fontFamily: "'Poiret One', cursive" }}>Choose Your Plan</h2>
+          <h2 className="text-lg text-white" style={{ fontFamily: "'Poiret One', cursive" }}>Journal Companion</h2>
         </div>
 
-        <div className="space-y-2 mb-4">
-          {/* Yearly */}
-          <button
-            data-testid="plan-yearly"
-            onClick={() => setSelectedPlan('yearly')}
-            className="w-full rounded-xl text-left transition-all relative overflow-hidden"
-            style={{
-              border: selectedPlan === 'yearly' ? '2px solid #D4A853' : '1px solid rgba(212,168,83,0.3)',
-              background: selectedPlan === 'yearly' ? 'rgba(212,168,83,0.08)' : 'rgba(212,168,83,0.02)',
-              boxShadow: selectedPlan === 'yearly' ? '0 0 20px rgba(212,168,83,0.15)' : 'none'
-            }}
-          >
-            <div className="py-1.5 px-3 text-center" style={{ background: 'linear-gradient(135deg, #D4A853, #c9a030)' }}>
-              <span className="text-white text-xs font-medium tracking-wider uppercase" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                Best Value — Save 33%
+        <div className="rounded-xl p-4 mb-4" style={{ border: '2px solid #D4A853', background: 'rgba(212,168,83,0.08)', boxShadow: '0 0 20px rgba(212,168,83,0.15)' }} data-testid="companion-plan">
+          <div className="flex items-baseline justify-between">
+            <p className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>Monthly</p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg font-semibold" style={{ color: GOLD }} data-testid="companion-price">
+                {nativeBilling ? (pkgLoading ? '...' : (companionPkg?.priceString || '$4.99')) : '$4.99'}
               </span>
+              <span className="text-white/50 text-xs">{nativeBilling ? (companionPkg?.periodText || '/month') : '/month'}</span>
             </div>
-            <div className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>Yearly</p>
-                  <div className="flex items-baseline gap-2">
-                    {!nativeBilling && (
-                      <span className="text-xs line-through" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Poppins, sans-serif' }} data-testid="yearly-strikethrough-pro">$59.99</span>
-                    )}
-                    <span className="text-lg font-semibold" style={{ color: GOLD }}>{priceFor('yearly').price}</span>
-                    <span className="text-white/50 text-xs">{priceFor('yearly').per}</span>
-                  </div>
-                  {priceFor('yearly').note && (
-                    <p className="text-white/40 text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>{priceFor('yearly').note}</p>
-                  )}
-                </div>
-                <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center" style={{ borderColor: selectedPlan === 'yearly' ? GOLD : 'rgba(255,255,255,0.3)', background: selectedPlan === 'yearly' ? GOLD : 'transparent' }}>
-                  {selectedPlan === 'yearly' && <Check className="w-3.5 h-3.5 text-white" />}
-                </div>
-              </div>
-            </div>
-          </button>
+          </div>
+          <p className="text-white/40 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            {nativeBilling
+              ? 'Billed through Google Play. Cancel anytime in Google Play.'
+              : 'Billed through Google Play in the Android app. Cancel anytime.'}
+          </p>
 
-          {/* Monthly */}
-          <button
-            data-testid="plan-monthly"
-            onClick={() => setSelectedPlan('monthly')}
-            className="w-full p-3 rounded-xl text-left transition-all"
-            style={{
-              border: selectedPlan === 'monthly' ? '2px solid #D4A853' : '1px solid rgba(212,168,83,0.3)',
-              background: selectedPlan === 'monthly' ? 'rgba(212,168,83,0.08)' : 'rgba(212,168,83,0.02)',
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>Monthly</p>
-                <div className="flex items-baseline gap-2">
-                  {!nativeBilling && (
-                    <span className="text-xs line-through" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Poppins, sans-serif' }} data-testid="monthly-strikethrough-pro">$14.99</span>
-                  )}
-                  <span className="text-lg font-semibold" style={{ color: GOLD }}>{priceFor('monthly').price}</span>
-                  <span className="text-white/50 text-xs">{priceFor('monthly').per}</span>
-                </div>
-                {priceFor('monthly').note && (
-                  <p className="text-white/40 text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>{priceFor('monthly').note}</p>
+          {status && (
+            <p className="text-xs mt-3 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }} data-testid="companion-status">{status}</p>
+          )}
+
+          {nativeBilling ? (
+            <>
+              <button
+                data-testid="companion-subscribe-btn"
+                onClick={handleCompanionPurchase}
+                disabled={purchasing || pkgLoading}
+                className="w-full mt-4 py-3 rounded-full font-semibold text-sm text-white transition-all disabled:opacity-60"
+                style={{ fontFamily: 'Poppins, sans-serif', background: 'linear-gradient(135deg, #D4A853, #c9a030)', boxShadow: '0 0 25px rgba(212,168,83,0.3)' }}
+              >
+                {purchasing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Opening Google Play...
+                  </span>
+                ) : (
+                  'Subscribe'
                 )}
-              </div>
-              <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center" style={{ borderColor: selectedPlan === 'monthly' ? GOLD : 'rgba(255,255,255,0.3)', background: selectedPlan === 'monthly' ? GOLD : 'transparent' }}>
-                {selectedPlan === 'monthly' && <Check className="w-3.5 h-3.5 text-white" />}
-              </div>
-            </div>
-          </button>
+              </button>
+              <button
+                data-testid="companion-restore-btn"
+                onClick={handleCompanionRestore}
+                disabled={restoring}
+                className="w-full mt-2 py-2 text-center text-xs disabled:opacity-60"
+                style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.5)' }}
+              >
+                {restoring ? 'Restoring...' : 'Restore Purchases'}
+              </button>
+            </>
+          ) : (
+            <p className="text-xs mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.5)' }} data-testid="companion-web-note">
+              Subscriptions are handled in the Android app through Google Play.
+            </p>
+          )}
         </div>
 
         {/* Trust */}
@@ -406,46 +331,13 @@ export default function ProPage() {
           </div>
         </div>
         <p className="text-center text-xs mb-4 px-6" style={{ color: '#9A8B91', fontFamily: 'Poppins, sans-serif' }}>
-          We will never ask for your billing info before you know what you are paying for. Only share your credit card at the end of your free cycle, if it has made a difference for you like it has for so many others, myself included.
+          We will never ask for your billing info before you know what you are paying for. HORMOscope is free to use, and the companion subscription shows exactly what it costs before you share a card, just like it should be.
         </p>
 
         {/* Footer links */}
         <div className="flex items-center justify-center gap-4 pb-6 flex-wrap mt-6" data-testid="footer-links">
           <Link to="/terms" className="text-[#9A8B91]/80 text-xs hover:text-white transition-colors" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="terms-link">Terms</Link>
           <Link to="/privacy" className="text-[#9A8B91]/80 text-xs hover:text-white transition-colors" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="privacy-link">Privacy</Link>
-        </div>
-      </div>
-
-      {/* Sticky CTA — native Play Billing on Android app, Stripe checkout on web */}
-      <div className="fixed bottom-24 lg:bottom-0 left-0 right-0 lg:left-64 px-5 pb-2 pt-2 z-[999]">
-        <div className="max-w-lg mx-auto">
-          <button
-            data-testid="purchase-btn"
-            onClick={() => handlePurchase(selectedPlan)}
-            disabled={!!purchasing}
-            className="w-full py-2.5 rounded-full text-white font-semibold text-xs tracking-wide transition-all disabled:opacity-60"
-            style={{ fontFamily: 'Poppins, sans-serif', background: 'transparent', border: '2px solid #FF1493', color: '#FF1493' }}
-          >
-            {purchasing ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {nativeBilling ? 'Opening Google Play...' : 'Redirecting to Stripe...'}
-              </span>
-            ) : (
-              'Unlock HORMOscope Pro'
-            )}
-          </button>
-          {nativeBilling && (
-            <button
-              data-testid="restore-btn"
-              onClick={handleRestore}
-              disabled={restoring}
-              className="w-full mt-2 py-2 text-center text-xs disabled:opacity-60"
-              style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.5)' }}
-            >
-              {restoring ? 'Restoring...' : 'Restore Purchases'}
-            </button>
-          )}
         </div>
       </div>
     </div>

@@ -599,12 +599,6 @@ h1, h2, h3, .heading {
     border-radius: 20px 20px 20px 4px;
 }
 
-.chat-bubble-boyfriend {
-    background: linear-gradient(135deg, rgba(255, 105, 180, 0.2) 0%, rgba(75, 0, 130, 0.2) 100%);
-    border: 1px solid rgba(255, 105, 180, 0.3);
-    border-radius: 20px 20px 20px 4px;
-}
-
 .input-dark {
     width: 100%;
     background: rgba(255, 255, 255, 0.05);

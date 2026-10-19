@@ -2,11 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Link } from 'react-router-dom';
-import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2, Lock } from 'lucide-react';
+import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2 } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 
-const GOLD = '#D4A853';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -207,7 +206,7 @@ function CalendarTab({ markedDays }) {
 
 export default function PartnerHubPage() {
   const { token, user } = useAuth();
-  const { isPro, loading: rcLoading } = usePremium();
+  const { loading: rcLoading } = usePremium();
   const [status, setStatus] = useState(null);
   const [calData, setCalData] = useState(null);
   const [tab, setTab] = useState('cycle');
@@ -258,38 +257,10 @@ export default function PartnerHubPage() {
     );
   }
 
-  // Pro gate for owners: the inviter needs Pro. Partners (role === 'partner') get in free via invite.
-  if (status.is_linked && status.role === 'owner' && !isPro) {
-    return (
-      <div className="min-h-screen pb-20" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-testid="partner-locked">
-        <div className="max-w-md mx-auto px-5 pt-10 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4" style={{ border: `1px solid ${GOLD}`, background: 'rgba(212,168,83,0.08)' }}>
-            <Lock className="w-3.5 h-3.5" style={{ color: GOLD }} />
-            <span className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>HORMOscope Pro</span>
-          </div>
-          <h1 className="text-4xl text-white mb-3" style={{ fontFamily: "'Poiret One', cursive" }}>Attunement Mode</h1>
-          <p className="text-sm leading-relaxed mb-6" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
-            Let him follow your cycle — ovulation, fertile days, and when to expect your period. He gets his own free account; only you need Pro.
-          </p>
-          <div className="rounded-xl p-4 mb-6 text-left" style={{ border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(212,168,83,0.04)' }}>
-            <p className="text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.8)' }}>
-              ✿&nbsp; He sees your calendar and cycle day<br />
-              ✿&nbsp; Your intimate journal stays private<br />
-              ✿&nbsp; Secret gift shop for period care<br />
-              ✿&nbsp; Private notes between you two
-            </p>
-          </div>
-          <Link to="/pro?from=partner" data-testid="partner-locked-cta" className="block w-full py-3.5 rounded-full text-center text-white text-base" style={{ fontFamily: "'Poiret One', cursive", letterSpacing: '0.05em', background: 'linear-gradient(135deg, #D4A853, #c9a030)', boxShadow: '0 0 25px rgba(212,168,83,0.3)' }}>
-            Unlock HORMOscope Pro
-          </Link>
-          <p className="text-[10px] mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.4)' }}>
-            $6.99/mo or $49.99/yr · Cancel anytime
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // Hub access follows the link itself. Entitlement is enforced on the
+  // server when an invite is created (a woman invite is free; a man or
+  // untyped invite requires Pro), so a linked user, owner or partner,
+  // free or Pro, always reaches the shared calendar and notes here.
   // Not linked: invite-code entry
   if (!status.is_linked) {
     return (

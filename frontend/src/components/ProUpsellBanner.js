@@ -9,28 +9,20 @@ export default function ProUpsellBanner({ context, compact }) {
 
   const messages = {
     dashboard: {
-      title: 'Want to go deeper?',
-      subtitle: 'Unlock deeper self-understanding with personalized daily reads.',
+      title: 'Meet your journal companion',
+      subtitle: 'The one planned HORMOscope subscription lives in your private Journal. Everything else is free.',
     },
     calendar: {
-      title: 'Unlock HORMOscope Pro',
-      subtitle: 'Unlock personalized daily reads, hormone maps, and unlimited journaling.',
+      title: 'Meet your journal companion',
+      subtitle: 'The one planned HORMOscope subscription lives in your private Journal. Everything else is free.',
     },
     journal: {
-      title: 'Unlock deeper self-understanding',
-      subtitle: 'Unlimited journal entries that train your personalized daily read.',
-    },
-    rhythm: {
-      title: 'Your Daily Rhythm Report',
-      subtitle: 'Unlock personalized guidance for energy, mood, focus, and more.',
-    },
-    hormone: {
-      title: 'Your Hormone Map',
-      subtitle: 'See estrogen, progesterone, and LH across your cycle.',
+      title: 'Meet your journal companion',
+      subtitle: 'A caring presence inside your Journal. Your entries are always free, and always yours.',
     },
     default: {
-      title: 'Unlock HORMOscope Pro',
-      subtitle: 'Unlock deeper self-understanding with personalized daily reads.',
+      title: 'Meet your journal companion',
+      subtitle: 'The one planned HORMOscope subscription lives in your private Journal. Everything else is free.',
     },
   };
 

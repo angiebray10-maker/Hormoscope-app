@@ -1804,6 +1804,18 @@ class JournalEntryCreate(BaseModel):
 class IntimateUpdate(BaseModel):
     is_intimate: bool
 
+def _journal_day(iso_str):
+    """The UTC calendar day a journal entry belongs to, or None.
+
+    Journal days have always been the UTC date of created_at: the book in
+    JournalPage groups entries by created_at.split('T')[0]. The vault
+    split below uses the same convention, so a day seals exactly the way
+    the book has always shown it."""
+    try:
+        return datetime.fromisoformat(str(iso_str).replace("Z", "+00:00")).date()
+    except (ValueError, TypeError):
+        return None
+
 
 @api_router.post("/journal")
 async def create_journal_entry(entry: JournalEntryCreate, current_user: dict = Depends(get_current_user)):
@@ -1821,11 +1833,19 @@ async def create_journal_entry(entry: JournalEntryCreate, current_user: dict = D
 
 @api_router.get("/journal")
 async def get_journal_entries(current_user: dict = Depends(get_current_user)):
-    # No limit — users need to see every entry they've ever written.
+    # Today's page only (Angelita's Vault, Oct 17). Everything she wrote
+    # before today is sealed in her vault and comes back only through
+    # POST /journal/vault/entries once she enters the vault password she
+    # set herself. Nothing is deleted; this endpoint just no longer hands
+    # out past days. Today's companion exchanges ride along so reopening
+    # the journal keeps the day's conversation in the book.
+    today = datetime.now(timezone.utc).date()
     entries = await db.journal_entries.find(
         {"user_id": current_user["id"]}, {"_id": 0}
     ).sort("created_at", -1).to_list(length=None)
-    return entries
+    todays = [e for e in entries if _journal_day(e.get("created_at")) == today]
+    exchanges = await _companion_exchanges_for(current_user["id"], today.isoformat())
+    return {"entries": todays, "companion_exchanges": exchanges}
 
 @api_router.delete("/journal/{entry_id}")
 async def delete_journal_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
@@ -1845,19 +1865,74 @@ async def set_journal_entry_intimate(entry_id: str, req: IntimateUpdate, current
         raise HTTPException(status_code=404, detail="Entry not found")
     return {"ok": True, "is_intimate": bool(req.is_intimate)}
 
-def _journal_day(iso_str):
-    """The UTC calendar day a journal entry belongs to, or None.
+# ==================== JOURNAL VAULT ====================
+# Her sealed days (Angelita, Oct 17). At the end of each day, everything
+# she logged locks into her vault. Days seal by date alone (anything
+# before today is sealed), nothing extra is stored or moved. Past
+# journal entries are returned ONLY by the unlock endpoint below, after
+# she enters the vault password she set herself; the hash lives on her
+# user record (journal_vault_hash, bcrypt, same helpers as her account
+# password) and the plain password is never stored or logged. A linked
+# partner never touches any of this: partner endpoints return her cycle
+# day and her overall feeling today, never journal content.
 
-    Journal days have always been the UTC date of created_at: the book in
-    JournalPage groups entries by created_at.split('T')[0]. The vault
-    split below uses the same convention, so a day seals exactly the way
-    the book has always shown it."""
-    try:
-        return datetime.fromisoformat(str(iso_str).replace("Z", "+00:00")).date()
-    except (ValueError, TypeError):
-        return None
+class VaultSetPassword(BaseModel):
+    password: str
+    current_password: Optional[str] = None
 
+class VaultUnlock(BaseModel):
+    password: str
 
+@api_router.get("/journal/vault/status")
+async def get_vault_status(current_user: dict = Depends(get_current_user)):
+    return {"has_password": bool(current_user.get("journal_vault_hash"))}
+
+@api_router.post("/journal/vault/set")
+async def set_vault_password(req: VaultSetPassword, current_user: dict = Depends(get_current_user)):
+    new_password = req.password or ""
+    if len(new_password) < 4:
+        raise HTTPException(status_code=400, detail="Your vault password needs at least 4 characters.")
+    existing = current_user.get("journal_vault_hash")
+    if existing:
+        # Changing the vault password requires proving the current one
+        # in the same call, so a borrowed phone cannot quietly reset it.
+        if not req.current_password or not verify_password(req.current_password, existing):
+            raise HTTPException(status_code=403, detail="That is not your current vault password.")
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"journal_vault_hash": hash_password(new_password)}}
+    )
+    return {"ok": True, "has_password": True}
+
+@api_router.post("/journal/vault/entries")
+async def get_vault_entries(req: VaultUnlock, current_user: dict = Depends(get_current_user)):
+    stored = current_user.get("journal_vault_hash")
+    if not stored:
+        raise HTTPException(status_code=400, detail="Set your vault password first, then your sealed days will open.")
+    if not req.password or not verify_password(req.password, stored):
+        raise HTTPException(status_code=403, detail="That password does not open your vault. Try again.")
+    today = datetime.now(timezone.utc).date()
+    entries = await db.journal_entries.find(
+        {"user_id": current_user["id"]}, {"_id": 0}
+    ).sort("created_at", -1).to_list(length=None)
+    past = []
+    for e in entries:
+        d = _journal_day(e.get("created_at"))
+        if d is not None and d < today:
+            past.append(e)
+    # The day's companion exchanges seal with the day: group them by
+    # date so each sealed page can show what her companion said to her.
+    exchanges = await db.journal_companion.find(
+        {"user_id": current_user["id"]}, {"_id": 0}
+    ).sort("created_at", 1).to_list(length=None)
+    companion_by_day = {}
+    for ex in exchanges:
+        d = ex.get("date")
+        if d and d < today.isoformat():
+            companion_by_day.setdefault(d, []).append(ex)
+    return {"entries": past, "companion": companion_by_day}
+
+# ==================== JOURNAL COMPANION ====================
 # Her journal can talk back (Angelita, Oct 17). The AI companion lives
 # INSIDE her journal, under the vault's privacy rules: settings and
 # exchanges sit on her own record/collection, keyed by user, and no
@@ -2138,7 +2213,6 @@ HOW TO ANSWER:
         "exchange": {k: exchange[k] for k in ("id", "date", "user_message", "reply", "companion_name", "input_tokens", "output_tokens", "created_at")},
         "companion_name": name,
     }
-
 
 # ==================== PREMIUM: DAILY RHYTHM REPORT ====================
 
@@ -2665,9 +2739,29 @@ async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
             marked_days = []
 
     phase = cycle_info.get("phase", "menstrual")
+
+    # Her overall feeling today, and nothing more detailed than that
+    # (Angelita's Attunement boundary): the coarse mood she last logged
+    # today, as one word. Never her notes, her other symptoms, her
+    # intimacy logs, or anything from her journal.
+    mood_today = None
+    today_str = datetime.now(timezone.utc).date().isoformat()
+    owner_logs = await db.cycle_logs.find(
+        {"user_id": owner_id, "date": today_str}, {"_id": 0, "symptoms": 1, "created_at": 1}
+    ).sort("created_at", 1).to_list(length=None)
+    mood_labels = {1: "Low", 2: "Meh", 3: "Okay", 4: "Good", 5: "Great"}
+    for l in owner_logs:
+        for s in (l.get("symptoms") or []):
+            if isinstance(s, str) and s.startswith("mood:"):
+                try:
+                    mood_today = mood_labels.get(int(s.split(":", 1)[1]), mood_today)
+                except ValueError:
+                    pass
+
     return {
         "name": owner.get("name", "Her"),
         "cycle_day": cycle_info.get("cycle_day", 1),
+        "mood_today": mood_today,
         "cycle_length": cycle_length,
         "phase": phase,
         "phase_info": cycle_info.get("phase_info", ""),

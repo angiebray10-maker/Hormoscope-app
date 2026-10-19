@@ -35,7 +35,7 @@ export default function ChatPage() {
   const loadConversationsList = useCallback(async () => {
     try {
       setLoadingConvos(true);
-      const res = await axios.get(`${API}/chat/conversations?is_boyfriend_mode=false`, {
+      const res = await axios.get(`${API}/chat/conversations`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setConversations(res.data || []);
@@ -129,7 +129,6 @@ export default function ChatPage() {
     try {
       const payload = {
         message: userMessage || 'Please analyze this image',
-        is_boyfriend_mode: false,
         conversation_id: conversationId
       };
       

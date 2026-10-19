@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { User, LogOut, ChevronRight, Shield, FileText, Sparkles, Mail, Camera, Loader2, Crown, Heart } from 'lucide-react';
+import { User, LogOut, ChevronRight, Shield, FileText, Sparkles, Mail, Camera, Loader2, Crown, Heart, BookOpen, Trash2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -200,6 +200,41 @@ export default function ProfilePage() {
     navigate('/auth');
   };
 
+  // Account deletion: owner only, password confirmed, handled by the server.
+  const [showDelete, setShowDelete] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
+
+  const closeDelete = () => {
+    if (deleting) return;
+    setShowDelete(false);
+    setDeletePassword('');
+    setDeleteError('');
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteError('');
+    setDeleting(true);
+    try {
+      await axios.delete(`${API}/auth/account`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { password: deletePassword }
+      });
+      setDeleted(true);
+    } catch (err) {
+      setDeleteError(err?.response?.data?.detail || 'Deletion could not be completed. Your account was not changed. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeletedDone = () => {
+    logout();
+    navigate('/auth');
+  };
+
   return (
     <div className="pb-32 lg:pb-8 lg:pl-72 p-6 min-h-screen">
       {/* Header */}
@@ -303,6 +338,17 @@ export default function ProfilePage() {
           </div>
           <ChevronRight className="w-5 h-5 text-[#9A8B91]" />
         </Link>
+
+        <Link
+          to="/guide"
+          className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-t border-white/5"
+        >
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-5 h-5 text-[#E8A4B8]" />
+            <span className="text-[#FDF8FA]">Instructional Guide</span>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[#9A8B91]" />
+        </Link>
         
         <Link 
           to="/contact"
@@ -386,6 +432,90 @@ export default function ProfilePage() {
         <LogOut className="w-5 h-5" />
         Sign Out
       </button>
+
+      {/* Delete account */}
+      <button
+        data-testid="delete-account-btn"
+        onClick={() => setShowDelete(true)}
+        className="w-full mt-4 py-3 text-sm text-[#9A8B91] hover:text-[#E85A6B] transition-colors flex items-center justify-center gap-2"
+      >
+        <Trash2 className="w-4 h-4" />
+        Delete My Account
+      </button>
+
+      {showDelete && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-6" data-no-swipe="true" style={{ background: 'rgba(10,6,18,0.88)' }}>
+          <div className="glass-card max-w-md w-full p-6" style={{ maxHeight: '88vh', overflowY: 'auto' }}>
+            {!deleted ? (
+              <>
+                <h2 className="text-2xl text-[#F4D3DC] mb-3" style={{ fontFamily: "'Poiret One', serif" }}>Delete your account?</h2>
+                <p className="text-sm text-[#CDBEC6] leading-relaxed mb-3">
+                  This permanently deletes your HORMOscope account and everything in it:
+                </p>
+                <ul className="text-sm text-[#CDBEC6] leading-relaxed mb-3 list-disc pl-5 space-y-1">
+                  <li>Your cycle history and daily logs</li>
+                  <li>Your journal, including sealed vault days</li>
+                  <li>Your intimacy records</li>
+                  <li>Your AI conversations and journal companion</li>
+                  <li>Your partner connections (they are disconnected)</li>
+                </ul>
+                <p className="text-sm text-[#CDBEC6] leading-relaxed mb-3">
+                  This cannot be undone, and your email will no longer sign in. If you have a
+                  HORMOscope Pro subscription through Google Play, cancel it in Google Play
+                  too, deleting your account does not cancel Play billing. Billing records
+                  the law requires are kept without your name or email.
+                </p>
+                <p className="text-sm text-[#F4D3DC] mb-2">Type your password to confirm it is really you.</p>
+                <Input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Your password"
+                  data-testid="delete-password-input"
+                  className="mb-3"
+                />
+                {deleteError && <p className="text-sm mb-3" style={{ color: '#FF8FA3' }}>{deleteError}</p>}
+                <div className="flex gap-3">
+                  <button
+                    onClick={closeDelete}
+                    disabled={deleting}
+                    className="flex-1 py-3 rounded-full border border-white/20 text-[#FDF8FA] text-sm disabled:opacity-50"
+                  >
+                    Keep my account
+                  </button>
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleting || !deletePassword}
+                    data-testid="confirm-delete-btn"
+                    className="flex-1 py-3 rounded-full text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ background: '#C62F45' }}
+                  >
+                    {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {deleting ? 'Deleting...' : 'Permanently delete'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl text-[#F4D3DC] mb-3" style={{ fontFamily: "'Poiret One', serif" }}>Your account is deleted</h2>
+                <p className="text-sm text-[#CDBEC6] leading-relaxed mb-5">
+                  Your account and your personal data have been removed. You have been
+                  signed out, and this email can no longer sign in. Thank you for the
+                  time you spent here, and take good care of yourself.
+                </p>
+                <button
+                  onClick={handleDeletedDone}
+                  data-testid="deleted-done-btn"
+                  className="w-full py-3 rounded-full text-white text-sm font-semibold"
+                  style={{ background: 'linear-gradient(135deg, #FF5C8A, #FF1493)' }}
+                >
+                  Done
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

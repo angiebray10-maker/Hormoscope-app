@@ -79,13 +79,10 @@ export default function ContactPage() {
             <Link to="/" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
               → Home Dashboard
             </Link>
-            <Link to="/chat" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
-              → HORMOscope
-            </Link>
             <Link to="/calendar" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
               → Cycle Calendar
             </Link>
-            <Link to="/subscription" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
+            <Link to="/pro" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
               → Premium Features
             </Link>
             <Link to="/privacy" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">

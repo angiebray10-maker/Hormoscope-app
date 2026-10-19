@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, MessageCircle, Calendar, User, BookOpen, Crown, Heart } from 'lucide-react';
+import { Home, MessageCircle, Calendar, User, BookOpen, BookHeart, Crown, Heart } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
+  { path: '/devotional', icon: BookHeart, label: 'Devotional' },
   { path: '/journal', icon: BookOpen, label: 'Journal' },
   { path: '/attunement', icon: Heart, label: 'Attunement' },
   { path: '/pro', icon: Crown, label: 'Pro' },
@@ -33,7 +34,7 @@ export default function BottomNav() {
       touchRef.current = null;
       if (!start) return;
       if (hiddenPaths.some((p) => location.pathname.startsWith(p))) return;
-      if (start.target && start.target.closest && start.target.closest('input, textarea, select, [data-testid^="quicklog-"]')) return;
+      if (start.target && start.target.closest && start.target.closest('input, textarea, select, [data-testid^="quicklog-"], [data-no-swipe]')) return;
       const t = e.changedTouches[0];
       const dx = t.clientX - start.x;
       const dy = t.clientY - start.y;
