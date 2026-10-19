@@ -3,6 +3,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import ReturnDocument
+from pymongo.errors import DuplicateKeyError
 import os
 import logging
 from pathlib import Path
@@ -63,8 +65,11 @@ def get_anthropic_client() -> AsyncAnthropic:
     return _anthropic_client
 
 
-async def call_anthropic(system_message: str, messages: list, max_tokens: int = 1024) -> str:
-    """Send a message list to Anthropic and return the concatenated text reply."""
+async def call_anthropic(system_message: str, messages: list, max_tokens: int = 1024, return_usage: bool = False):
+    """Send a message list to Anthropic and return the concatenated text reply.
+
+    With return_usage=True, returns (text, {"input_tokens": n,
+    "output_tokens": n}) using the counts Anthropic itself reports."""
     client = get_anthropic_client()
     response = await client.messages.create(
         model=ANTHROPIC_MODEL,
@@ -72,9 +77,16 @@ async def call_anthropic(system_message: str, messages: list, max_tokens: int = 
         system=system_message,
         messages=messages,
     )
-    return "".join(
+    text = "".join(
         block.text for block in response.content if getattr(block, "type", None) == "text"
     )
+    if return_usage:
+        usage = getattr(response, "usage", None)
+        return text, {
+            "input_tokens": int(getattr(usage, "input_tokens", 0) or 0),
+            "output_tokens": int(getattr(usage, "output_tokens", 0) or 0),
+        }
+    return text
 
 # Create the main app
 app = FastAPI()
@@ -1828,6 +1840,90 @@ async def _companion_exchanges_for(user_id: str, date_str: str):
         {"user_id": user_id, "date": date_str}, {"_id": 0}
     ).sort("created_at", 1).to_list(length=None)
 
+# Companion usage limits and cost protection (Angelita, Oct 19, 2026).
+# While the companion is in controlled testing: one account may receive
+# at most COMPANION_DAILY_REPLY_LIMIT replies per day, one message may be
+# at most COMPANION_MESSAGE_CHAR_LIMIT characters, and one account's
+# requests must start at least COMPANION_MIN_SECONDS_BETWEEN_REQUESTS
+# apart. Usage records hold counts and token totals only, never message
+# or journal content, and nothing here logs the API key.
+COMPANION_MESSAGE_CHAR_LIMIT = 1000
+COMPANION_DAILY_REPLY_LIMIT = 30
+COMPANION_MIN_SECONDS_BETWEEN_REQUESTS = 5
+
+
+async def _companion_claim_rate_slot(user_id: str) -> bool:
+    """Atomically claim this account's next request slot. False when the
+    previous request started less than the minimum gap ago."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(seconds=COMPANION_MIN_SECONDS_BETWEEN_REQUESTS)
+    col = db.companion_rate_limits
+    for _ in range(2):
+        doc = await col.find_one_and_update(
+            {"user_id": user_id, "last_request_at": {"$lte": cutoff}},
+            {"$set": {"last_request_at": now}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if doc:
+            return True
+        existing = await col.find_one({"user_id": user_id}, {"_id": 0, "last_request_at": 1})
+        if existing:
+            return False
+        try:
+            await col.insert_one({"user_id": user_id, "last_request_at": now})
+            return True
+        except DuplicateKeyError:
+            continue
+    return False
+
+
+async def _companion_reserve_daily_reply(user_id: str, date_str: str) -> bool:
+    """Atomically reserve one of today's replies BEFORE Anthropic is
+    called, so concurrent requests cannot slip past the daily limit.
+    False means the day is full. Every True must be paired with
+    _companion_record_reply on success or _companion_release_daily_reply
+    on failure, so a failed call never consumes the allowance."""
+    col = db.companion_daily_usage
+    doc = await col.find_one_and_update(
+        {"user_id": user_id, "date": date_str, "reserved": {"$lt": COMPANION_DAILY_REPLY_LIMIT}},
+        {"$inc": {"reserved": 1},
+         "$setOnInsert": {"user_id": user_id, "date": date_str,
+                          "replies": 0, "input_tokens": 0, "output_tokens": 0}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if doc:
+        return True
+    if await col.find_one({"user_id": user_id, "date": date_str}, {"_id": 1}):
+        return False
+    try:
+        await col.insert_one({"user_id": user_id, "date": date_str, "reserved": 1,
+                              "replies": 0, "input_tokens": 0, "output_tokens": 0})
+        return True
+    except DuplicateKeyError:
+        doc = await col.find_one_and_update(
+            {"user_id": user_id, "date": date_str, "reserved": {"$lt": COMPANION_DAILY_REPLY_LIMIT}},
+            {"$inc": {"reserved": 1}},
+            return_document=ReturnDocument.AFTER,
+        )
+        return doc is not None
+
+
+async def _companion_release_daily_reply(user_id: str, date_str: str):
+    await db.companion_daily_usage.update_one(
+        {"user_id": user_id, "date": date_str, "reserved": {"$gt": 0}},
+        {"$inc": {"reserved": -1}},
+    )
+
+
+async def _companion_record_reply(user_id: str, date_str: str, usage: dict):
+    await db.companion_daily_usage.update_one(
+        {"user_id": user_id, "date": date_str},
+        {"$inc": {"replies": 1,
+                  "input_tokens": int(usage.get("input_tokens", 0)),
+                  "output_tokens": int(usage.get("output_tokens", 0))}},
+    )
+
+
 @api_router.get("/journal/companion")
 async def get_companion_settings(current_user: dict = Depends(get_current_user)):
     return _companion_settings(current_user)
@@ -1857,6 +1953,12 @@ async def companion_reply(req: CompanionReplyRequest, current_user: dict = Depen
         raise HTTPException(
             status_code=503,
             detail=f"{name} is resting just now and cannot answer. Your words are still safe here, write what the day held and try again later.",
+        )
+
+    if len(message) > COMPANION_MESSAGE_CHAR_LIMIT:
+        raise HTTPException(
+            status_code=400,
+            detail="That message is a little long for one note. Please keep it under 1,000 characters, and send it in parts if you need to.",
         )
 
     today = datetime.now(timezone.utc).date()
@@ -1937,9 +2039,20 @@ HOW TO ANSWER:
             anthropic_messages.append({"role": "assistant", "content": ex["reply"]})
     anthropic_messages.append({"role": "user", "content": message})
 
+    if not await _companion_claim_rate_slot(current_user["id"]):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Give {name} a moment to finish thinking, then send that again.",
+        )
+    if not await _companion_reserve_daily_reply(current_user["id"], today_str):
+        raise HTTPException(
+            status_code=429,
+            detail=f"{name} has written back {COMPANION_DAILY_REPLY_LIMIT} times today and is resting until tomorrow. Your journal is still here, and everything you write in it is saved as always.",
+        )
     try:
-        reply_text = await call_anthropic(system_message, anthropic_messages, max_tokens=600)
+        reply_text, usage = await call_anthropic(system_message, anthropic_messages, max_tokens=600, return_usage=True)
     except Exception:
+        await _companion_release_daily_reply(current_user["id"], today_str)
         logger.exception("Journal companion reply failed")
         raise HTTPException(
             status_code=503,
@@ -1947,11 +2060,13 @@ HOW TO ANSWER:
         )
     reply_text = (reply_text or "").strip()
     if not reply_text:
+        await _companion_release_daily_reply(current_user["id"], today_str)
         raise HTTPException(
             status_code=503,
             detail=f"{name} could not answer just now. Give it a moment and try again.",
         )
 
+    await _companion_record_reply(current_user["id"], today_str, usage)
     exchange = {
         "id": str(uuid.uuid4()),
         "user_id": current_user["id"],
@@ -1959,6 +2074,8 @@ HOW TO ANSWER:
         "user_message": message,
         "reply": reply_text,
         "companion_name": name,
+        "input_tokens": usage["input_tokens"],
+        "output_tokens": usage["output_tokens"],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.journal_companion.insert_one(exchange)
