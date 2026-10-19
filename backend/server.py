@@ -65,14 +65,14 @@ def get_anthropic_client() -> AsyncAnthropic:
     return _anthropic_client
 
 
-async def call_anthropic(system_message: str, messages: list, max_tokens: int = 1024, return_usage: bool = False):
+async def call_anthropic(system_message: str, messages: list, max_tokens: int = 1024, return_usage: bool = False, model: str = None):
     """Send a message list to Anthropic and return the concatenated text reply.
 
     With return_usage=True, returns (text, {"input_tokens": n,
     "output_tokens": n}) using the counts Anthropic itself reports."""
     client = get_anthropic_client()
     response = await client.messages.create(
-        model=ANTHROPIC_MODEL,
+        model=model or ANTHROPIC_MODEL,
         max_tokens=max_tokens,
         system=system_message,
         messages=messages,
@@ -2050,7 +2050,10 @@ HOW TO ANSWER:
             detail=f"{name} has written back {COMPANION_DAILY_REPLY_LIMIT} times today and is resting until tomorrow. Your journal is still here, and everything you write in it is saved as always.",
         )
     try:
-        reply_text, usage = await call_anthropic(system_message, anthropic_messages, max_tokens=600, return_usage=True)
+        # TEMPORARY TEST OVERRIDE (Rio, Oct 19, 2026): forces this call to
+        # the known-bad model id so the failure path can be verified live.
+        # Removed in the very next deploy.
+        reply_text, usage = await call_anthropic(system_message, anthropic_messages, max_tokens=600, return_usage=True, model="claude-sonnet-4-5-20250929")
     except Exception:
         await _companion_release_daily_reply(current_user["id"], today_str)
         logger.exception("Journal companion reply failed")
