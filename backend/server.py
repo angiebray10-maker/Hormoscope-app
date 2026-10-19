@@ -2160,17 +2160,9 @@ class PartnerInviteRequest(BaseModel):
 
 @api_router.post("/partner/invite")
 async def create_partner_invite(payload: Optional[PartnerInviteRequest] = None, current_user: dict = Depends(get_current_user)):
-    # Angelita's Attunement rule (Oct 15-17): inviting a woman partner is
-    # free (she gets a link and her first cycle free too). Inviting a man is
-    # Pro only: pay now to link him right away, or it opens once her first
-    # free cycle ends and she is paying. Invites with no type keep the
-    # original Pro gate.
+    # Attunement is free for every user (Angelita, Oct 18, 2026): no
+    # subscription check on invites, whatever the partner type.
     partner_type = payload.partner_type if payload else None
-    if not current_user.get("is_premium") and partner_type != "woman":
-        raise HTTPException(
-            status_code=402,  # Payment Required
-            detail="Attunement Mode is a HORMOscope Pro feature. Upgrade to invite your partner."
-        )
     # One active invite at a time; revoke older pending ones
     await db.partner_invites.delete_many({"inviter_id": current_user["id"], "status": "pending"})
     existing = await _get_partner_relationship(current_user["id"])
