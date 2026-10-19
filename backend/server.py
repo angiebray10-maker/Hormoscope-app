@@ -1832,6 +1832,20 @@ async def _companion_exchanges_for(user_id: str, date_str: str):
 async def get_companion_settings(current_user: dict = Depends(get_current_user)):
     return _companion_settings(current_user)
 
+@api_router.get("/journal/companion/gate-status")
+async def companion_gate_status(current_user: dict = Depends(get_current_user)):
+    """TEMPORARY diagnostic (Angelita, Oct 19, 2026): reports only whether
+    the test gate configuration is present and whether the caller matches.
+    Never returns environment values or secrets."""
+    raw = os.environ.get("COMPANION_TEST_EMAILS")
+    parsed = {e.strip().lower() for e in (raw or "").split(",") if e.strip()}
+    return {
+        "test_list_present": raw is not None and raw.strip() != "",
+        "test_list_count": len(parsed),
+        "caller_matches": (current_user.get("email") or "").strip().lower() in parsed,
+        "public_enabled": os.environ.get("COMPANION_PUBLIC_ENABLED", "").strip().lower() == "true",
+    }
+
 @api_router.put("/journal/companion")
 async def update_companion_settings(req: CompanionSettingsUpdate, current_user: dict = Depends(get_current_user)):
     updates = {}
