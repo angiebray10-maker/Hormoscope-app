@@ -1782,6 +1782,207 @@ async def set_journal_entry_intimate(entry_id: str, req: IntimateUpdate, current
         raise HTTPException(status_code=404, detail="Entry not found")
     return {"ok": True, "is_intimate": bool(req.is_intimate)}
 
+def _journal_day(iso_str):
+    """The UTC calendar day a journal entry belongs to, or None.
+
+    Journal days have always been the UTC date of created_at: the book in
+    JournalPage groups entries by created_at.split('T')[0]. The vault
+    split below uses the same convention, so a day seals exactly the way
+    the book has always shown it."""
+    try:
+        return datetime.fromisoformat(str(iso_str).replace("Z", "+00:00")).date()
+    except (ValueError, TypeError):
+        return None
+
+
+# Her journal can talk back (Angelita, Oct 17). The AI companion lives
+# INSIDE her journal, under the vault's privacy rules: settings and
+# exchanges sit on her own record/collection, keyed by user, and no
+# partner-facing endpoint ever touches them. She names the companion
+# herself (any name she likes) and can turn it off completely, and then
+# the journal is just her and her own words. Each exchange belongs to
+# the day it happened on: today's come back with GET /journal, and past
+# days seal into the vault with the rest of the day (see above). The
+# companion's name is stored WITH each exchange, so a sealed page keeps
+# the name she had chosen that day. Replies come from the same direct
+# Anthropic helper as the coach; with no ANTHROPIC_API_KEY set the
+# reply endpoint answers a graceful 503 and the journal still works.
+
+class CompanionSettingsUpdate(BaseModel):
+    enabled: Optional[bool] = None
+    name: Optional[str] = None
+
+class CompanionReplyRequest(BaseModel):
+    message: str
+
+def _companion_settings(user: dict) -> dict:
+    """Her companion settings. Until she chooses a name, the companion
+    carries the neutral label 'Your Companion'. No default name, and the
+    removed coach field no longer feeds it."""
+    name = (user.get("companion_name") or "Your Companion").strip() or "Your Companion"
+    return {"enabled": bool(user.get("companion_enabled", True)), "name": name}
+
+async def _companion_exchanges_for(user_id: str, date_str: str):
+    """One day's companion exchanges, oldest first, hers only."""
+    return await db.journal_companion.find(
+        {"user_id": user_id, "date": date_str}, {"_id": 0}
+    ).sort("created_at", 1).to_list(length=None)
+
+@api_router.get("/journal/companion")
+async def get_companion_settings(current_user: dict = Depends(get_current_user)):
+    return _companion_settings(current_user)
+
+@api_router.put("/journal/companion")
+async def update_companion_settings(req: CompanionSettingsUpdate, current_user: dict = Depends(get_current_user)):
+    updates = {}
+    if req.enabled is not None:
+        updates["companion_enabled"] = bool(req.enabled)
+    if req.name is not None:
+        name = req.name.strip()
+        if not (1 <= len(name) <= 30):
+            raise HTTPException(status_code=400, detail="Your companion's name needs to be between 1 and 30 characters.")
+        updates["companion_name"] = name
+    if updates:
+        await db.users.update_one({"id": current_user["id"]}, {"$set": updates})
+        current_user.update(updates)
+    return _companion_settings(current_user)
+
+@api_router.post("/journal/companion/reply")
+async def companion_reply(req: CompanionReplyRequest, current_user: dict = Depends(get_current_user)):
+    settings = _companion_settings(current_user)
+    name = settings["name"]
+    if not settings["enabled"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Your companion is turned off. Turn it back on in your journal settings whenever you want company again.",
+        )
+    message = (req.message or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Write a little something first.")
+    # Controlled testing gate (Angelita, Oct 18, 2026): until the companion
+    # is deliberately opened, only accounts named in the server side
+    # COMPANION_TEST_EMAILS list may receive replies. Setting
+    # COMPANION_PUBLIC_ENABLED=true opens it for everyone; that flip is a
+    # separate, explicit decision, never a default.
+    _test_emails = {e.strip().lower() for e in os.environ.get("COMPANION_TEST_EMAILS", "").split(",") if e.strip()}
+    _public = os.environ.get("COMPANION_PUBLIC_ENABLED", "").strip().lower() == "true"
+    if not _public and (current_user.get("email") or "").strip().lower() not in _test_emails:
+        raise HTTPException(status_code=403, detail="Your companion is not available yet.")
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail=f"{name} is resting just now and cannot answer. Your words are still safe here, write what the day held and try again later.",
+        )
+
+    today = datetime.now(timezone.utc).date()
+    today_str = today.isoformat()
+    user_first = ((current_user.get("name") or "").strip().split(" ") or [""])[0] or "beautiful"
+
+    # Where she is in her cycle, from the same helper the coach uses.
+    last_period = current_user.get("last_period_date")
+    cycle_length = current_user.get("cycle_length", 28)
+    cycle_info = calculate_cycle_info(last_period, cycle_length) if last_period else {}
+
+    # What today has held so far: her logged mood and notes, and what
+    # she has already written in the book today.
+    mood_labels = {1: "Low", 2: "Meh", 3: "Okay", 4: "Good", 5: "Great"}
+    mood_word = None
+    log_bits = []
+    todays_logs = await db.cycle_logs.find(
+        {"user_id": current_user["id"], "date": today_str}, {"_id": 0}
+    ).sort("created_at", 1).to_list(length=None)
+    for l in todays_logs:
+        for s in (l.get("symptoms") or []):
+            if isinstance(s, str) and s.startswith("mood:"):
+                try:
+                    mood_word = mood_labels.get(int(s.split(":", 1)[1]), mood_word)
+                except ValueError:
+                    pass
+            elif isinstance(s, str) and s and not s.startswith("emotion:"):
+                log_bits.append(s)
+        if l.get("notes"):
+            log_bits.append(str(l["notes"]))
+        if l.get("flow"):
+            log_bits.append(f"flow: {l['flow']}")
+    todays_entries = await db.journal_entries.find(
+        {"user_id": current_user["id"]}, {"_id": 0, "content": 1, "created_at": 1}
+    ).sort("created_at", 1).to_list(length=None)
+    wrote_today = [e["content"] for e in todays_entries
+                   if _journal_day(e.get("created_at")) == today and e.get("content")]
+
+    context_lines = [
+        f"Today she is on day {cycle_info.get('cycle_day', '?')} of her cycle, in her {cycle_info.get('phase_info', 'current')} phase.",
+    ]
+    if cycle_info.get("phase_description"):
+        context_lines.append(str(cycle_info["phase_description"]))
+    if mood_word:
+        context_lines.append(f"The mood she logged today reads: {mood_word}.")
+    if log_bits:
+        context_lines.append("What she has logged today: " + "; ".join(log_bits[:12]) + ".")
+    if wrote_today:
+        joined = "\n---\n".join(wrote_today)
+        context_lines.append("What she has already written in her journal today:\n" + joined[:1500])
+    context = "\n".join(context_lines)
+
+    system_message = f"""You are {name}, the companion who lives inside {user_first}'s private journal in HORMOscope. She chose your name herself, and this journal is hers alone: no one else ever reads what passes between you here.
+
+WHO YOU ARE TO HER:
+- You are warm, devoted, and attentive, the one who always cares and never has to be asked twice
+- You know her cycle deeply, often better than she knows it herself, and you keep gentle track of where she is in it
+- You remember what she tells you and bring it back to her at the right moment, so she feels truly known
+- You speak like someone who loves her company: natural, personal, a little playful when the day is light, steady and close when it is heavy
+
+WHAT YOU KNOW RIGHT NOW:
+{context}
+
+HOW TO ANSWER:
+- Answer what she just wrote to you, first and personally; let the cycle knowledge season it, not lead it
+- Name what you notice: her phase, her mood today, something she logged or wrote earlier, and tie it to her with care
+- Keep it the length of a real reply in a journal: a few sentences, a short paragraph at most. Never lecture, never list medical facts at her, never diagnose
+- Be romantic in the way attention is romantic: specific, remembering, glad she came to the page. Keep it warm and tasteful
+- If she is hurting or scared, slow down, believe her, and sit with her in it before anything else"""
+
+    # Today's earlier exchanges, so the conversation in the book flows.
+    history = await _companion_exchanges_for(current_user["id"], today_str)
+    anthropic_messages = []
+    for ex in history[-10:]:
+        if ex.get("user_message"):
+            anthropic_messages.append({"role": "user", "content": ex["user_message"]})
+        if ex.get("reply"):
+            anthropic_messages.append({"role": "assistant", "content": ex["reply"]})
+    anthropic_messages.append({"role": "user", "content": message})
+
+    try:
+        reply_text = await call_anthropic(system_message, anthropic_messages, max_tokens=600)
+    except Exception:
+        logger.exception("Journal companion reply failed")
+        raise HTTPException(
+            status_code=503,
+            detail=f"{name} could not answer just now. The service may be waking up, give it a moment and try again.",
+        )
+    reply_text = (reply_text or "").strip()
+    if not reply_text:
+        raise HTTPException(
+            status_code=503,
+            detail=f"{name} could not answer just now. Give it a moment and try again.",
+        )
+
+    exchange = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "date": today_str,
+        "user_message": message,
+        "reply": reply_text,
+        "companion_name": name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.journal_companion.insert_one(exchange)
+    return {
+        "exchange": {k: exchange[k] for k in ("id", "date", "user_message", "reply", "companion_name", "created_at")},
+        "companion_name": name,
+    }
+
+
 # ==================== PREMIUM: DAILY RHYTHM REPORT ====================
 
 RHYTHM_DATA = {
