@@ -1832,54 +1832,6 @@ async def _companion_exchanges_for(user_id: str, date_str: str):
 async def get_companion_settings(current_user: dict = Depends(get_current_user)):
     return _companion_settings(current_user)
 
-@api_router.get("/journal/companion/model-list")
-async def companion_model_list(current_user: dict = Depends(get_current_user)):
-    """TEMPORARY diagnostic (Angelita, Oct 19, 2026): asks Anthropic which
-    models this workspace key can see, using the server-side key only.
-    Returns model IDs and display names, never the key. Listing models is
-    not message generation and spends no generation credits."""
-    try:
-        client = get_anthropic_client()
-        page = await client.models.list(limit=100)
-        models = [
-            {"id": m.id, "display_name": getattr(m, "display_name", None)}
-            for m in (page.data or [])
-        ]
-        return {"count": len(models), "models": models}
-    except Exception as e:
-        return {"count": 0, "models": [], "error_type": type(e).__name__,
-                "status": getattr(e, "status_code", None)}
-
-
-@api_router.get("/journal/companion/gate-status")
-async def companion_gate_status(current_user: dict = Depends(get_current_user)):
-    """TEMPORARY diagnostic (Angelita, Oct 19, 2026): reports only whether
-    the test gate configuration is present and whether the caller matches.
-    Never returns environment values or secrets."""
-    raw = os.environ.get("COMPANION_TEST_EMAILS")
-    parsed = {e.strip().lower() for e in (raw or "").split(",") if e.strip()}
-    return {
-        "test_list_present": raw is not None and raw.strip() != "",
-        "test_list_count": len(parsed),
-        "caller_matches": (current_user.get("email") or "").strip().lower() in parsed,
-        "public_enabled": os.environ.get("COMPANION_PUBLIC_ENABLED", "").strip().lower() == "true",
-    }
-
-@api_router.put("/journal/companion")
-async def update_companion_settings(req: CompanionSettingsUpdate, current_user: dict = Depends(get_current_user)):
-    updates = {}
-    if req.enabled is not None:
-        updates["companion_enabled"] = bool(req.enabled)
-    if req.name is not None:
-        name = req.name.strip()
-        if not (1 <= len(name) <= 30):
-            raise HTTPException(status_code=400, detail="Your companion's name needs to be between 1 and 30 characters.")
-        updates["companion_name"] = name
-    if updates:
-        await db.users.update_one({"id": current_user["id"]}, {"$set": updates})
-        current_user.update(updates)
-    return _companion_settings(current_user)
-
 @api_router.post("/journal/companion/reply")
 async def companion_reply(req: CompanionReplyRequest, current_user: dict = Depends(get_current_user)):
     settings = _companion_settings(current_user)
