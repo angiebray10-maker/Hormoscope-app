@@ -1832,6 +1832,25 @@ async def _companion_exchanges_for(user_id: str, date_str: str):
 async def get_companion_settings(current_user: dict = Depends(get_current_user)):
     return _companion_settings(current_user)
 
+@api_router.get("/journal/companion/model-list")
+async def companion_model_list(current_user: dict = Depends(get_current_user)):
+    """TEMPORARY diagnostic (Angelita, Oct 19, 2026): asks Anthropic which
+    models this workspace key can see, using the server-side key only.
+    Returns model IDs and display names, never the key. Listing models is
+    not message generation and spends no generation credits."""
+    try:
+        client = get_anthropic_client()
+        page = await client.models.list(limit=100)
+        models = [
+            {"id": m.id, "display_name": getattr(m, "display_name", None)}
+            for m in (page.data or [])
+        ]
+        return {"count": len(models), "models": models}
+    except Exception as e:
+        return {"count": 0, "models": [], "error_type": type(e).__name__,
+                "status": getattr(e, "status_code", None)}
+
+
 @api_router.get("/journal/companion/gate-status")
 async def companion_gate_status(current_user: dict = Depends(get_current_user)):
     """TEMPORARY diagnostic (Angelita, Oct 19, 2026): reports only whether
