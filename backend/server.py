@@ -2080,7 +2080,7 @@ HOW TO ANSWER:
     }
     await db.journal_companion.insert_one(exchange)
     return {
-        "exchange": {k: exchange[k] for k in ("id", "date", "user_message", "reply", "companion_name", "created_at")},
+        "exchange": {k: exchange[k] for k in ("id", "date", "user_message", "reply", "companion_name", "input_tokens", "output_tokens", "created_at")},
         "companion_name": name,
     }
 
