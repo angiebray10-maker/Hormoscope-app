@@ -127,6 +127,7 @@ class UserResponse(BaseModel):
     last_period_date: Optional[str] = None
     profile_photo: Optional[str] = None
     is_premium: bool = False
+    companion_entitled: bool = False
     onboarding_complete: bool = False
     notifications_enabled: bool = True
     notification_time: str = "09:00"
@@ -521,6 +522,7 @@ def build_user_response(user: dict) -> UserResponse:
         last_period_date=user.get("last_period_date"),
         profile_photo=user.get("profile_photo"),
         is_premium=user.get("is_premium", False),
+        companion_entitled=user.get("companion_entitled", False),
         onboarding_complete=user.get("onboarding_complete", False),
         notifications_enabled=user.get("notifications_enabled", True),
         notification_time=user.get("notification_time", "09:00"),
@@ -1360,14 +1362,17 @@ async def stripe_webhook(request: Request):
 #  3. Set REVENUECAT_SECRET_API_KEY (secret key from RevenueCat dashboard) on the backend.
 
 REVENUECAT_ENTITLEMENT_ID = os.environ.get("REVENUECAT_ENTITLEMENT_ID", "pro")
+# Journal Companion access is verified ONLY against this entitlement,
+# independently of the legacy Pro entitlement above.
+REVENUECAT_COMPANION_ENTITLEMENT_ID = os.environ.get("REVENUECAT_COMPANION_ENTITLEMENT_ID", "journal_companion")
 REVENUECAT_SECRET_API_KEY = os.environ.get("REVENUECAT_SECRET_API_KEY", "")
 REVENUECAT_WEBHOOK_AUTH = os.environ.get("REVENUECAT_WEBHOOK_AUTH", "")
 
 
-def _revenuecat_entitlement_active(subscriber: dict) -> bool:
-    """True if the configured entitlement has a future (or lifetime) expiry."""
+def _entitlement_active(subscriber: dict, entitlement_id: str) -> bool:
+    """True if the given entitlement has a future (or lifetime) expiry."""
     entitlements = (subscriber or {}).get("entitlements", {})
-    ent = entitlements.get(REVENUECAT_ENTITLEMENT_ID) or {}
+    ent = entitlements.get(entitlement_id) or {}
     expires = ent.get("expires_date")
     if not expires:
         # No expiry field but entitlement present (e.g. lifetime) counts as active
@@ -1378,6 +1383,38 @@ def _revenuecat_entitlement_active(subscriber: dict) -> bool:
         return exp > datetime.now(timezone.utc)
     except (ValueError, TypeError):
         return False
+
+
+def _revenuecat_entitlement_active(subscriber: dict) -> bool:
+    return _entitlement_active(subscriber, REVENUECAT_ENTITLEMENT_ID)
+
+
+def _revenuecat_companion_active(subscriber: dict) -> bool:
+    return _entitlement_active(subscriber, REVENUECAT_COMPANION_ENTITLEMENT_ID)
+
+
+async def _set_companion_from_revenuecat(user_id: str, entitled: bool):
+    """Record Journal Companion entitlement from RevenueCat. This flag, not
+    is_premium, is what the companion reply gate accepts alongside the
+    private test list (Angelita, Oct 19, 2026)."""
+    now = datetime.now(timezone.utc).isoformat()
+    if entitled:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {
+                "companion_entitled": True,
+                "companion_entitlement_source": "revenuecat",
+                "companion_entitled_at": now,
+            }},
+        )
+    else:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {
+                "companion_entitled": False,
+                "companion_entitlement_source": "revenuecat_expired",
+            }},
+        )
 
 
 async def _set_premium_from_revenuecat(user_id: str, is_pro: bool):
@@ -1423,12 +1460,16 @@ async def revenuecat_sync(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=502, detail="Could not verify subscription")
     if r.status_code == 404:
         await _set_premium_from_revenuecat(app_user_id, False)
-        return {"is_premium": False}
+        await _set_companion_from_revenuecat(app_user_id, False)
+        return {"is_premium": False, "companion_entitled": False}
     if r.status_code != 200:
         raise HTTPException(status_code=502, detail="Could not verify subscription")
-    is_pro = _revenuecat_entitlement_active(r.json().get("subscriber", {}))
+    subscriber = r.json().get("subscriber", {})
+    is_pro = _revenuecat_entitlement_active(subscriber)
     await _set_premium_from_revenuecat(app_user_id, is_pro)
-    return {"is_premium": is_pro}
+    companion_entitled = _revenuecat_companion_active(subscriber)
+    await _set_companion_from_revenuecat(app_user_id, companion_entitled)
+    return {"is_premium": is_pro, "companion_entitled": companion_entitled}
 
 
 @api_router.post("/webhooks/revenuecat")
@@ -1447,12 +1488,22 @@ async def revenuecat_webhook(request: Request):
     event_type = event.get("type")
     app_user_id = event.get("app_user_id")
     entitlement_ids = event.get("entitlement_ids") or []
-    if not app_user_id or REVENUECAT_ENTITLEMENT_ID not in entitlement_ids:
+    if event.get("entitlement_id") and event["entitlement_id"] not in entitlement_ids:
+        entitlement_ids = entitlement_ids + [event["entitlement_id"]]
+    if not app_user_id:
         return {"ok": True}
-    if event_type in ("INITIAL_PURCHASE", "RENEWAL", "UNCANCELLATION", "TRANSFER", "SUBSCRIPTION_EXTENDED"):
-        await _set_premium_from_revenuecat(app_user_id, True)
-    elif event_type == "EXPIRATION":
-        await _set_premium_from_revenuecat(app_user_id, False)
+    grant_events = ("INITIAL_PURCHASE", "RENEWAL", "UNCANCELLATION", "TRANSFER", "SUBSCRIPTION_EXTENDED", "PRODUCT_CHANGE")
+    if REVENUECAT_ENTITLEMENT_ID in entitlement_ids:
+        if event_type in grant_events:
+            await _set_premium_from_revenuecat(app_user_id, True)
+        elif event_type == "EXPIRATION":
+            await _set_premium_from_revenuecat(app_user_id, False)
+    # Journal Companion: verified only against its own entitlement.
+    if REVENUECAT_COMPANION_ENTITLEMENT_ID in entitlement_ids:
+        if event_type in grant_events:
+            await _set_companion_from_revenuecat(app_user_id, True)
+        elif event_type == "EXPIRATION":
+            await _set_companion_from_revenuecat(app_user_id, False)
     # CANCELLATION / BILLING_ISSUE: access continues until expiry; no change.
     return {"ok": True}
 
@@ -1947,7 +1998,11 @@ async def companion_reply(req: CompanionReplyRequest, current_user: dict = Depen
     # separate, explicit decision, never a default.
     _test_emails = {e.strip().lower() for e in os.environ.get("COMPANION_TEST_EMAILS", "").split(",") if e.strip()}
     _public = os.environ.get("COMPANION_PUBLIC_ENABLED", "").strip().lower() == "true"
-    if not _public and (current_user.get("email") or "").strip().lower() not in _test_emails:
+    # Access paths (Oct 19, 2026): the private test list, a verified
+    # journal_companion entitlement synced from RevenueCat, or the separate
+    # deliberate public flip. Pro status (is_premium) never grants access.
+    _entitled = bool(current_user.get("companion_entitled"))
+    if not _public and not _entitled and (current_user.get("email") or "").strip().lower() not in _test_emails:
         raise HTTPException(status_code=403, detail="Your companion is not available yet.")
     if not ANTHROPIC_API_KEY:
         raise HTTPException(
