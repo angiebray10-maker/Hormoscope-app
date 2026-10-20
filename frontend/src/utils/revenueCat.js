@@ -63,6 +63,17 @@ async function loadPurchases() {
   }
 }
 
+// The native billing plugin can hang indefinitely when Google Play services
+// are unavailable (Angelita hit a stuck Restore and a never-loading price on
+// Oct 20, 2026). Every billing call is raced against a timeout so the UI
+// always settles with an answer she can act on or show me.
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), ms)),
+  ]);
+}
+
 // Configure RevenueCat once and attach it to our backend user id so purchases
 // follow the user across devices. Safe to call repeatedly.
 export async function ensureRevenueCatUser(appUserId) {
@@ -191,39 +202,47 @@ function companionPeriodText(pkg) {
 
 // The monthly package from the dedicated journal_companion offering (never
 // the current/default offering), with the real Google Play price attached.
-export async function getCompanionPackage() {
-  if (!isBillingConfigured()) return null;
+// Always resolves to a detailed result: { pkg, priceString, periodText,
+// error }. When pkg is null, error carries the real reason so the purchase
+// screen can show it and offer a retry instead of a dead disabled button.
+export async function getCompanionPackage(appUserId) {
+  const fail = (error) => ({ pkg: null, priceString: '', periodText: '/month', error });
+  if (!isBillingConfigured()) return fail('Purchases are available in the Android app.');
+  // Configure before fetching offerings: on a cold screen this used to race
+  // the context-level configure and come back empty.
+  if (appUserId) await ensureRevenueCatUser(appUserId);
   const P = await loadPurchases();
-  if (!P) return null;
+  if (!P) return fail('Purchases are not available on this device.');
   try {
-    const offerings = await P.getOfferings();
+    const offerings = await withTimeout(P.getOfferings(), 25000, 'Loading the subscription');
     const offering = offerings?.all?.[COMPANION_OFFERING_ID] || null;
-    if (!offering) return null;
+    if (!offering) return fail('The Journal Companion offering could not be found in Google Play yet.');
     const pkgs = offering.availablePackages || [];
     const monthly = pkgs.find((p) => (p.packageType || '').toUpperCase() === 'MONTHLY')
       || pkgs.find((p) => p.identifier === '$rc_monthly')
       || pkgs[0];
-    if (!monthly) return null;
+    if (!monthly) return fail('The Journal Companion plan is not available in Google Play yet.');
     return {
       pkg: monthly,
       priceString: monthly.product?.priceString || '',
       periodText: companionPeriodText(monthly),
+      error: null,
     };
-  } catch {
-    return null;
+  } catch (err) {
+    return fail((err && err.message) || 'The subscription could not be loaded from Google Play.');
   }
 }
 
 // Returns { status: 'active' | 'pending' | 'cancelled' | 'error', info?, message? }
 // 'pending' covers Google Play deferred/pending payments: the purchase went
 // through but the entitlement is not active until Google completes it.
-export async function purchaseCompanion() {
-  const found = await getCompanionPackage();
-  if (!found) return { status: 'error', message: 'The subscription is not available right now.' };
+export async function purchaseCompanion(appUserId) {
+  const found = await getCompanionPackage(appUserId);
+  if (!found || !found.pkg) return { status: 'error', message: (found && found.error) || 'The subscription is not available right now.' };
   const P = await loadPurchases();
   if (!P) return { status: 'error', message: 'Purchases are not available on this device.' };
   try {
-    const { customerInfo } = await P.purchasePackage({ aPackage: found.pkg });
+    const { customerInfo } = await withTimeout(P.purchasePackage({ aPackage: found.pkg }), 300000, 'The purchase');
     const info = companionEntitlementInfo(customerInfo);
     if (info.active) return { status: 'active', info };
     return { status: 'pending' };
@@ -231,6 +250,7 @@ export async function purchaseCompanion() {
     if (err && err.userCancelled) return { status: 'cancelled' };
     const text = `${(err && err.code) || ''} ${(err && err.message) || ''}`.toLowerCase();
     if (text.includes('pending')) return { status: 'pending' };
+    if (text.includes('timed out')) return { status: 'error', message: 'The purchase did not finish. If Google Play completed it, tap Restore Purchases below.' };
     return { status: 'error', message: (err && err.message) || 'Purchase could not be completed.' };
   }
 }
@@ -241,11 +261,12 @@ export async function restoreCompanion() {
   const P = await loadPurchases();
   if (!P) return { status: 'error', message: 'Purchases are not available on this device.' };
   try {
-    const { customerInfo } = await P.restorePurchases();
+    const { customerInfo } = await withTimeout(P.restorePurchases(), 30000, 'Restore');
     const info = companionEntitlementInfo(customerInfo);
     return info.active ? { status: 'active', info } : { status: 'none' };
   } catch (err) {
-    return { status: 'error', message: (err && err.message) || 'Restore could not be completed.' };
+    const timedOut = err && /timed out/.test(err.message || '');
+    return { status: 'error', message: timedOut ? 'Restore is taking too long. Check your connection and try again.' : ((err && err.message) || 'Restore could not be completed.') };
   }
 }
 

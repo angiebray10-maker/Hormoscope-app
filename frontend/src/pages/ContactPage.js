@@ -83,7 +83,7 @@ export default function ContactPage() {
               → Cycle Calendar
             </Link>
             <Link to="/pro" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
-              → Premium Features
+              → Journal Companion
             </Link>
             <Link to="/privacy" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
               → Privacy Policy

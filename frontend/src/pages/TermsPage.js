@@ -71,13 +71,14 @@ export default function TermsPage() {
 
         <section>
           <h2 className="text-lg font-semibold text-[#F5F5F5] mb-3" >
-            Premium Subscription
+            Journal Companion Subscription
           </h2>
           <ul className="list-disc list-inside space-y-2">
-            <li>Premium subscription is billed monthly at $6.99 USD</li>
-            <li>You can cancel your subscription at any time</li>
+            <li>HORMOscope is free. The one optional subscription is Journal Companion, billed monthly at $9.99 USD through Google Play</li>
+            <li>Every eligible account receives 3 complimentary Journal Companion messages, one time</li>
+            <li>You can cancel your subscription at any time in Google Play</li>
             <li>Refunds are handled on a case-by-case basis</li>
-            <li>Premium features are available immediately upon payment</li>
+            <li>Journal Companion is available immediately upon payment</li>
           </ul>
         </section>
 

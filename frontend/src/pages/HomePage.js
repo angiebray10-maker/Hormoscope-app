@@ -51,7 +51,7 @@ const phases = {
 
 export default function HomePage() {
   const { user, token } = useAuth();
-  const { isPro, refreshCustomerInfo } = usePremium();
+  const { refreshCustomerInfo, companionEntitled } = usePremium();
   const [data, setData] = useState(null);
   const [cycleLogs, setCycleLogs] = useState(null);
   const [openPhaseCard, setOpenPhaseCard] = useState(null);
@@ -263,9 +263,9 @@ export default function HomePage() {
       {paymentBanner && (
         <div className={`card p-4 mb-6 border ${paymentBanner === 'success' ? 'border-[#D4A853]/40 bg-[#D4A853]/10' : paymentBanner === 'failed' ? 'border-[#ff6b6b]/30 bg-[#ff6b6b]/5' : 'border-white/20 bg-white/5'}`} data-testid={`payment-banner-${paymentBanner}`}>
           <p className="text-sm text-white">
-            {paymentBanner === 'pending' && 'Confirming your payment with Stripe…'}
-            {paymentBanner === 'success' && '✨ Welcome to HORMOscope Pro! Your subscription is active.'}
-            {paymentBanner === 'failed' && 'We couldn\'t confirm your payment yet. If you completed checkout, refresh in a minute — your Pro access will activate automatically.'}
+            {paymentBanner === 'pending' && 'Confirming your payment…'}
+            {paymentBanner === 'success' && '✨ Your subscription is active. Welcome in.'}
+            {paymentBanner === 'failed' && 'We couldn\'t confirm your payment yet. If you completed checkout, refresh in a minute and your access will activate automatically.'}
           </p>
         </div>
       )}
@@ -411,15 +411,14 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Your Daily Read — Pro */}
-      {isPro && (
-        <div className="mb-4">
-          <DailyRead />
-        </div>
-      )}
+      {/* Your Daily Read is FREE for everyone (Angelita's model, Oct 18,
+          2026; the backend serves it without any gate). No Pro check here. */}
+      <div className="mb-4">
+        <DailyRead />
+      </div>
 
-      {/* Subtle upgrade hint for free users — ONE small card, not a giant paywall */}
-      {!isPro && (
+      {/* One small Journal Companion pointer for non-subscribers, never a paywall */}
+      {!companionEntitled && (
         <div className="mb-4">
           <ProUpsellBanner context="dashboard" compact />
         </div>

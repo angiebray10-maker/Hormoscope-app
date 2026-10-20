@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { User, LogOut, ChevronRight, Shield, FileText, Sparkles, Mail, Camera, Loader2, Crown, Heart, BookOpen, Trash2 } from 'lucide-react';
+import { User, LogOut, ChevronRight, Shield, FileText, Sparkles, Mail, Camera, Loader2, Heart, BookOpen, Trash2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -12,7 +12,8 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const APP_URL = process.env.REACT_APP_BACKEND_URL?.replace('/api', '') || window.location.origin;
 
 function AttunedSection({ token }) {
-  const { isPro } = usePremium();
+  // Attunement Mode is FREE for everyone (Angelita, Oct 18, 2026): no Pro
+  // gate anywhere on this section; the invite always shows.
   const [status, setStatus] = useState(null);
   const [inviteCode, setInviteCode] = useState(null);
   const [generating, setGenerating] = useState(false);
@@ -110,19 +111,14 @@ function AttunedSection({ token }) {
           <p className="text-[#9A8B91] text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Link his account to yours so he can follow your cycle — ovulation days, fertile window, and when to expect your period.
           </p>
-          {isPro ? (
-            <button onClick={handleInvite} disabled={generating}
-              className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50"
-              style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}>
-              {generating ? 'Creating invite...' : 'Invite Your Partner'}
-            </button>
-          ) : (
-            <Link to="/pro?from=partner-invite"
-              className="block w-full py-2.5 rounded-full text-white text-sm font-medium text-center"
-              style={{ fontFamily: 'Poppins, sans-serif', background: 'linear-gradient(135deg, #D4A853, #c9a030)' }}>
-              Unlock with HORMOscope Pro
-            </Link>
-          )}
+          <button onClick={handleInvite} disabled={generating}
+            className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50"
+            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}>
+            {generating ? 'Creating invite...' : 'Invite Your Partner'}
+          </button>
+          <p className="text-[#9A8B91] text-[11px] mt-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            Attunement Mode is free for everyone.
+          </p>
         </div>
       )}
     </div>
@@ -131,7 +127,7 @@ function AttunedSection({ token }) {
 
 export default function ProfilePage() {
   const { user, token, logout, updateUser } = useAuth();
-  const { isPro } = usePremium();
+  const { companionEntitled } = usePremium();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [saving, setSaving] = useState(false);
@@ -384,38 +380,39 @@ export default function ProfilePage() {
         </Link>
       </div>
 
-      {/* Pro Upgrade */}
-      {!isPro && (
+      {/* Journal Companion: the ONE subscription in HORMOscope (Angelita,
+          Oct 20, 2026). Everything else in the app is free. This entry point
+          replaces the old Pro upgrade card. */}
+      {!companionEntitled ? (
         <Link
           to="/pro"
           className="glass-card p-5 mb-6 flex items-center justify-between border border-[#7b4fa6]/30 hover:border-[#7b4fa6]/60 transition-all block"
-          data-testid="upgrade-pro-btn"
+          data-testid="journal-companion-entry"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#7b4fa6]/20 flex items-center justify-center">
-              <Crown className="w-5 h-5 text-[#c9b8f0]" />
+              <BookOpen className="w-5 h-5 text-[#c9b8f0]" />
             </div>
             <div>
-              <p className="text-[#F4D3DC] text-sm font-medium">Upgrade to Pro</p>
-              <p className="text-[#9A8B91] text-xs">Unlock all premium features</p>
+              <p className="text-[#F4D3DC] text-sm font-medium">Journal Companion</p>
+              <p className="text-[#9A8B91] text-xs">Your Journey&apos;s Companion. $9.99/month, first 3 messages free. Everything else in HORMOscope is free.</p>
             </div>
           </div>
           <ChevronRight className="w-5 h-5 text-[#7b4fa6]" />
         </Link>
-      )}
-      {isPro && (
-        <Link to="/pro" className="block mb-6 rounded-xl p-4" style={{ border: '2px solid #D4A853', background: 'rgba(212,168,83,0.06)' }}>
+      ) : (
+        <Link to="/pro" className="block mb-6 rounded-xl p-4" style={{ border: '2px solid #D4A853', background: 'rgba(212,168,83,0.06)' }} data-testid="journal-companion-active">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(212,168,83,0.15)' }}>
-              <Crown className="w-5 h-5" style={{ color: '#D4A853' }} />
+              <BookOpen className="w-5 h-5" style={{ color: '#D4A853' }} />
             </div>
             <div>
-              <p className="text-sm font-medium" style={{ color: '#D4A853', fontFamily: 'Poppins, sans-serif' }}>HORMOscope Pro</p>
-              <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Your Pro Self, Cycle by Cycle</p>
+              <p className="text-sm font-medium" style={{ color: '#D4A853', fontFamily: 'Poppins, sans-serif' }}>Journal Companion</p>
+              <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Your Journey&apos;s Companion. Your subscription is active.</p>
             </div>
           </div>
           <div className="w-full py-2.5 rounded-full text-white text-sm font-semibold text-center" style={{ fontFamily: 'Poppins, sans-serif', background: 'linear-gradient(135deg, #D4A853, #c9a030)', border: '1px solid #D4A853' }}>
-            View Your Pro Features
+            View Journal Companion
           </div>
         </Link>
       )}
@@ -461,7 +458,7 @@ export default function ProfilePage() {
                 </ul>
                 <p className="text-sm text-[#CDBEC6] leading-relaxed mb-3">
                   This cannot be undone, and your email will no longer sign in. If you have a
-                  HORMOscope Pro subscription through Google Play, cancel it in Google Play
+                  Journal Companion subscription through Google Play, cancel it in Google Play
                   too, deleting your account does not cancel Play billing. Billing records
                   the law requires are kept without your name or email.
                 </p>

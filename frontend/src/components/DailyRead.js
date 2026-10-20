@@ -63,7 +63,7 @@ export default function DailyRead() {
     <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #D4A853', background: 'linear-gradient(135deg, rgba(212,168,83,0.10) 0%, rgba(212,168,83,0.03) 100%)' }} data-testid="daily-read">
       <div className="px-3 pt-2.5 pb-0.5 flex items-center gap-1.5">
         <span style={{ color: '#D4A853', fontSize: '9px' }}>✿</span>
-        <span className="text-[10px]" style={{ fontFamily: "'Poiret One', cursive", color: '#D4A853' }}>HORMOscope Pro</span>
+        <span className="text-[10px]" style={{ fontFamily: "'Poiret One', cursive", color: '#D4A853' }}>HORMOscope</span>
         <span style={{ color: '#D4A853', fontSize: '9px' }}>✿</span>
       </div>
       <div className="text-center pt-1 pb-1">

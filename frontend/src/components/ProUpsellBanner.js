@@ -1,20 +1,23 @@
 import React from 'react';
-import { Crown, Lock, ChevronRight } from 'lucide-react';
+import { Sparkles, Lock, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePremium } from '../context/PremiumContext';
 
+// Despite the file name, this banner only ever points at the Journal
+// Companion, the one subscription in HORMOscope. It hides for companion
+// subscribers (and legacy Pro state) so it never nags someone who paid.
 export default function ProUpsellBanner({ context, compact }) {
-  const { isPro } = usePremium();
-  if (isPro) return null;
+  const { isPro, companionEntitled } = usePremium();
+  if (isPro || companionEntitled) return null;
 
   const messages = {
     dashboard: {
       title: 'Meet your journal companion',
-      subtitle: 'The one planned HORMOscope subscription lives in your private Journal. Everything else is free.',
+      subtitle: 'The one HORMOscope subscription lives in your private Journal. Everything else is free.',
     },
     calendar: {
       title: 'Meet your journal companion',
-      subtitle: 'The one planned HORMOscope subscription lives in your private Journal. Everything else is free.',
+      subtitle: 'The one HORMOscope subscription lives in your private Journal. Everything else is free.',
     },
     journal: {
       title: 'Meet your journal companion',
@@ -22,7 +25,7 @@ export default function ProUpsellBanner({ context, compact }) {
     },
     default: {
       title: 'Meet your journal companion',
-      subtitle: 'The one planned HORMOscope subscription lives in your private Journal. Everything else is free.',
+      subtitle: 'The one HORMOscope subscription lives in your private Journal. Everything else is free.',
     },
   };
 
@@ -36,7 +39,7 @@ export default function ProUpsellBanner({ context, compact }) {
         data-testid={`pro-upsell-${context}`}
       >
         <div className="w-9 h-9 rounded-full bg-[#f4a7b9]/15 flex items-center justify-center flex-shrink-0">
-          <Crown className="w-4.5 h-4.5 text-[#f4a7b9]" />
+          <Sparkles className="w-4.5 h-4.5 text-[#f4a7b9]" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-white text-xs font-medium truncate" style={{ fontFamily: 'Poppins, sans-serif' }}>{msg.title}</p>
@@ -64,8 +67,8 @@ export default function ProUpsellBanner({ context, compact }) {
           </div>
         </div>
         <div className="mt-4 flex items-center justify-center gap-2 py-2.5 rounded-full text-white text-xs font-medium" style={{ fontFamily: 'Poppins, sans-serif', background: 'linear-gradient(135deg, #D4A853, #c9a030)' }}>
-          <Crown className="w-3.5 h-3.5" />
-          See Pro Plans
+          <Sparkles className="w-3.5 h-3.5" />
+          See Journal Companion
         </div>
       </div>
     </Link>

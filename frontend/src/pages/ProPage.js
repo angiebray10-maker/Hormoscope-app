@@ -46,6 +46,7 @@ export default function ProPage() {
   const [expandedFeature, setExpandedFeature] = useState(null);
   const [companionPkg, setCompanionPkg] = useState(null);
   const [pkgLoading, setPkgLoading] = useState(false);
+  const [pkgError, setPkgError] = useState('');
   const [status, setStatus] = useState('');
   const nativeBilling = isBillingConfigured();
 
@@ -56,20 +57,31 @@ export default function ProPage() {
 
   // Native: load the dedicated journal_companion offering's monthly package.
   // The price shown is the real Google Play price, read through RevenueCat.
+  // getCompanionPackage always settles now (timeout inside), and a failed
+  // first load retries itself once: on Oct 20, 2026 a hanging billing call
+  // left this screen with no price and a permanently disabled Subscribe.
+  const loadPkg = React.useCallback(async (isRetry) => {
+    setPkgLoading(true);
+    const found = await getCompanionPackage(user?.id);
+    if (found && found.pkg) {
+      setCompanionPkg(found);
+      setPkgError('');
+      setPkgLoading(false);
+      return;
+    }
+    if (!isRetry) {
+      setTimeout(() => loadPkg(true), 2500);
+      return;
+    }
+    setCompanionPkg(null);
+    setPkgError((found && found.error) || 'The subscription could not be loaded from Google Play.');
+    setPkgLoading(false);
+  }, [user?.id]);
+
   useEffect(() => {
     if (!nativeBilling) return;
-    let cancelled = false;
-    (async () => {
-      setPkgLoading(true);
-      await ensureRevenueCatUser(user?.id);
-      const found = await getCompanionPackage();
-      if (!cancelled) {
-        setCompanionPkg(found);
-        setPkgLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [nativeBilling, user?.id]);
+    loadPkg(false);
+  }, [nativeBilling, loadPkg]);
 
   // After any purchase or restore, ask our backend to verify with
   // RevenueCat server-side and refresh both entitlement views.
@@ -92,7 +104,7 @@ export default function ProPage() {
     trackEvent(token, 'companion_purchase_start', '', 'journal_companion_monthly');
     try {
       await ensureRevenueCatUser(user?.id);
-      const result = await purchaseCompanion();
+      const result = await purchaseCompanion(user?.id);
       if (result.status === 'active') {
         trackEvent(token, 'companion_purchase_success', '', 'journal_companion_monthly');
         await syncWithBackend();
@@ -104,7 +116,7 @@ export default function ProPage() {
         setStatus('');
       } else {
         trackEvent(token, 'companion_purchase_failed', result.message || '', 'journal_companion_monthly');
-        setStatus('That purchase could not be completed. Nothing was charged. Please try again.');
+        setStatus(result.message ? `${result.message} Nothing was charged.` : 'That purchase could not be completed. Nothing was charged. Please try again.');
       }
     } catch {
       setStatus('That purchase could not be completed. Nothing was charged. Please try again.');
@@ -126,7 +138,7 @@ export default function ProPage() {
       } else if (result.status === 'none') {
         setStatus('No Journal Companion subscription was found for this Google account.');
       } else {
-        setStatus('Restore could not be completed. Please try again.');
+        setStatus(result.message || 'Restore could not be completed. Please try again.');
       }
     } finally {
       setRestoring(false);
@@ -302,11 +314,20 @@ export default function ProPage() {
             <p className="text-xs mt-3 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }} data-testid="companion-status">{status}</p>
           )}
 
+          {nativeBilling && !companionPkg && !pkgLoading && pkgError && (
+            <div className="mt-3" data-testid="companion-pkg-error">
+              <p className="text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: '#FF8FA3' }}>
+                Google Play did not load the subscription just now. The price is $9.99/month, and Google Play will show it again before you pay.
+              </p>
+              <p className="text-[10px] mt-1 break-words" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.35)' }}>{pkgError}</p>
+            </div>
+          )}
+
           {nativeBilling ? (
             <>
               <button
                 data-testid="companion-subscribe-btn"
-                onClick={handleCompanionPurchase}
+                onClick={companionPkg ? handleCompanionPurchase : () => loadPkg(false)}
                 disabled={purchasing || pkgLoading}
                 className="w-full mt-4 py-3 rounded-full font-semibold text-sm text-white transition-all disabled:opacity-60"
                 style={{ fontFamily: 'Poppins, sans-serif', background: 'linear-gradient(135deg, #D4A853, #c9a030)', boxShadow: '0 0 25px rgba(212,168,83,0.3)' }}
@@ -316,8 +337,15 @@ export default function ProPage() {
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Opening Google Play...
                   </span>
-                ) : (
+                ) : pkgLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading from Google Play...
+                  </span>
+                ) : companionPkg ? (
                   'Subscribe'
+                ) : (
+                  'Reload Subscription'
                 )}
               </button>
               <button

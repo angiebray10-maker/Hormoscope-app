@@ -1,13 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, MessageCircle, Calendar, User, BookOpen, BookHeart, Crown, Heart } from 'lucide-react';
+import { Home, MessageCircle, Calendar, User, BookOpen, BookHeart, Sparkles, Heart } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/devotional', icon: BookHeart, label: 'Devotional' },
   { path: '/journal', icon: BookOpen, label: 'Journal' },
   { path: '/attunement', icon: Heart, label: 'Attunement' },
-  { path: '/pro', icon: Crown, label: 'Pro' },
+  { path: '/pro', icon: Sparkles, label: 'Companion' },
   { path: '/calendar', icon: Calendar, label: 'Calendar' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
