@@ -122,9 +122,9 @@ export default function GuidePage() {
             <h2 className="text-xl sm:text-2xl text-white mb-3">Journal Companion</h2>
             <p>
               HORMOscope is a free app: cycle tracking, your Calendar, your Daily Read, your Journal and
-              Vault, and Attunement are all free. The one feature we plan to offer as a subscription is the
-              companion inside your Journal, at $4.99 a month. Its billing is not switched on yet, and
-              nothing else in the app sits behind it.
+              Vault, and Attunement are all free. The one subscription is Journal Companion, Your
+              Journey&apos;s Companion, inside your Journal, at $9.99 a month through Google Play. Your
+              first 2 messages with your companion are free, and nothing else in the app sits behind it.
             </p>
           </section>
 

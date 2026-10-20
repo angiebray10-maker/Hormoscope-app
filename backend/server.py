@@ -1976,6 +1976,67 @@ async def _companion_exchanges_for(user_id: str, date_str: str):
 COMPANION_MESSAGE_CHAR_LIMIT = 1000
 COMPANION_DAILY_REPLY_LIMIT = 30
 COMPANION_MIN_SECONDS_BETWEEN_REQUESTS = 5
+# Free introduction (Angelita, Oct 20, 2026): every eligible account gets
+# exactly COMPANION_FREE_MESSAGE_LIMIT real companion replies in total,
+# for the life of the account, before the subscription is required. The
+# allowance is enforced here on the server, per account, from the saved
+# exchanges themselves: a successful reply is stored as one exchange, so
+# reinstalling, clearing app data, or switching devices can never reset
+# it, and a failed AI call stores nothing and never burns a free reply.
+COMPANION_FREE_MESSAGE_LIMIT = 2
+COMPANION_SUBSCRIBE_REQUIRED_DETAIL = (
+    "Your free companion messages are used. Subscribe to Journal Companion "
+    "to keep writing together."
+)
+
+
+def _companion_access(user: dict) -> dict:
+    """Who may receive companion replies without using the free allowance:
+    an account on the private COMPANION_TEST_EMAILS list, an account with a
+    verified journal_companion entitlement synced from RevenueCat, or
+    everyone while COMPANION_PUBLIC_ENABLED is deliberately on. Pro status
+    (is_premium) never grants access."""
+    test_emails = {e.strip().lower() for e in os.environ.get("COMPANION_TEST_EMAILS", "").split(",") if e.strip()}
+    entitled = bool(user.get("companion_entitled"))
+    test_listed = (user.get("email") or "").strip().lower() in test_emails
+    public = os.environ.get("COMPANION_PUBLIC_ENABLED", "").strip().lower() == "true"
+    return {
+        "entitled": entitled,
+        "test_listed": test_listed,
+        "public_enabled": public,
+        "has_access": bool(entitled or test_listed or public),
+    }
+
+
+async def _companion_free_used(user_id: str) -> int:
+    """Total companion replies this account has ever received. Every
+    successful reply is saved as exactly one journal_companion exchange,
+    so the exchange count IS the lifetime reply count, on any device."""
+    try:
+        return int(await db.journal_companion.count_documents({"user_id": user_id}))
+    except AttributeError:
+        docs = await db.journal_companion.find({"user_id": user_id}, {"_id": 1}).to_list(length=None)
+        return len(docs)
+
+
+async def _companion_status(user: dict) -> dict:
+    """Companion settings plus the account's subscription and free
+    allowance state, so the app can show the right thing up front: the
+    chat box while free messages remain, and the subscription offer once
+    they are used, instead of a refusal after she hits send."""
+    status = _companion_settings(user)
+    access = _companion_access(user)
+    free_used = await _companion_free_used(user["id"])
+    free_remaining = max(0, COMPANION_FREE_MESSAGE_LIMIT - free_used)
+    status.update({
+        "subscribed": access["entitled"],
+        "has_access": access["has_access"],
+        "free_limit": COMPANION_FREE_MESSAGE_LIMIT,
+        "free_used": free_used,
+        "free_remaining": free_remaining,
+        "needs_subscription": not access["has_access"] and free_remaining == 0,
+    })
+    return status
 
 
 async def _companion_claim_rate_slot(user_id: str) -> bool:
@@ -2052,7 +2113,7 @@ async def _companion_record_reply(user_id: str, date_str: str, usage: dict):
 
 @api_router.get("/journal/companion")
 async def get_companion_settings(current_user: dict = Depends(get_current_user)):
-    return _companion_settings(current_user)
+    return await _companion_status(current_user)
 
 @api_router.post("/journal/companion/reply")
 async def companion_reply(req: CompanionReplyRequest, current_user: dict = Depends(get_current_user)):
@@ -2066,19 +2127,21 @@ async def companion_reply(req: CompanionReplyRequest, current_user: dict = Depen
     message = (req.message or "").strip()
     if not message:
         raise HTTPException(status_code=400, detail="Write a little something first.")
-    # Controlled testing gate (Angelita, Oct 18, 2026): until the companion
-    # is deliberately opened, only accounts named in the server side
-    # COMPANION_TEST_EMAILS list may receive replies. Setting
-    # COMPANION_PUBLIC_ENABLED=true opens it for everyone; that flip is a
-    # separate, explicit decision, never a default.
-    _test_emails = {e.strip().lower() for e in os.environ.get("COMPANION_TEST_EMAILS", "").split(",") if e.strip()}
-    _public = os.environ.get("COMPANION_PUBLIC_ENABLED", "").strip().lower() == "true"
-    # Access paths (Oct 19, 2026): the private test list, a verified
-    # journal_companion entitlement synced from RevenueCat, or the separate
-    # deliberate public flip. Pro status (is_premium) never grants access.
-    _entitled = bool(current_user.get("companion_entitled"))
-    if not _public and not _entitled and (current_user.get("email") or "").strip().lower() not in _test_emails:
-        raise HTTPException(status_code=403, detail="Your companion is not available yet.")
+    # Access gate (Angelita, Oct 20, 2026): subscribers, private test
+    # accounts, and the deliberate public flip keep full access under the
+    # paid limits below. Every other eligible account may receive up to
+    # COMPANION_FREE_MESSAGE_LIMIT real replies in total, counted on the
+    # server from its saved exchanges. Once those are used, messaging
+    # stops until the account subscribes: there is no ongoing free AI
+    # tier, and the allowance never resets per day, device, or reinstall.
+    _access = _companion_access(current_user)
+    _using_free_allowance = False
+    _free_used_before = 0
+    if not _access["has_access"]:
+        _free_used_before = await _companion_free_used(current_user["id"])
+        if _free_used_before >= COMPANION_FREE_MESSAGE_LIMIT:
+            raise HTTPException(status_code=403, detail=COMPANION_SUBSCRIBE_REQUIRED_DETAIL)
+        _using_free_allowance = True
     if not ANTHROPIC_API_KEY:
         raise HTTPException(
             status_code=503,
@@ -2209,9 +2272,20 @@ HOW TO ANSWER:
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.journal_companion.insert_one(exchange)
+    # The exchange just saved is itself the free-allowance record: a free
+    # reply increments the lifetime count by exactly one, and subscribing
+    # never deletes exchanges, so her free messages and the whole
+    # conversation history stay right where they were.
+    _free_used_after = (_free_used_before + 1) if _using_free_allowance else await _companion_free_used(current_user["id"])
     return {
         "exchange": {k: exchange[k] for k in ("id", "date", "user_message", "reply", "companion_name", "input_tokens", "output_tokens", "created_at")},
         "companion_name": name,
+        "subscribed": _access["entitled"],
+        "has_access": _access["has_access"],
+        "free_limit": COMPANION_FREE_MESSAGE_LIMIT,
+        "free_used": _free_used_after,
+        "free_remaining": max(0, COMPANION_FREE_MESSAGE_LIMIT - _free_used_after),
+        "needs_subscription": not _access["has_access"] and _free_used_after >= COMPANION_FREE_MESSAGE_LIMIT,
     }
 
 # ==================== PREMIUM: DAILY RHYTHM REPORT ====================

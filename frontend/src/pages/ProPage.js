@@ -27,7 +27,7 @@ const PRO_FEATURES = [
     icon: BookOpen,
     title: 'Journal Companion',
     subtitle: 'Our one subscription',
-    description: 'A caring companion who lives inside your private Journal: you choose the name, and it answers you in the book, knowing your cycle and what your day has held. The Journal itself, and your Vault, are free forever. The companion is the one feature offered as a subscription, $4.99 a month through Google Play.',
+    description: 'A caring companion who lives inside your private Journal: you choose the name, and it answers you in the book, knowing your cycle and what your day has held. Your first 2 messages together are free, and every word stays in your journal when you subscribe. The Journal itself, and your Vault, are free forever. The companion is the one feature offered as a subscription, $9.99 a month through Google Play.',
   },
   {
     icon: Sun,
@@ -182,7 +182,8 @@ export default function ProPage() {
               <BookOpen className="w-7 h-7" style={{ color: GOLD }} />
             </div>
             <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', cursive" }}>Journal Companion</h1>
-            <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>Your companion is with you</p>
+            <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>Your Journey&apos;s Companion.</p>
+            <p className="text-sm mt-1" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.6)' }}>Your companion is with you</p>
             {renewalLine() && (
               <p className="text-xs mt-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }}>{renewalLine()}</p>
             )}
@@ -225,8 +226,13 @@ export default function ProPage() {
               <br />
               <span style={{ color: GOLD }}>Companion</span>
             </h1>
-            <p className="text-xs sm:text-sm leading-relaxed mt-5 max-w-md mx-auto" style={{ fontFamily: "'Poiret One', cursive", color: 'rgba(255,255,255,0.75)' }} data-testid="paywall-tagline">
-              HORMOscope is a free app. This page is for its one companion subscription.
+            <p className="text-sm sm:text-base leading-relaxed mt-5 max-w-md mx-auto" style={{ fontFamily: "'Poiret One', cursive", color: GOLD }} data-testid="paywall-tagline">
+              Your Journey&apos;s Companion.
+            </p>
+            <p className="text-xs sm:text-sm leading-relaxed mt-3 max-w-md mx-auto" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
+              Someone who knows your cycle, remembers your days, and meets you on the page of your own
+              private journal. Your first 2 messages together are free. HORMOscope itself stays free:
+              this is its one companion subscription.
             </p>
           </div>
 
@@ -269,7 +275,7 @@ export default function ProPage() {
             <p className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>Monthly</p>
             <div className="flex items-baseline gap-1">
               <span className="text-lg font-semibold" style={{ color: GOLD }} data-testid="companion-price">
-                {nativeBilling ? (pkgLoading ? '...' : (companionPkg?.priceString || '$4.99')) : '$4.99'}
+                {nativeBilling ? (pkgLoading ? '...' : (companionPkg?.priceString || '$9.99')) : '$9.99'}
               </span>
               <span className="text-white/50 text-xs">{nativeBilling ? (companionPkg?.periodText || '/month') : '/month'}</span>
             </div>
@@ -278,6 +284,9 @@ export default function ProPage() {
             {nativeBilling
               ? 'Billed through Google Play. Cancel anytime in Google Play.'
               : 'Billed through Google Play in the Android app. Cancel anytime.'}
+          </p>
+          <p className="text-white/50 text-xs mt-2 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            Subscribing keeps everything: your 2 free messages and your whole conversation history stay in your journal, right where they happened.
           </p>
 
           {status && (

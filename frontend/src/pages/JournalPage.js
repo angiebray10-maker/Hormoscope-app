@@ -270,15 +270,32 @@ export default function JournalPage() {
       const res = await axios.post(`${API}/journal/companion/reply`, { message: text },
         { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 });
       if (res.data?.exchange) setCompanionExchanges(prev => [...prev, res.data.exchange]);
+      // Keep the free allowance state in step with the server, so the
+      // moment her second free reply lands, the offer replaces the
+      // message box without a reload and without losing the exchange.
+      if (typeof res.data?.free_remaining === 'number') {
+        setCompanion(prev => prev ? {
+          ...prev,
+          free_used: res.data.free_used,
+          free_remaining: res.data.free_remaining,
+          needs_subscription: !!res.data.needs_subscription,
+          has_access: !!res.data.has_access,
+          subscribed: !!res.data.subscribed,
+        } : prev);
+        if (res.data.needs_subscription) setCompanionLocked(true);
+      }
       setCompanionInput('');
     } catch (err) {
       // Plain words, her words stay in the box: the companion being
       // unavailable (503) reads as resting, never as a broken journal.
       const detail = err?.response?.data?.detail;
       setCompanionError(typeof detail === 'string' ? detail : 'Your companion could not answer just now. Give it a moment and try again.');
-      // The gate's 403 means "not subscribed yet": offer the way in.
-      if (err?.response?.status === 403 && typeof detail === 'string' && detail.includes('not available yet')) {
+      // The gate's 403 now means her free messages are used: show the
+      // subscription offer, not an error she has to decode.
+      if (err?.response?.status === 403 && typeof detail === 'string' && detail.includes('free companion messages are used')) {
         setCompanionLocked(true);
+        setCompanion(prev => prev ? { ...prev, free_remaining: 0, needs_subscription: true } : prev);
+        setCompanionError('');
       }
     } finally { setCompanionBusy(false); }
   };
@@ -504,6 +521,15 @@ export default function JournalPage() {
   const handleNewEntryClick = () => {
     setWriting(true);
   };
+
+  // Subscription state for the companion (server is the source of truth):
+  // she may write while she has access (subscribed, test list, public) or
+  // while free messages remain. Once the server says the free messages
+  // are used, the message box is replaced by the subscription offer. Her
+  // exchanges above it never move: subscribing keeps the whole history.
+  const companionNeedsSub = !!companion && !companion.has_access
+    && (companionLocked || !!companion.needs_subscription || companion.free_remaining === 0);
+  const companionFreeLeft = typeof companion?.free_remaining === 'number' ? companion.free_remaining : null;
 
   return (
     <div className="min-h-screen pb-20 lg:ml-64" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-testid="journal-page">
@@ -754,14 +780,23 @@ export default function JournalPage() {
             the speaker, so the page still reads like her book. */}
         {companion?.enabled && (
           <div className="rounded-xl overflow-hidden mt-6" style={{ border: '1px solid rgba(244,167,185,0.25)', borderLeft: '3px solid #f4a7b9', background: 'rgba(244,167,185,0.04)' }} data-testid="journal-companion">
-            <div className="flex items-center gap-2 px-4 pt-4 pb-1">
-              <Heart className="w-4 h-4" style={{ color: '#FF1493' }} fill="#FF1493" />
-              <h2 className="text-white text-base" style={{ fontFamily: "'Poiret One', cursive", fontSize: '18px' }}>{companion.name} is here with you</h2>
+            <div className="px-4 pt-4 pb-1">
+              <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Journal Companion</p>
+              <p className="text-[11px] mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.5)' }}>Your Journey&apos;s Companion.</p>
+              <div className="flex items-center gap-2">
+                <Heart className="w-4 h-4" style={{ color: '#FF1493' }} fill="#FF1493" />
+                <h2 className="text-white text-base" style={{ fontFamily: "'Poiret One', cursive", fontSize: '18px' }}>{companion.name} is here with you</h2>
+              </div>
             </div>
             <p className="px-4 pb-3 text-[11px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.45)' }}>
               Write to {companion.name} here. {companion.name} knows where you are in your cycle and what today has
               held, and answers you inside these pages only. Nothing here is ever shared with anyone.
             </p>
+            {!companion.has_access && companionFreeLeft !== null && companionFreeLeft > 0 && (
+              <p className="px-4 pb-3 text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }} data-testid="companion-free-note">
+                Your first 2 messages with {companion.name} are free. You have {companionFreeLeft} free {companionFreeLeft === 1 ? 'message' : 'messages'} left.
+              </p>
+            )}
             {companionExchanges.length > 0 && (
               <div className="px-4 pb-2">
                 {companionExchanges.map((ex) => (
@@ -781,30 +816,51 @@ export default function JournalPage() {
             {companionError && (
               <p className="px-4 pb-2 text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="companion-error">{companionError}</p>
             )}
-            {companionLocked && (
-              <p className="px-4 pb-2 text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                <Link to="/pro" style={{ color: '#FF1493', textDecoration: 'underline' }} data-testid="companion-subscribe-link">See the Journal Companion subscription</Link>
-              </p>
-            )}
-            <div className="flex gap-2 p-3" style={{ borderTop: '1px solid rgba(244,167,185,0.12)' }}>
-              <input
-                type="text" value={companionInput}
-                onChange={(e) => { setCompanionInput(e.target.value); if (companionError) setCompanionError(''); }}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSendToCompanion(); }}
-                placeholder={`Write to ${companion.name}...`}
-                className="flex-1 rounded-full px-4 py-2.5 text-sm outline-none placeholder-white/25 text-white"
-                style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(244,167,185,0.25)' }}
-                data-testid="companion-input"
-              />
-              <button onClick={handleSendToCompanion} disabled={companionBusy || !companionInput.trim()}
-                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40"
-                style={{ background: '#FF1493' }}
-                data-testid="companion-send" aria-label={`Send to ${companion.name}`}>
-                <Send className="w-4 h-4 text-white" />
-              </button>
-            </div>
-            {companionBusy && (
-              <p className="px-4 pb-3 text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }}>{companion.name} is writing back...</p>
+            {companionNeedsSub ? (
+              <div className="px-4 pb-4" data-testid="companion-offer">
+                <div className="rounded-xl p-4 text-center" style={{ border: '1px solid rgba(212,168,83,0.4)', background: 'rgba(212,168,83,0.06)' }}>
+                  <p className="text-white text-base mb-1" style={{ fontFamily: "'Poiret One', cursive", fontSize: '19px' }}>Journal Companion</p>
+                  <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>Your Journey&apos;s Companion.</p>
+                  <p className="text-xs leading-relaxed mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
+                    You have had your 2 free messages with {companion.name}, and every word of them stays
+                    right here in your journal. To keep writing together, with {companion.name} knowing your
+                    cycle and meeting you on the page each day, continue with the Journal Companion subscription.
+                  </p>
+                  <p className="text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }} data-testid="companion-offer-price">
+                    Journal Companion: $9.99/month through Google Play. Cancel anytime. Your journal itself always stays free.
+                  </p>
+                  <Link to="/pro" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }} data-testid="companion-subscribe-link">
+                    Subscribe
+                  </Link>
+                  <Link to="/pro" className="block w-full mt-2 py-2 text-center text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }} data-testid="companion-restore-link">
+                    Restore Purchase
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2 p-3" style={{ borderTop: '1px solid rgba(244,167,185,0.12)' }}>
+                  <input
+                    type="text" value={companionInput}
+                    onChange={(e) => { setCompanionInput(e.target.value); if (companionError) setCompanionError(''); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSendToCompanion(); }}
+                    placeholder={`Write to ${companion.name}...`}
+                    maxLength={1000}
+                    className="flex-1 rounded-full px-4 py-2.5 text-sm outline-none placeholder-white/25 text-white"
+                    style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(244,167,185,0.25)' }}
+                    data-testid="companion-input"
+                  />
+                  <button onClick={handleSendToCompanion} disabled={companionBusy || !companionInput.trim()}
+                    className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40"
+                    style={{ background: '#FF1493' }}
+                    data-testid="companion-send" aria-label={`Send to ${companion.name}`}>
+                    <Send className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+                {companionBusy && (
+                  <p className="px-4 pb-3 text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }}>{companion.name} is writing back...</p>
+                )}
+              </>
             )}
           </div>
         )}
