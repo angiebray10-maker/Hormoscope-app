@@ -1983,7 +1983,7 @@ COMPANION_MIN_SECONDS_BETWEEN_REQUESTS = 5
 # exchanges themselves: a successful reply is stored as one exchange, so
 # reinstalling, clearing app data, or switching devices can never reset
 # it, and a failed AI call stores nothing and never burns a free reply.
-COMPANION_FREE_MESSAGE_LIMIT = 2
+COMPANION_FREE_MESSAGE_LIMIT = 3
 COMPANION_SUBSCRIBE_REQUIRED_DETAIL = (
     "Your free companion messages are used. Subscribe to Journal Companion "
     "to keep writing together."

@@ -95,18 +95,20 @@ async def main():
     # 1. Brand new free user: message 1 and 2 succeed, state counts up.
     free = make_user("u-free", "free@hormoscope-demo.com")
     st = await server._companion_status(free)
-    results.append(("new user status free_remaining=2", st["free_remaining"] == 2 and not st["needs_subscription"] and not st["has_access"]))
+    results.append(("new user status free_remaining=3", st["free_remaining"] == 3 and not st["needs_subscription"] and not st["has_access"]))
     code, res = await send(free, "hello one")
-    results.append(("free msg 1 ok", code == "ok" and res["free_used"] == 1 and res["free_remaining"] == 1 and not res["needs_subscription"]))
+    results.append(("free msg 1 ok", code == "ok" and res["free_used"] == 1 and res["free_remaining"] == 2 and not res["needs_subscription"]))
     code, res = await send(free, "hello two")
-    results.append(("free msg 2 ok + needs_subscription flips true", code == "ok" and res["free_used"] == 2 and res["free_remaining"] == 0 and res["needs_subscription"] is True))
-    # 2. Third message is refused with the subscribe detail, before any AI call.
-    code, detail = await send(free, "hello three")
-    results.append(("free msg 3 blocked 403 subscribe-required", code == 403 and "free companion messages are used" in str(detail)))
+    results.append(("free msg 2 ok", code == "ok" and res["free_used"] == 2 and res["free_remaining"] == 1 and not res["needs_subscription"]))
+    code, res = await send(free, "hello three")
+    results.append(("free msg 3 ok + needs_subscription flips true", code == "ok" and res["free_used"] == 3 and res["free_remaining"] == 0 and res["needs_subscription"] is True))
+    # 2. Fourth message is refused with the subscribe detail, before any AI call.
+    code, detail = await send(free, "hello four")
+    results.append(("free msg 4 blocked 403 subscribe-required", code == 403 and "free companion messages are used" in str(detail)))
     st = await server._companion_status(free)
-    results.append(("status after 2: needs_subscription true", st["needs_subscription"] is True and st["free_used"] == 2))
-    # History preserved: both exchanges still stored.
-    results.append(("history preserved (2 exchanges stored)", len(fake_db.journal_companion.docs) == 2))
+    results.append(("status after 3: needs_subscription true", st["needs_subscription"] is True and st["free_used"] == 3))
+    # History preserved: all three exchanges still stored.
+    results.append(("history preserved (3 exchanges stored)", len(fake_db.journal_companion.docs) == 3))
 
     # 3. Same account "on a new device" is the same server record: still blocked.
     code, detail = await send(free, "new phone, who dis")
@@ -119,7 +121,7 @@ async def main():
     CALLS["fail"] = False
     results.append(("failed AI call returns 503", code == 503))
     st = await server._companion_status(free2)
-    results.append(("failed call burned nothing (free_used still 0)", st["free_used"] == 0 and st["free_remaining"] == 2))
+    results.append(("failed call burned nothing (free_used still 0)", st["free_used"] == 0 and st["free_remaining"] == 3))
     code, res = await send(free2, "retry works")
     results.append(("retry after failure ok", code == "ok" and res["free_used"] == 1))
 

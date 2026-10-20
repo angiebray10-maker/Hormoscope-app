@@ -780,6 +780,14 @@ export default function JournalPage() {
             the speaker, so the page still reads like her book. */}
         {companion?.enabled && (
           <div className="rounded-xl overflow-hidden mt-6" style={{ border: '1px solid rgba(244,167,185,0.25)', borderLeft: '3px solid #f4a7b9', background: 'rgba(244,167,185,0.04)' }} data-testid="journal-companion">
+            {/* Her approved Journal Companion picture (Angelita, Oct 20,
+                2026): shown whole at its natural shape, never cropped, so
+                every silhouette and the wordmark stay fully visible. */}
+            <div data-testid="companion-hero-image">
+              <img src="/images/journal-companion-life-stages.jpg" alt="Journal Companion: a woman's life, from baby to elder, with the HORMOscope wordmark"
+                className="w-full block" style={{ height: 'auto', objectFit: 'contain' }} />
+              <p className="text-center text-xs pt-2 pb-1" style={{ fontFamily: "'Poiret One', cursive", color: GOLD }}>Your Journey&apos;s Companion.</p>
+            </div>
             <div className="px-4 pt-4 pb-1">
               <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Journal Companion</p>
               <p className="text-[11px] mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.5)' }}>Your Journey&apos;s Companion.</p>
@@ -794,7 +802,7 @@ export default function JournalPage() {
             </p>
             {!companion.has_access && companionFreeLeft !== null && companionFreeLeft > 0 && (
               <p className="px-4 pb-3 text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }} data-testid="companion-free-note">
-                Your first 2 messages with {companion.name} are free. You have {companionFreeLeft} free {companionFreeLeft === 1 ? 'message' : 'messages'} left.
+                Your first 3 messages with {companion.name} are free. You have {companionFreeLeft} free {companionFreeLeft === 1 ? 'message' : 'messages'} left.
               </p>
             )}
             {companionExchanges.length > 0 && (
@@ -822,7 +830,7 @@ export default function JournalPage() {
                   <p className="text-white text-base mb-1" style={{ fontFamily: "'Poiret One', cursive", fontSize: '19px' }}>Journal Companion</p>
                   <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>Your Journey&apos;s Companion.</p>
                   <p className="text-xs leading-relaxed mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
-                    You have had your 2 free messages with {companion.name}, and every word of them stays
+                    You have had your 3 free messages with {companion.name}, and every word of them stays
                     right here in your journal. To keep writing together, with {companion.name} knowing your
                     cycle and meeting you on the page each day, continue with the Journal Companion subscription.
                   </p>

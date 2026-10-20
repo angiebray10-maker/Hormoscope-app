@@ -27,7 +27,7 @@ const PRO_FEATURES = [
     icon: BookOpen,
     title: 'Journal Companion',
     subtitle: 'Our one subscription',
-    description: 'A caring companion who lives inside your private Journal: you choose the name, and it answers you in the book, knowing your cycle and what your day has held. Your first 2 messages together are free, and every word stays in your journal when you subscribe. The Journal itself, and your Vault, are free forever. The companion is the one feature offered as a subscription, $9.99 a month through Google Play.',
+    description: 'A caring companion who lives inside your private Journal: you choose the name, and it answers you in the book, knowing your cycle and what your day has held. Your first 3 messages together are free, and every word stays in your journal when you subscribe. The Journal itself, and your Vault, are free forever. The companion is the one feature offered as a subscription, $9.99 a month through Google Play.',
   },
   {
     icon: Sun,
@@ -231,9 +231,18 @@ export default function ProPage() {
             </p>
             <p className="text-xs sm:text-sm leading-relaxed mt-3 max-w-md mx-auto" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
               Someone who knows your cycle, remembers your days, and meets you on the page of your own
-              private journal. Your first 2 messages together are free. HORMOscope itself stays free:
+              private journal. Your first 3 messages together are free. HORMOscope itself stays free:
               this is its one companion subscription.
             </p>
+          </div>
+
+          {/* Her approved Journal Companion picture (Angelita, Oct 20,
+              2026): shown whole at its natural shape, never cropped, so
+              every silhouette and the wordmark stay fully visible. */}
+          <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1.5px solid #D4A853', background: '#000' }} data-testid="companion-hero-image">
+            <img src="/images/journal-companion-life-stages.jpg" alt="Journal Companion: a woman's life, from baby to elder, with the HORMOscope wordmark"
+              className="w-full block" style={{ height: 'auto', objectFit: 'contain' }} />
+            <p className="text-center text-sm py-3" style={{ fontFamily: "'Poiret One', cursive", color: GOLD }}>Your Journey&apos;s Companion.</p>
           </div>
 
           {/* Screenshots showcase */}
@@ -286,7 +295,7 @@ export default function ProPage() {
               : 'Billed through Google Play in the Android app. Cancel anytime.'}
           </p>
           <p className="text-white/50 text-xs mt-2 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Subscribing keeps everything: your 2 free messages and your whole conversation history stay in your journal, right where they happened.
+            Subscribing keeps everything: your 3 free messages and your whole conversation history stay in your journal, right where they happened.
           </p>
 
           {status && (

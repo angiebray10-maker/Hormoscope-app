@@ -124,7 +124,7 @@ export default function GuidePage() {
               HORMOscope is a free app: cycle tracking, your Calendar, your Daily Read, your Journal and
               Vault, and Attunement are all free. The one subscription is Journal Companion, Your
               Journey&apos;s Companion, inside your Journal, at $9.99 a month through Google Play. Your
-              first 2 messages with your companion are free, and nothing else in the app sits behind it.
+              first 3 messages with your companion are free, and nothing else in the app sits behind it.
             </p>
           </section>
 
