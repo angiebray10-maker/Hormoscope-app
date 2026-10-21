@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen, Utensils, Dumbbell, Heart, Sparkles, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import { purchaseCompanion, restoreCompanion } from '../utils/revenueCat';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -23,26 +24,80 @@ const SECTION_ICONS = {
 };
 
 export default function DailyRead() {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [subBusy, setSubBusy] = useState('');
+  const [subMsg, setSubMsg] = useState('');
+
+  const fetchRead = async () => {
+    try {
+      const res = await axios.get(`${API}/premium/daily-read`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setData(res.data);
+    } catch (err) {
+      console.error('Daily read error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const res = await axios.get(`${API}/premium/daily-read`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setData(res.data);
-      } catch (err) {
-        console.error('Daily read error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (token) fetch();
+    if (token) fetchRead();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // Subscribing from the locked full read (Angelita, Oct 21, 2026):
+  // the same Journal Companion product and Google Play purchase as
+  // the Journal. When it lands, the read reloads unlocked.
+  const refreshAfterPurchase = async () => {
+    try {
+      await axios.get(`${API}/journal/companion`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+    } catch (e) { /* best-effort entitlement sync */ }
+    await fetchRead();
+  };
+
+  const handleSubscribe = async () => {
+    if (subBusy) return;
+    setSubBusy('buy');
+    setSubMsg('');
+    try {
+      const res = await purchaseCompanion(user?.id);
+      if (res?.status === 'active') {
+        await refreshAfterPurchase();
+        setSubMsg('You are subscribed. Your full read is open.');
+      } else if (res?.status === 'pending') {
+        setSubMsg('Google Play is finishing your purchase. If it does not complete in a moment, tap Restore Purchase.');
+      } else if (res?.status === 'cancelled') {
+        setSubMsg('No charge was made.');
+      } else {
+        setSubMsg(res?.message || 'The subscription is not available right now.');
+      }
+    } catch (err) {
+      setSubMsg('Something went wrong starting the purchase. Nothing was charged.');
+    } finally { setSubBusy(''); }
+  };
+
+  const handleRestore = async () => {
+    if (subBusy) return;
+    setSubBusy('restore');
+    setSubMsg('');
+    try {
+      const res = await restoreCompanion();
+      if (res?.status === 'active') {
+        await refreshAfterPurchase();
+        setSubMsg('Your subscription is restored. Your full read is open.');
+      } else if (res?.status === 'none') {
+        setSubMsg('No subscription was found for this account.');
+      } else {
+        setSubMsg(res?.message || 'Restore could not be completed.');
+      }
+    } catch (err) {
+      setSubMsg('Restore could not be completed. Nothing was changed.');
+    } finally { setSubBusy(''); }
+  };
 
   if (loading) {
     return (
@@ -88,7 +143,7 @@ export default function DailyRead() {
       </div>
 
       {/* Expandable sections */}
-      {expanded && sections.slice(1).map((key) => {
+      {expanded && !data?.locked && sections.slice(1).map((key) => {
         const config = SECTION_ICONS[key];
         if (!config || !reading[key]) return null;
         const Icon = config.icon;
@@ -106,11 +161,31 @@ export default function DailyRead() {
       })}
 
       {/* Affirmation — always visible when expanded */}
-      {expanded && reading.affirmation && (
+      {expanded && !data?.locked && reading.affirmation && (
         <div className="px-3 py-2 border-t border-white/[0.05]" style={{ background: `${accent}08` }}>
           <p className="text-[11px] text-center leading-relaxed" style={{ color: accent, fontFamily: 'Poppins, sans-serif' }} data-testid="daily-read-affirmation">
             {reading.affirmation}
           </p>
+        </div>
+      )}
+
+      {expanded && data?.locked && (
+        <div className="px-3 py-3 border-t border-white/[0.05]" data-testid="daily-read-offer">
+          <p className="text-[#d4d4e0] text-[11px] leading-relaxed mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            The full read, your mood forecast, what to eat today, how to move, and tonight's ritual, comes with your Journal Companion.
+          </p>
+          <p className="text-[10px] mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }}>
+            Journal Companion: $9.99/month through Google Play. Cancel anytime.
+          </p>
+          <button onClick={handleSubscribe} disabled={!!subBusy} className="block w-full py-2.5 rounded-full text-white text-xs font-medium disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }} data-testid="daily-read-subscribe-btn">
+            {subBusy === 'buy' ? 'Opening Google Play...' : 'Subscribe'}
+          </button>
+          <button onClick={handleRestore} disabled={!!subBusy} className="block w-full mt-2 py-1.5 text-center text-[11px] disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }} data-testid="daily-read-restore-btn">
+            {subBusy === 'restore' ? 'Restoring...' : 'Restore Purchase'}
+          </button>
+          {subMsg && (
+            <p className="text-[11px] mt-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }} data-testid="daily-read-sub-msg">{subMsg}</p>
+          )}
         </div>
       )}
 

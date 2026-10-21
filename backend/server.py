@@ -1997,20 +1997,28 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
         cycle_info.get("progesterone_level", 20)
     )
     
+    # The full Daily Read is part of the Journal Companion subscription
+    # (Angelita, Oct 21, 2026). The cycle basics above stay visible to
+    # every account; the read itself (affirmation, mood, nutrition,
+    # recipe, vitamins, wellness) goes only to accounts with companion
+    # access, and Home shows the locked card instead.
+    read_unlocked = _companion_access(current_user)
+
     return {
         "user_name": current_user.get("name", "Beautiful"),
         "age": age,
         "age_group": age_group,
         "is_birthday": is_birthday,
         "cycle_info": cycle_info,
-        "affirmation": daily_content["affirmation"],
-        "nutrition_tip": daily_content["nutrition_tip"],
-        "foods_to_eat": daily_content["foods_to_eat"],
-        "foods_to_avoid": daily_content["foods_to_avoid"],
-        "wellness_tip": daily_content["wellness_tip"],
-        "mood_prediction": daily_content["mood_prediction"],
-        "recipe": daily_content.get("recipe"),
-        "vitamins": daily_content.get("vitamins"),
+        "affirmation": daily_content["affirmation"] if read_unlocked else None,
+        "nutrition_tip": daily_content["nutrition_tip"] if read_unlocked else None,
+        "foods_to_eat": daily_content["foods_to_eat"] if read_unlocked else [],
+        "foods_to_avoid": daily_content["foods_to_avoid"] if read_unlocked else [],
+        "wellness_tip": daily_content["wellness_tip"] if read_unlocked else None,
+        "mood_prediction": daily_content["mood_prediction"] if read_unlocked else None,
+        "recipe": daily_content.get("recipe") if read_unlocked else None,
+        "vitamins": daily_content.get("vitamins") if read_unlocked else [],
+        "daily_read_locked": not read_unlocked,
         "is_premium": current_user.get("is_premium", False),
     }
 
@@ -2464,6 +2472,15 @@ HOW TO ANSWER:
 - If she is hurting or scared, slow down, believe her, and sit with her in it before anything else
 - Use her name, {user_first}, the way someone close to her would: naturally, warmly, never in every sentence"""
 
+    system_message += """
+
+WHERE HER WORDS LIVE (know this cold, and answer with it whenever she asks):
+- You are part of HORMOscope itself: the Journal Companion built into her journal inside this app, not an outside service and not a stranger. If she asks whether you are part of HORMOscope, say yes, plainly and warmly
+- Everything she writes to you, and everything you answer, is saved inside her own HORMOscope account, in the app's private database, under her account alone, so she can look back at her pages the way a journal keeps what is written in it
+- No one else can read your conversations: not other HORMOscope users, and not anyone she links with in Attunement. Her words here are hers alone
+- If she deletes her account, her journal and your conversations are deleted with it
+- If she asks where your conversations are stored, who can see them, or whether she can trust this page, answer her directly with these facts in your own warm voice. Never say you do not know, and never send her off to read a policy instead of answering her"""
+
     if _using_free_allowance:
         # Angelita, Oct 20, 2026: the complimentary opening exchanges
         # carry the whole relationship. They must be the finest replies
@@ -2647,6 +2664,32 @@ async def get_daily_read(current_user: dict = Depends(get_current_user)):
     
     # Check cache — one reading per day
     cached = await db.daily_reads.find_one({"user_id": user_id, "date": today}, {"_id": 0})
+
+    # The FULL Daily Read is part of the Journal Companion subscription
+    # (Angelita, Oct 21, 2026). Accounts without companion access get
+    # the preview only: the greeting and Your Body Right Now. No AI
+    # call is made for them and no full reading is handed out, not
+    # even one already cached from before this gate existed.
+    if not _companion_access(current_user):
+        phase0, day0, desc0 = "unknown", 1, ""
+        if current_user.get("last_period_date"):
+            info0 = calculate_cycle_info(current_user["last_period_date"], current_user.get("cycle_length", 28))
+            phase0 = info0.get("phase", "unknown")
+            day0 = info0.get("cycle_day", 1)
+            desc0 = info0.get("phase_description") or ""
+        teaser = {"greeting": "", "body_insight": desc0}
+        if cached and cached.get("reading"):
+            teaser = {
+                "greeting": cached["reading"].get("greeting", ""),
+                "body_insight": cached["reading"].get("body_insight", desc0),
+            }
+            phase0 = cached.get("phase", phase0)
+            day0 = cached.get("cycle_day", day0)
+        if not teaser["greeting"]:
+            first0 = (current_user.get("name") or "there").split(" ")[0]
+            teaser["greeting"] = f"Good morning, {first0}."
+        return {"locked": True, "date": today, "phase": phase0, "cycle_day": day0, "reading": teaser}
+
     if cached:
         return cached
     

@@ -6,6 +6,7 @@ import axios from 'axios';
 import DailyRead from '../components/DailyRead';
 import FloatingCarousel from '../components/FloatingCarousel';
 import logger from '../utils/logger';
+import { purchaseCompanion, restoreCompanion } from '../utils/revenueCat';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -108,6 +109,59 @@ export default function HomePage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // The full Daily Read is part of the Journal Companion subscription
+  // (Angelita, Oct 21, 2026). Subscribing happens right here on Home:
+  // the same product and the same Google Play purchase as the Journal.
+  const [readSubBusy, setReadSubBusy] = useState('');
+  const [readSubMsg, setReadSubMsg] = useState('');
+
+  const refreshReadAfterPurchase = async () => {
+    try {
+      await axios.get(`${API}/journal/companion`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+    } catch (e) { /* the entitlement sync is best-effort; the refetch below still runs */ }
+    await fetchData();
+  };
+
+  const handleReadSubscribe = async () => {
+    if (readSubBusy) return;
+    setReadSubBusy('buy');
+    setReadSubMsg('');
+    try {
+      const res = await purchaseCompanion(user?.id);
+      if (res?.status === 'active') {
+        await refreshReadAfterPurchase();
+        setReadSubMsg('You are subscribed. Your full read is open.');
+      } else if (res?.status === 'pending') {
+        setReadSubMsg('Google Play is finishing your purchase. If it does not complete in a moment, tap Restore Purchase.');
+      } else if (res?.status === 'cancelled') {
+        setReadSubMsg('No charge was made.');
+      } else {
+        setReadSubMsg(res?.message || 'The subscription is not available right now.');
+      }
+    } catch (err) {
+      setReadSubMsg('Something went wrong starting the purchase. Nothing was charged.');
+    } finally { setReadSubBusy(''); }
+  };
+
+  const handleReadRestore = async () => {
+    if (readSubBusy) return;
+    setReadSubBusy('restore');
+    setReadSubMsg('');
+    try {
+      const res = await restoreCompanion();
+      if (res?.status === 'active') {
+        await refreshReadAfterPurchase();
+        setReadSubMsg('Your subscription is restored. Your full read is open.');
+      } else if (res?.status === 'none') {
+        setReadSubMsg('No subscription was found for this account.');
+      } else {
+        setReadSubMsg(res?.message || 'Restore could not be completed.');
+      }
+    } catch (err) {
+      setReadSubMsg('Restore could not be completed. Nothing was changed.');
+    } finally { setReadSubBusy(''); }
+  };
   /* eslint-enable */
 
   if (loading) {
@@ -350,6 +404,30 @@ export default function HomePage() {
         </div>
       </div>
 
+      {data?.daily_read_locked ? (
+        <div className="card p-5 mb-4" data-testid="daily-read-locked">
+          <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-3">YOUR FULL READ FOR TODAY</p>
+          <p className="text-white mb-2" style={{ fontFamily: "'Poiret One', cursive", fontSize: '19px' }}>Your full read is waiting</p>
+          <p className="text-[#b8b8d1] text-sm leading-relaxed mb-2">
+            Your affirmation, your mood reading, what to eat today with an easy recipe, your vitamins,
+            and your wellness tip, written for your phase and your day. It comes with your Journal Companion.
+          </p>
+          <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.55)' }} data-testid="daily-read-price">
+            Journal Companion: $9.99/month through Google Play. Cancel anytime.
+          </p>
+          <button onClick={handleReadSubscribe} disabled={!!readSubBusy} className="block w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }} data-testid="daily-read-subscribe-btn">
+            {readSubBusy === 'buy' ? 'Opening Google Play...' : 'Subscribe'}
+          </button>
+          <button onClick={handleReadRestore} disabled={!!readSubBusy} className="block w-full mt-2 py-2 text-center text-xs disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }} data-testid="daily-read-restore-btn">
+            {readSubBusy === 'restore' ? 'Restoring...' : 'Restore Purchase'}
+          </button>
+          {readSubMsg && (
+            <p className="text-xs mt-3" style={{ color: '#c9b8f0' }} data-testid="daily-read-sub-msg">{readSubMsg}</p>
+          )}
+        </div>
+      ) : (
+        <>
+
       {/* Affirmation */}
       <div className="card p-5 mb-4">
         <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-3">TODAY&apos;S AFFIRMATION</p>
@@ -438,6 +516,9 @@ export default function HomePage() {
         <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-3">WELLNESS TIP</p>
         <p className="text-[#b8b8d1] text-sm leading-relaxed">{data?.wellness_tip}</p>
       </div>
+
+        </>
+      )}
 
       {/* Phase card overlay — opens from a phase row, covers the whole
           screen including the bottom nav, scrolls vertically. data-no-swipe

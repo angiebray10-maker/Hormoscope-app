@@ -12,7 +12,7 @@ const JOURNAL_PREVIEW_IMG = '/pro-screenshots/journal.png';
 // Classy, easy-to-read serif for the journal itself (Angelita, Oct 17:
 // no more cursive). System serif stack, so it renders the same offline
 // in the WebView with no font download.
-const SERIF = "'Georgia', 'Noto Serif', 'Times New Roman', serif";
+const SERIF = "'Poppins', 'Segoe UI', sans-serif";
 
 function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -627,7 +627,7 @@ export default function JournalPage() {
     && (companionLocked || !!companion.needs_subscription || companion.free_remaining === 0);
 
   return (
-    <div className="min-h-screen pb-20 lg:ml-64" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-testid="journal-page">
+    <div className="min-h-screen pb-40 lg:ml-64" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-testid="journal-page">
       {/* Decorative flowers */}
       <div className="absolute top-0 left-0 w-full h-64 pointer-events-none overflow-hidden opacity-20">
         <div className="absolute top-4 left-4 text-2xl" style={{ color: '#f4a7b9' }}>✿</div>
@@ -688,7 +688,7 @@ export default function JournalPage() {
                   <input
                     type="text" value={companionNameDraft} onChange={(e) => setCompanionNameDraft(e.target.value)}
                     maxLength={30} placeholder="Name your companion"
-                    className="flex-1 rounded-xl px-3 py-2.5 text-sm outline-none placeholder-white/25 text-white"
+                    className="flex-1 min-w-0 rounded-xl px-3 py-2.5 text-sm outline-none placeholder-white/25 text-white"
                     style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(244,167,185,0.25)' }}
                     data-testid="companion-name-input"
                   />
@@ -951,7 +951,7 @@ export default function JournalPage() {
                     onKeyDown={(e) => { if (e.key === 'Enter') handleSendToCompanion(); }}
                     placeholder={`Write to ${companion.name}...`}
                     maxLength={1000}
-                    className="flex-1 rounded-full px-4 py-2.5 text-sm outline-none placeholder-white/25 text-white"
+                    className="flex-1 min-w-0 rounded-full px-4 py-2.5 text-sm outline-none placeholder-white/25 text-white"
                     style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(244,167,185,0.25)' }}
                     data-testid="companion-input"
                   />
