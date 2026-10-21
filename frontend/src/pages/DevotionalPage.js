@@ -138,7 +138,7 @@ export default function DevotionalPage() {
         {/* The women: comments under the chapter */}
         <div data-testid="proverbs-comments">
           <p className="text-[10px] tracking-widest uppercase mb-1" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>
-            Sisters in the Word
+            Comment and Connect
           </p>
           <p className="text-[#b8b8d1] text-xs leading-relaxed mb-4">
             Leave a comment under today&apos;s chapter and read what the other women
