@@ -118,24 +118,6 @@ export default function AttunementPage() {
           </p>
         </div>
 
-        {/* Her Attuned Partner Mode posters (Angelita, Oct 21, 2026):
-            a swipeable strip under the header, her pick of pictures. */}
-        <div className="mb-6" data-testid="attunement-posters">
-          <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
-            {[
-              { src: '/images/attuned-poster-couch.jpg', alt: 'Attuned Partner Mode: a couple on the couch, his phone showing her cycle day' },
-              { src: '/images/attuned-poster-together.jpg', alt: 'Attuned Partner Mode now available: a couple looking at her cycle together' },
-              { src: '/images/attuned-poster-connected.jpg', alt: 'Attuned. Connected. Effortless: a couple in sync with her cycle' },
-            ].map((img, i) => (
-              <img key={img.src} src={img.src} alt={img.alt}
-                className="rounded-2xl shrink-0"
-                style={{ width: '86%', scrollSnapAlign: 'center', border: '1px solid rgba(244,167,185,0.2)', boxShadow: '0 14px 30px rgba(0,0,0,0.35)' }}
-                data-testid={`attunement-poster-${i + 1}`} />
-            ))}
-          </div>
-          <p className="text-center text-[10px] mt-1" style={{ ...poppins, color: 'rgba(255,255,255,0.35)' }}>Swipe to see what Attuned Partner Mode feels like</p>
-        </div>
-
         {status === null ? (
           <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-[#f4a7b9] animate-spin" /></div>
         ) : status.is_linked ? (

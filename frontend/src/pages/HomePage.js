@@ -301,12 +301,6 @@ export default function HomePage() {
         <DailyRead />
       </div>
 
-      {/* Her phase signs picture (Angelita, Oct 21, 2026): the girls
-          holding the four stage signs, right before the phases. */}
-      <div className="mb-4 overflow-hidden rounded-2xl" style={{ border: '1px solid rgba(255,143,171,0.2)', boxShadow: '0 14px 30px rgba(0,0,0,0.35)' }} data-testid="home-phase-signs">
-        <img src="/images/home-phase-signs.jpg" alt="Women holding signs for each phase of the cycle, HORMOscope in the middle" className="w-full h-auto block" />
-      </div>
-
       {/* Cycle Phases */}
       <div className="card p-5 mb-4">
         <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-4">YOUR CYCLE PHASES</p>

@@ -62,25 +62,9 @@ export default function OnboardingPage() {
 
   const totalSteps = 6;
 
-  // Her pictures woven into the onboarding pages themselves (Angelita,
-  // Oct 21, 2026): one behind each step, barely visible, never standing
-  // alone as their own slides.
-  const STEP_BG = {
-    1: '/images/onboarding-phase-signs.jpg',
-    2: '/images/onboarding-better-moods.jpg',
-    3: '/images/onboarding-decoded.jpg',
-    4: '/images/onboarding-check-hormones.jpg',
-    5: '/images/onboarding-not-astrology.jpg',
-    6: '/images/onboarding-keep-him.jpg',
-  };
-
   return (
-    <div className="min-h-screen bg-[#05050A] stars-bg flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true" data-testid="onboarding-bg">
-        <img key={step} src={STEP_BG[step]} alt="" className="w-full h-full object-cover" style={{ opacity: 0.15 }} />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,5,10,0.5) 0%, rgba(5,5,10,0.8) 100%)' }} />
-      </div>
-      <div className="w-full max-w-md relative">
+    <div className="min-h-screen bg-[#05050A] stars-bg flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-md">
         {/* Progress */}
         <div className="flex items-center justify-center gap-2 mb-10">
           {[1, 2, 3, 4, 5, 6].map((s) => (
