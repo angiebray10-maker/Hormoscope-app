@@ -99,8 +99,11 @@ function SectionTitle({ Icon, color, children }) {
 // negative ones included) comes first, then symptoms, cravings, collection,
 // energy and sleep, all in the same scrollable sheet. Every control still saves to
 // today the moment it is tapped, exactly like the per-category dialogs did.
-function QuickLogSheet({ token, onClose, onSaved }) {
-  const [mood, setMood] = useState(3);
+function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
+  // No mood is pre-picked (Angelita, Oct 20, 2026): the old default of
+  // 3 (Okay) meant an emotion-only log also recorded a mood she never
+  // chose. Null until she taps a face, and the payload follows suit.
+  const [mood, setMood] = useState(null);
   const [emotions, setEmotions] = useState([]);
   const [energy, setEnergy] = useState(3);
   const [symptoms, setSymptoms] = useState([]);
@@ -132,9 +135,12 @@ function QuickLogSheet({ token, onClose, onSaved }) {
     let label = '';
     switch (kind) {
       case 'mood':
-        payloadSymptoms = [`mood:${moodVal}`, ...emos.map((e) => `emotion:${e.toLowerCase()}`)];
+        payloadSymptoms = [
+          ...(moodVal != null ? [`mood:${moodVal}`] : []),
+          ...emos.map((e) => `emotion:${e.toLowerCase()}`),
+        ];
         label = emos.length
-          ? `Feeling ${emos.join(', ')} · Mood ${moodVal}/5`
+          ? (moodVal != null ? `Feeling ${emos.join(', ')} · Mood ${moodVal}/5` : `Feeling ${emos.join(', ')}`)
           : `Mood ${moodVal}/5`;
         break;
       case 'energy':
@@ -197,7 +203,10 @@ function QuickLogSheet({ token, onClose, onSaved }) {
     const next = emotions.includes(label) ? emotions.filter((v) => v !== label) : [...emotions, label];
     setEmotions(next);
     setLastKind('mood');
-    saveNow('mood', { emotions: next });
+    // Save the selected emotions exactly as picked. If she untapped the
+    // last feeling and never picked a mood face, there is nothing to
+    // save, and nothing is invented for her.
+    if (next.length > 0 || mood !== null) saveNow('mood', { emotions: next });
   };
 
   const handleSymptomToggle = (s) => {
@@ -299,14 +308,14 @@ function QuickLogSheet({ token, onClose, onSaved }) {
             And what you are really feeling
           </p>
           <div className="flex flex-wrap gap-1.5 mb-1">
-            {EMOTION_OPTIONS.map((e) => {
+            {EMOTION_OPTIONS.map((e, idx) => {
               const active = emotions.includes(e.label);
               return (
                 <button
                   key={e.label}
                   onClick={() => handleEmotionToggle(e.label)}
-                  className="px-2.5 py-1.5 rounded-full text-[11px]"
-                  style={chip(active, moodColor)}
+                  className={`emotion-chip rounded-full ${mode === 'emotions' ? 'px-3.5 py-2 text-xs' : 'px-2.5 py-1.5 text-[11px]'}`}
+                  style={{ ...chip(active, moodColor), animationDelay: `${(idx % 7) * 0.35}s`, boxShadow: active ? `0 0 16px ${moodColor}66` : '0 0 8px rgba(244,167,185,0.12)' }}
                   aria-label={e.label}
                   aria-pressed={active}
                 >
@@ -316,6 +325,8 @@ function QuickLogSheet({ token, onClose, onSaved }) {
             })}
           </div>
 
+{mode !== 'emotions' && (
+            <>
           <SectionTitle Icon={ShieldAlert} color={colorOf('symptoms')}>Symptoms</SectionTitle>
           <div className="flex flex-wrap gap-2">
             {SYMPTOM_OPTIONS.map((s) => (
@@ -405,8 +416,10 @@ function QuickLogSheet({ token, onClose, onSaved }) {
             className="input-dark text-sm mt-6 mb-4"
             style={{ fontFamily: 'Poppins, sans-serif' }}
           />
-        </div>
 
+            </>
+          )}
+        </div>
         <div className="px-6 pb-6 pt-1">
           {/* Save status: every tap above already saved to today. This line
               is the proof, and a failure shows here instead of vanishing. */}
@@ -442,6 +455,7 @@ function QuickLogSheet({ token, onClose, onSaved }) {
 
 export default function FloatingCarousel({ token }) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState('full'); // 'full' | 'emotions'
   const [justLogged, setJustLogged] = useState(false);
   // The icons orbit constantly, which makes them moving targets that are
   // hard to hit on a phone (Angelita: "when you push the icons, nothing
@@ -482,7 +496,7 @@ export default function FloatingCarousel({ token }) {
               <button
                 className="hs-orbit-icon flex flex-col items-center gap-1 rounded-full"
                 style={{ animationDelay: `${-i * perItem}s`, pointerEvents: 'auto', animationPlayState: paused ? 'paused' : 'running' }}
-                onClick={() => setSheetOpen(true)}
+                onClick={() => { setSheetMode(cat.id === 'mood' ? 'emotions' : 'full'); setSheetOpen(true); }}
                 aria-label={`Log ${cat.label}`}
               >
                 <span
@@ -518,6 +532,7 @@ export default function FloatingCarousel({ token }) {
 
       {sheetOpen && (
         <QuickLogSheet
+          mode={sheetMode}
           token={token}
           onClose={() => setSheetOpen(false)}
           onSaved={() => {

@@ -1854,6 +1854,27 @@ async def delete_journal_entry(entry_id: str, current_user: dict = Depends(get_c
         raise HTTPException(status_code=404, detail="Entry not found")
     return {"message": "Entry deleted"}
 
+class JournalEntryUpdate(BaseModel):
+    title: str = ""
+    content: str
+
+
+@api_router.put("/journal/{entry_id}")
+async def update_journal_entry(entry_id: str, req: JournalEntryUpdate, current_user: dict = Depends(get_current_user)):
+    """Edit one of her own journal entries (Angelita, Oct 20, 2026: the
+    Journal must let her write, save, EDIT, and revisit). Owner-only: the
+    update filter carries her user id, so nobody can touch another
+    woman's page. created_at never changes, so the entry stays on its
+    own day in the book and the vault."""
+    result = await db.journal_entries.update_one(
+        {"id": entry_id, "user_id": current_user["id"]},
+        {"$set": {"title": req.title, "content": req.content}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"ok": True}
+
+
 @api_router.put("/journal/{entry_id}/intimate")
 async def set_journal_entry_intimate(entry_id: str, req: IntimateUpdate, current_user: dict = Depends(get_current_user)):
     """Mark a journal entry as intimate (her eyes only) or not. Intimate entries are never shared with partners."""

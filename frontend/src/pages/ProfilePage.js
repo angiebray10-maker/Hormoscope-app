@@ -380,43 +380,6 @@ export default function ProfilePage() {
         </Link>
       </div>
 
-      {/* Journal Companion: the ONE subscription in HORMOscope (Angelita,
-          Oct 20, 2026). Everything else in the app is free. This entry point
-          replaces the old Pro upgrade card. */}
-      {!companionEntitled ? (
-        <Link
-          to="/pro"
-          className="glass-card p-5 mb-6 flex items-center justify-between border border-[#7b4fa6]/30 hover:border-[#7b4fa6]/60 transition-all block"
-          data-testid="journal-companion-entry"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#7b4fa6]/20 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-[#c9b8f0]" />
-            </div>
-            <div>
-              <p className="text-[#F4D3DC] text-sm font-medium">Journal Companion</p>
-              <p className="text-[#9A8B91] text-xs">Your Journey&apos;s Companion. $9.99/month, first 3 messages free. Everything else in HORMOscope is free.</p>
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-[#7b4fa6]" />
-        </Link>
-      ) : (
-        <Link to="/pro" className="block mb-6 rounded-xl p-4" style={{ border: '2px solid #D4A853', background: 'rgba(212,168,83,0.06)' }} data-testid="journal-companion-active">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(212,168,83,0.15)' }}>
-              <BookOpen className="w-5 h-5" style={{ color: '#D4A853' }} />
-            </div>
-            <div>
-              <p className="text-sm font-medium" style={{ color: '#D4A853', fontFamily: 'Poppins, sans-serif' }}>Journal Companion</p>
-              <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Your Journey&apos;s Companion. Your subscription is active.</p>
-            </div>
-          </div>
-          <div className="w-full py-2.5 rounded-full text-white text-sm font-semibold text-center" style={{ fontFamily: 'Poppins, sans-serif', background: 'linear-gradient(135deg, #D4A853, #c9a030)', border: '1px solid #D4A853' }}>
-            View Journal Companion
-          </div>
-        </Link>
-      )}
-
       {/* Attunement Mode */}
       <AttunedSection token={token} />
 

@@ -14,7 +14,6 @@ import DevotionalPage from './pages/DevotionalPage';
 import CalendarPage from './pages/CalendarPage';
 import JournalPage from './pages/JournalPage';
 import ProfilePage from './pages/ProfilePage';
-import ProPage from './pages/ProPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import FoundersNotePage from './pages/FoundersNotePage';
@@ -69,6 +68,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen noise-overlay">
+      <div className="pb-24 lg:pb-0">
       <Routes>
         {/* Public routes */}
         <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
@@ -110,11 +110,6 @@ const AppContent = () => {
             <ProfilePage />
           </ProtectedRoute>
         } />
-        <Route path="/pro" element={
-          <ProtectedRoute>
-            <ProPage />
-          </ProtectedRoute>
-        } />
         <Route path="/partner-hub" element={
           <ProtectedRoute>
             <PartnerHubPage />
@@ -128,6 +123,7 @@ const AppContent = () => {
         {/* Fallback - 404 Page */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </div>
       <BottomNav />
       <InstallPrompt />
       <Toaster />

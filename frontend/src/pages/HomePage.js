@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Droplet, X, Check } from 'lucide-react';
 import axios from 'axios';
-import ProUpsellBanner from '../components/ProUpsellBanner';
 import DailyRead from '../components/DailyRead';
 import FloatingCarousel from '../components/FloatingCarousel';
 import logger from '../utils/logger';
@@ -29,17 +28,6 @@ const PHASE_CARDS = {
   luteal: { src: '/images/phase-luteal.png', name: 'Luteal Phase' },
 };
 
-// The five feeling faces, same faces and values as the quick log sheet
-// (FloatingCarousel MOOD_OPTIONS), so a pick here and a pick there are
-// the same mood:1..5 tag on today's cycle log.
-const CHECKIN_MOODS = [
-  { value: 1, emoji: '😞', label: 'Low' },
-  { value: 2, emoji: '😟', label: 'Meh' },
-  { value: 3, emoji: '😐', label: 'Okay' },
-  { value: 4, emoji: '🙂', label: 'Good' },
-  { value: 5, emoji: '😄', label: 'Great' },
-];
-
 const phases = {
   menstrual: { orb: 'orb-menstrual', color: '#ff6b6b', name: 'Menstrual Phase' },
   follicular: { orb: 'orb-follicular', color: '#74b9ff', name: 'Follicular Phase' },
@@ -58,13 +46,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [paymentBanner, setPaymentBanner] = useState(null); // 'pending' | 'success' | 'failed'
   const [showWelcome, setShowWelcome] = useState(false);
-  // Daily emotional check-in (Angelita, Oct 17): her pick IS today's
-  // mood, saved through the same mood:<1-5> cycle-log tag the quick log
-  // sheet uses, with the same visible "Saved to today" confirmation.
-  const [checkinMood, setCheckinMood] = useState(null);
-  const [checkinSave, setCheckinSave] = useState('idle'); // idle | saving | saved | error
-  const checkinTimer = useRef(null);
-
   // Welcome message after onboarding completes
   useEffect(() => {
     if (localStorage.getItem('hormoscope-show-welcome') === 'true') {
@@ -128,46 +109,6 @@ export default function HomePage() {
     fetchData();
   }, [fetchData]);
   /* eslint-enable */
-
-  // If she already logged a mood today (here or in the quick log sheet),
-  // the check-in card lights up with that pick. The latest mood tag of
-  // the day wins, matching how the sheet overwrites by saving anew.
-  useEffect(() => {
-    if (!cycleLogs) return;
-    const today = new Date().toISOString().split('T')[0];
-    const todays = cycleLogs
-      .filter((l) => l.date === today)
-      .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
-    let found = null;
-    todays.forEach((l) => {
-      (l.symptoms || []).forEach((s) => {
-        if (typeof s === 'string' && s.startsWith('mood:')) {
-          const v = parseInt(s.split(':')[1], 10);
-          if (v >= 1 && v <= 5) found = v;
-        }
-      });
-    });
-    if (found !== null) setCheckinMood((prev) => (prev === null ? found : prev));
-  }, [cycleLogs]);
-
-  const handleCheckinPick = async (value) => {
-    setCheckinMood(value);
-    setCheckinSave('saving');
-    try {
-      await axios.post(`${API}/cycle-logs`, {
-        date: new Date().toISOString().split('T')[0],
-        is_period: false,
-        symptoms: [`mood:${value}`],
-        notes: `Mood ${value}/5`,
-      }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setCheckinSave('saved');
-      if (checkinTimer.current) clearTimeout(checkinTimer.current);
-      checkinTimer.current = setTimeout(() => setCheckinSave('idle'), 2200);
-    } catch (err) {
-      logger.error('Check-in save failed:', err);
-      setCheckinSave('error');
-    }
-  };
 
   if (loading) {
     return (
@@ -309,64 +250,6 @@ export default function HomePage() {
       {/* Floating quick-log carousel */}
       <FloatingCarousel token={token} />
 
-      {/* Daily emotional check-in (Angelita, Oct 17): one warm question,
-          five feeling orbs. Her pick is today's mood and sets the tone
-          for the day; it saves the moment she taps, like the quick log. */}
-      <div className="card p-5 mb-4" data-testid="emotional-checkin">
-        <h3 className="text-white text-xl font-script mb-1">
-          How do you feel emotionally today{firstName ? `, ${firstName}` : ''}?
-        </h3>
-        <p className="text-[#9A8B91] text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
-          Pick the face that fits. It sets the tone for your day, and it saves to today the moment you tap.
-        </p>
-        <div className="flex justify-between">
-          {CHECKIN_MOODS.map((m) => {
-            const selected = checkinMood === m.value;
-            return (
-              <button
-                key={m.value}
-                type="button"
-                onClick={() => handleCheckinPick(m.value)}
-                className="flex flex-col items-center gap-1.5 transition-transform"
-                style={{ transform: selected ? 'scale(1.1)' : 'scale(1)' }}
-                aria-label={m.label}
-                aria-pressed={selected}
-                data-testid={`checkin-mood-${m.value}`}
-              >
-                <span
-                  className="w-14 h-14 rounded-full flex items-center justify-center"
-                  style={{
-                    background: selected
-                      ? 'radial-gradient(circle at 35% 35%, rgba(244,167,185,0.55), rgba(244,167,185,0.22))'
-                      : 'radial-gradient(circle at 35% 35%, rgba(244,167,185,0.28), rgba(244,167,185,0.08))',
-                    border: `1.5px solid ${selected ? '#f4a7b9' : 'rgba(244,167,185,0.4)'}`,
-                    boxShadow: selected ? '0 0 22px rgba(244,167,185,0.45)' : '0 0 12px rgba(244,167,185,0.18)',
-                  }}
-                >
-                  <span className="text-2xl">{m.emoji}</span>
-                </span>
-                <span className="text-[10px]" style={{ fontFamily: 'Poppins, sans-serif', color: selected ? '#fff' : '#9A8B91' }}>{m.label}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="h-5 mt-2 flex items-center justify-center" aria-live="polite">
-          {checkinSave === 'saving' && (
-            <span className="text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>Saving to today…</span>
-          )}
-          {checkinSave === 'saved' && (
-            <span className="text-[11px] flex items-center gap-1 animate-in" style={{ fontFamily: 'Poppins, sans-serif', color: '#55efc4' }}>
-              <Check className="w-3.5 h-3.5" /> Saved to today
-            </span>
-          )}
-          {checkinSave === 'error' && (
-            <span className="text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }}>
-              That didn&apos;t save. The server may be waking up, tap again.
-            </span>
-          )}
-        </div>
-      </div>
-
       {/* Mood Card: highlighted and outlined in pink (fix list, Oct 16) */}
       <div
         className="card card-pink p-5 mb-4"
@@ -416,13 +299,6 @@ export default function HomePage() {
       <div className="mb-4">
         <DailyRead />
       </div>
-
-      {/* One small Journal Companion pointer for non-subscribers, never a paywall */}
-      {!companionEntitled && (
-        <div className="mb-4">
-          <ProUpsellBanner context="dashboard" compact />
-        </div>
-      )}
 
       {/* Cycle Phases */}
       <div className="card p-5 mb-4">

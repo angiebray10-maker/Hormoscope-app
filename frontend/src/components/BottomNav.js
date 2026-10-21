@@ -1,13 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, MessageCircle, Calendar, User, BookOpen, BookHeart, Sparkles, Heart } from 'lucide-react';
+import { Home, MessageCircle, Calendar, User, BookOpen, BookHeart, Heart } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/devotional', icon: BookHeart, label: 'Devotional' },
   { path: '/journal', icon: BookOpen, label: 'Journal' },
   { path: '/attunement', icon: Heart, label: 'Attunement' },
-  { path: '/pro', icon: Sparkles, label: 'Companion' },
   { path: '/calendar', icon: Calendar, label: 'Calendar' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
@@ -91,11 +90,10 @@ export default function BottomNav() {
 
       {/* Mobile Bottom Nav: smaller, transparent, outline only
           (Angelita's fix list, Oct 16: no solid fill slicing into cards) */}
-      <nav className="lg:hidden fixed bottom-3 left-4 right-4 z-[9999]">
+      <nav className="lg:hidden fixed bottom-3 left-4 right-4 z-40">
         <div className="rounded-full px-1.5 py-0.5 flex justify-around max-w-sm mx-auto" style={{ background: 'transparent', border: '1.5px solid #FF1493' }}>
           {navItems.map(({ path, icon: Icon, label }) => {
             const isActive = location.pathname === path;
-            const isPro = path === '/pro';
             return (
               <NavLink
                 key={path}
@@ -104,7 +102,7 @@ export default function BottomNav() {
                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                   isActive
                     ? 'bg-[#FF1493] text-white'
-                    : isPro ? 'text-[#D4A853]' : 'text-[#6c6c8a]'
+                    : 'text-[#6c6c8a]'
                 }`}
               >
                 <Icon className="w-4 h-4" />

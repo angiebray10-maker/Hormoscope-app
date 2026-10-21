@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
-import ProUpsellBanner from '../components/ProUpsellBanner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -427,11 +426,6 @@ export default function CalendarPage() {
         <span className="flex items-center gap-1.5 text-[#9A8B91] text-xs">
           <Heart className="w-3 h-3" style={{ color: '#FF1493' }} fill="#FF1493" strokeWidth={2.5} /> Intimacy
         </span>
-      </div>
-
-      {/* Pro Upsell — after legend, high-intent moment */}
-      <div className="mb-4">
-        <ProUpsellBanner context="calendar" compact />
       </div>
 
       {/* Help Card - Period Late/Early */}

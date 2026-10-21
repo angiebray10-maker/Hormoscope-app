@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
-import { Link } from 'react-router-dom';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Calendar, X, Lock, Settings2, Send } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Calendar, X, Lock, Settings2, Send, Pencil } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
+import { purchaseCompanion, restoreCompanion } from '../utils/revenueCat';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#D4A853';
@@ -115,7 +115,7 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
 
 export default function JournalPage() {
   const { token, user } = useAuth();
-  const { loading: rcLoading } = usePremium();
+  const { loading: rcLoading, refreshCompanion } = usePremium();
   const [entries, setEntries] = useState([]);
   const [writing, setWriting] = useState(false);
   const [currentEntry, setCurrentEntry] = useState('');
@@ -170,6 +170,9 @@ export default function JournalPage() {
   const [companionBusy, setCompanionBusy] = useState(false);
   const [companionError, setCompanionError] = useState('');
   const [companionLocked, setCompanionLocked] = useState(false);
+  const [subBusy, setSubBusy] = useState(''); // '' | 'buy' | 'restore'
+  const [editingId, setEditingId] = useState(null); // entry being edited, if any
+  const [subMsg, setSubMsg] = useState('');
   const [companionSettingsOpen, setCompanionSettingsOpen] = useState(false);
   const [companionNameDraft, setCompanionNameDraft] = useState('');
   const [companionSaving, setCompanionSaving] = useState(false);
@@ -192,10 +195,10 @@ export default function JournalPage() {
   // journal fetch and the premium check are still pending after 20 seconds,
   // stop and show the retry UI instead.
   useEffect(() => {
-    if (!loading && !rcLoading) return;
+    if (!loading) return;
     const t = setTimeout(() => setLoadTimedOut(true), 20000);
     return () => clearTimeout(t);
-  }, [loading, rcLoading]);
+  }, [loading]);
 
   const handleRetry = () => {
     setLoadError(false);
@@ -300,6 +303,56 @@ export default function JournalPage() {
     } finally { setCompanionBusy(false); }
   };
 
+  // Subscribing happens right here in the Journal (Angelita, Oct 20,
+  // 2026): there is no separate sales page anywhere in the app. The
+  // purchase runs through Google Play via RevenueCat; when it lands,
+  // the companion state refreshes and the message box comes back with
+  // every exchange above it untouched.
+  const refreshAfterPurchase = async () => {
+    await fetchCompanion();
+    try { if (refreshCompanion) await refreshCompanion(); } catch (e) { /* state refresh is best-effort */ }
+  };
+
+  const handleSubscribe = async () => {
+    if (subBusy) return;
+    setSubBusy('buy');
+    setSubMsg('');
+    try {
+      const res = await purchaseCompanion(user?.id);
+      if (res?.status === 'active') {
+        await refreshAfterPurchase();
+        setSubMsg('You are subscribed. Keep writing, everything you shared stays right here.');
+      } else if (res?.status === 'pending') {
+        setSubMsg('Google Play is finishing your purchase. If it does not complete in a moment, tap Restore Purchase.');
+      } else if (res?.status === 'cancelled') {
+        setSubMsg('No charge was made.');
+      } else {
+        setSubMsg(res?.message || 'The subscription is not available right now.');
+      }
+    } catch (err) {
+      setSubMsg('Something went wrong starting the purchase. Nothing was charged.');
+    } finally { setSubBusy(''); }
+  };
+
+  const handleRestore = async () => {
+    if (subBusy) return;
+    setSubBusy('restore');
+    setSubMsg('');
+    try {
+      const res = await restoreCompanion();
+      if (res?.status === 'active') {
+        await refreshAfterPurchase();
+        setSubMsg('Your subscription is restored. Welcome back.');
+      } else if (res?.status === 'none') {
+        setSubMsg('No subscription was found for this account.');
+      } else {
+        setSubMsg(res?.message || 'Restore could not be completed.');
+      }
+    } catch (err) {
+      setSubMsg('Restore could not be completed. Nothing was changed.');
+    } finally { setSubBusy(''); }
+  };
+
   const handleToggleCompanion = async () => {
     if (!companion || companionSaving) return;
     setCompanionSaving(true);
@@ -360,19 +413,38 @@ export default function JournalPage() {
     setSaving(true);
     setSaveError(false);
     try {
-      await axios.post(`${API}/journal`, {
-        title: currentTitle.trim() || new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
-        content: currentEntry,
-        is_intimate: isIntimate
-      }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      const title = currentTitle.trim() || new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      if (editingId) {
+        // Editing an existing page: same entry, same day, words updated.
+        await axios.put(`${API}/journal/${editingId}`, {
+          title, content: currentEntry
+        }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      } else {
+        await axios.post(`${API}/journal`, {
+          title,
+          content: currentEntry,
+          is_intimate: isIntimate
+        }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      }
       setCurrentEntry(''); setCurrentTitle(''); setIsIntimate(false); setWriting(false);
-      setPageIndex(0); // the new entry lands on today's page, the first page
+      setEditingId(null);
+      setPageIndex(0); // the entry lives on today's page, the first page
       fetchEntries();
     } catch (err) {
       // Never fail silently: keep her words on screen and tell her plainly.
       logger.error('Failed to save journal entry:', err);
       setSaveError(true);
     } finally { setSaving(false); }
+  };
+
+  const handleEditEntry = (entry) => {
+    setEditingId(entry.id);
+    setCurrentTitle(entry.title || '');
+    setCurrentEntry(entry.content || '');
+    setIsIntimate(!!entry.is_intimate);
+    setSaveError(false);
+    setWriting(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id) => {
@@ -502,7 +574,19 @@ export default function JournalPage() {
   const fmtDayLong = (dateStr) => new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   const fmtTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-  if ((loading || rcLoading) && !loadTimedOut && !loadError) return <div className="flex items-center justify-center min-h-screen"><div className="cycle-orb orb-follicular w-16 h-16" /></div>;
+  if (loading && !loadTimedOut && !loadError) return (
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }}>
+      <div className="max-w-2xl mx-auto px-5 pt-6">
+        <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Yours only</p>
+        <h1 className="text-3xl text-white mb-10" style={{ fontFamily: "'Poiret One', cursive" }}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
+        <div className="flex flex-col items-center pt-10">
+          <div className="cycle-orb orb-follicular w-12 h-12 mb-4" />
+          <p className="text-white/60 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening your journal...</p>
+          <p className="text-white/30 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Your words and your companion live here.</p>
+        </div>
+      </div>
+    </div>
+  );
 
   if (loadTimedOut || loadError) return (
     <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
@@ -681,7 +765,7 @@ export default function JournalPage() {
                 data-testid="intimate-toggle">
                 <Lock className="w-4 h-4" style={{ color: isIntimate ? GOLD : 'rgba(255,255,255,0.35)' }} />
               </button>
-              <button onClick={() => { setWriting(false); setCurrentEntry(''); setCurrentTitle(''); setIsIntimate(false); }}
+              <button onClick={() => { setWriting(false); setCurrentEntry(''); setCurrentTitle(''); setIsIntimate(false); setEditingId(null); }}
                 className="flex-1 py-2 rounded-full text-white/50 text-xs" style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.08)' }}>
                 Cancel
               </button>
@@ -689,7 +773,7 @@ export default function JournalPage() {
                 className="flex-1 py-2 rounded-full text-white text-xs font-medium disabled:opacity-40"
                 style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
                 data-testid="save-entry-btn">
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? 'Saving...' : (editingId ? 'Save changes' : 'Save')}
               </button>
             </div>
           </div>
@@ -729,6 +813,11 @@ export default function JournalPage() {
                             <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtTime(entry.created_at)}</p>
                           </div>
                           <div className="flex items-center gap-1">
+                            <button onClick={() => handleEditEntry(entry)}
+                              title="Edit this entry"
+                              className="p-1" data-testid={`edit-entry-${entry.id}`}>
+                              <Pencil className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.35)' }} />
+                            </button>
                             <button onClick={() => handleToggleIntimate(entry)}
                               title={entry.is_intimate ? 'Intimate — her eyes only' : 'Mark as intimate'}
                               className="p-1" data-testid={`intimate-entry-${entry.id}`}>
@@ -837,12 +926,15 @@ export default function JournalPage() {
                   <p className="text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }} data-testid="companion-offer-price">
                     Journal Companion: $9.99/month through Google Play. Cancel anytime. Your journal itself always stays free.
                   </p>
-                  <Link to="/pro" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }} data-testid="companion-subscribe-link">
-                    Subscribe
-                  </Link>
-                  <Link to="/pro" className="block w-full mt-2 py-2 text-center text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }} data-testid="companion-restore-link">
-                    Restore Purchase
-                  </Link>
+                  <button onClick={handleSubscribe} disabled={!!subBusy} className="block w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }} data-testid="companion-subscribe-btn">
+                    {subBusy === 'buy' ? 'Opening Google Play...' : 'Subscribe'}
+                  </button>
+                  <button onClick={handleRestore} disabled={!!subBusy} className="block w-full mt-2 py-2 text-center text-xs disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }} data-testid="companion-restore-btn">
+                    {subBusy === 'restore' ? 'Restoring...' : 'Restore Purchase'}
+                  </button>
+                  {subMsg && (
+                    <p className="text-xs mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }} data-testid="companion-sub-msg">{subMsg}</p>
+                  )}
                 </div>
               </div>
             ) : (

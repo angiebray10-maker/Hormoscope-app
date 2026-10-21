@@ -355,6 +355,17 @@ h1, h2, h3, .heading {
    Pure CSS orbit: outer wrapper travels left->right,
    inner icon scales + pulls focus (blur) with depth.
    ============================================= */
+/* Emotion chips in the quick log drift gently and glow, alive but calm
+   (Angelita, Oct 20, 2026). Stagger comes from inline animation-delay. */
+@keyframes emotionFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.emotion-chip {
+  animation: emotionFloat 3.4s ease-in-out infinite;
+  will-change: transform;
+}
+
 @keyframes hs-orbit-x {
     0%   { left: -10%; }
     25%  { left: 27%; }
