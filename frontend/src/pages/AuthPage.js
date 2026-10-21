@@ -117,14 +117,14 @@ export default function AuthPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-3 mb-4">
             <button onClick={openSignup} data-testid="hero-cta-btn" className="w-full sm:w-auto px-8 py-3.5 rounded-full text-white font-medium text-sm tracking-wide transition-all duration-300" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)' }}>
-              Get Started Free
+              Get Started
             </button>
             <button onClick={() => scrollTo(scenariosRef)} className="w-full sm:w-auto px-6 py-3.5 rounded-full text-sm transition-all" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(201,184,240,0.15)', color: PINK }} data-testid="hero-secondary-btn">
               See How It Works
             </button>
           </div>
           <p className="text-xs flex items-center justify-center sm:justify-start gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-            <Shield className="w-3.5 h-3.5" /> Free to use. No credit card needed.
+            <Shield className="w-3.5 h-3.5" /> Private &amp; secure.
           </p>
         </div>
         <button onClick={() => scrollTo(scenariosRef)} className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce" style={{ color: PINK_MUTED }}>
@@ -238,7 +238,7 @@ export default function AuthPage() {
               We&apos;re not reading your texts or tracking your behavior. We use your logged cycle dates to help you understand patterns and possibilities. That&apos;s it.
             </p>
             <button onClick={openSignup} className="px-8 py-3.5 rounded-full text-white font-medium text-sm transition-all" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)' }} data-testid="science-cta-btn">
-              Try It Free <ArrowRight className="w-4 h-4 inline ml-1" />
+              Try It <ArrowRight className="w-4 h-4 inline ml-1" />
             </button>
           </div>
         </div>
@@ -325,7 +325,7 @@ export default function AuthPage() {
         </div>
       </section>
 
-      {/* CTA — Start Free */}
+      {/* CTA */}
       <section className="py-16 px-6 relative overflow-hidden">
         <div className="absolute inset-0" style={{ backgroundImage: `url(/images/img-0551.jpeg)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: 'rgba(10,10,26,0.88)' }} />
@@ -333,13 +333,13 @@ export default function AuthPage() {
         <div className="max-w-md mx-auto relative z-10 text-center">
           <p className="text-sm tracking-[0.3em] uppercase mb-3" style={{ fontFamily: "'Poiret One', cursive", color: '#D4A853' }}>Begin</p>
           <h2 className="text-white leading-[1.1] mb-5" style={{ fontFamily: "'Poiret One', cursive", fontSize: 'clamp(2rem, 7vw, 3rem)' }}>
-            Start tracking <br /><span style={{ color: '#D4A853' }}>for free.</span>
+            Start tracking <br /><span style={{ color: '#D4A853' }}>today.</span>
           </h2>
           <p className="text-xs sm:text-sm leading-relaxed mb-7" style={{ fontFamily: HEADING_FONT, color: PINK_SOFT }}>
-            Track your cycle, mood, and intimacy. No credit card needed. Your daily readings and your private journal are free, always.
+            Track your cycle, mood, and intimacy, with daily readings and a private journal written around your body.
           </p>
           <button onClick={openSignup} data-testid="start-free-cta" className="px-8 py-3.5 rounded-full text-white text-base transition-all" style={{ fontFamily: "'Poiret One', cursive", letterSpacing: '0.05em', background: 'linear-gradient(135deg, #D4A853, #c9a030)', boxShadow: '0 0 25px rgba(212,168,83,0.3)' }}>
-            Get Started Free
+            Get Started
           </button>
         </div>
       </section>
@@ -389,10 +389,10 @@ export default function AuthPage() {
             Finally know why you feel the way you feel, not because the stars said so, but because your hormones did.
           </p>
           <button onClick={openSignup} data-testid="final-cta-btn" className="px-10 py-4 rounded-full text-white font-medium text-sm tracking-wide transition-all duration-300" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)' }}>
-            Get Started Free
+            Get Started
           </button>
           <p className="text-xs mt-4 flex items-center justify-center gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-            <Shield className="w-3.5 h-3.5" /> Private & secure. No credit card required.
+            <Shield className="w-3.5 h-3.5" /> Private &amp; secure.
           </p>
         </div>
       </section>

@@ -116,9 +116,6 @@ function AttunedSection({ token }) {
             style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}>
             {generating ? 'Creating invite...' : 'Invite Your Partner'}
           </button>
-          <p className="text-[#9A8B91] text-[11px] mt-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Attunement Mode is free for everyone.
-          </p>
         </div>
       )}
     </div>

@@ -94,7 +94,7 @@ export default function GuidePage() {
             </p>
             <p className="mt-3">
               Over time the book becomes your story: you can look back, compare days, and see in your own
-              words how far you have come. Your Journal is free, always.
+              words how far you have come. Your Journal is yours, always.
             </p>
             <p className="mt-3">
               Your journal also holds a companion, if you want one: you pick the name, and your companion
@@ -108,8 +108,8 @@ export default function GuidePage() {
             <h2 className="text-xl sm:text-2xl text-white mb-3">Attunement</h2>
             <p>
               Attunement lets someone you trust follow your cycle with you, so they understand what your
-              body is going through and care lands right on time. Attunement is free for everyone: send
-              your partner a sign-up link and you track side by side, and the app is free for them too.
+              body is going through and care lands right on time. Send your partner a sign-up link and you track
+              side by side.
             </p>
             <p className="mt-3">
               There is also one simple share link on the same tab. Send it to anyone else you would like to
@@ -123,8 +123,6 @@ export default function GuidePage() {
             <p>
               Inside your Journal lives your companion, Your Journey&apos;s Companion: yours to name,
               yours to write with on the page, knowing your cycle and what your day has held.
-              HORMOscope itself is a free app: cycle tracking, your Calendar, your Daily Read, your
-              Journal and Vault, and Attunement are all free.
             </p>
           </section>
 

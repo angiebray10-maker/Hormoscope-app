@@ -67,7 +67,7 @@ export default function AttunementPage() {
       {inviteCode && (
         <div className="rounded-2xl p-4 mb-4 text-center" style={{ border: '1px solid rgba(244,167,185,0.35)', background: 'rgba(244,167,185,0.06)' }}>
           <p className="text-[#9A8B91] text-xs mb-2" style={poppins}>
-            Share this code with your person. They make their own free HORMOscope account, open the Attunement tab, and enter it to link with you.
+            Share this code with your person. They make their own HORMOscope account, open the Attunement tab, and enter it to link with you.
           </p>
           <button onClick={copyCode} className="w-full py-3 rounded-xl text-center" style={{ background: 'rgba(255,20,147,0.08)', border: '1px dashed rgba(255,20,147,0.4)' }}>
             <span className="text-white text-xl font-bold tracking-[0.3em]" style={poppins}>{inviteCode}</span>
@@ -139,7 +139,7 @@ export default function AttunementPage() {
               <div className="p-5">
                 <h2 className="text-white text-xl mb-2" style={script}>My partner is a woman</h2>
                 <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
-                  You track side by side, in tune with each other. Send her a sign-up link: the app is free for her too, just like it is for you.
+                  You track side by side, in tune with each other. Send her a sign-up link and she can join you here.
                 </p>
                 <button
                   onClick={() => handleInvite('woman')}

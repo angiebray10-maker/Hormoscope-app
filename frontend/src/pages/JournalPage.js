@@ -925,12 +925,11 @@ export default function JournalPage() {
                   <p className="text-white text-base mb-1" style={{ fontFamily: "'Poiret One', cursive", fontSize: '19px' }}>Journal Companion</p>
                   <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>Your Journey&apos;s Companion.</p>
                   <p className="text-xs leading-relaxed mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
-                    You have had your 3 free messages with {companion.name}, and every word of them stays
-                    right here in your journal. To keep writing together, with {companion.name} knowing your
-                    cycle and meeting you on the page each day, continue with the Journal Companion subscription.
+                    To keep writing together, with {companion.name} knowing your cycle and meeting you on
+                    the page each day, continue with Journal Companion.
                   </p>
                   <p className="text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }} data-testid="companion-offer-price">
-                    Journal Companion: $9.99/month through Google Play. Cancel anytime. Your journal itself always stays free.
+                    Journal Companion: $9.99/month through Google Play. Cancel anytime.
                   </p>
                   <button onClick={handleSubscribe} disabled={!!subBusy} className="block w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }} data-testid="companion-subscribe-btn">
                     {subBusy === 'buy' ? 'Opening Google Play...' : 'Subscribe'}
