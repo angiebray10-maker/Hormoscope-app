@@ -6,7 +6,7 @@ const LOGO_URL = "/logo192.png";
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[#05050A] p-6 pb-24">
+    <div className="min-h-screen bg-[#05050A] p-6 pb-24" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
       <Link to="/profile" className="inline-flex items-center gap-2 text-[#b8b8d1] hover:text-white mb-8">
         <ChevronLeft className="w-5 h-5" />
         Back

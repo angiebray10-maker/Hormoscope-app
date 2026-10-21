@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Moon } from 'lucide-react';
+import { Home, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 export default function NotFoundPage() {
@@ -25,7 +25,7 @@ export default function NotFoundPage() {
   return (
     <div className="min-h-screen bg-[#05050A] stars-bg flex flex-col items-center justify-center p-6 text-center">
       <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#ff8fab] to-[#ffc2d1] flex items-center justify-center mb-6 gold-glow">
-        <Moon className="w-12 h-12 text-[#05050A]" />
+        <Sparkles className="w-12 h-12 text-[#05050A]" />
       </div>
       
       <h1 className="text-6xl font-bold text-[#ff8fab] mb-4" >

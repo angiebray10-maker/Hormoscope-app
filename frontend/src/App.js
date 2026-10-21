@@ -10,7 +10,6 @@ import InstallPrompt from './components/InstallPrompt';
 import AuthPage from './pages/AuthPage';
 import OnboardingPage from './pages/OnboardingPage';
 import HomePage from './pages/HomePage';
-import DevotionalPage from './pages/DevotionalPage';
 import CalendarPage from './pages/CalendarPage';
 import JournalPage from './pages/JournalPage';
 import ProfilePage from './pages/ProfilePage';
@@ -88,11 +87,6 @@ const AppContent = () => {
         <Route path="/" element={
           <ProtectedRoute>
             <HomePage />
-          </ProtectedRoute>
-        } />
-        <Route path="/devotional" element={
-          <ProtectedRoute>
-            <DevotionalPage />
           </ProtectedRoute>
         } />
         <Route path="/calendar" element={

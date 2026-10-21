@@ -39,7 +39,7 @@ export default function AuthPage() {
   const { login, signup } = useAuth();
   const navigate = useNavigate();
   const scienceRef = useRef(null);
-  const scenariosRef = useRef(null);
+  const focusRef = useRef(null);
   const testimonialsRef = useRef(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -79,7 +79,7 @@ export default function AuthPage() {
             <BrandName className="text-xl" />
           </div>
           <div className="hidden sm:flex items-center gap-6">
-            <button onClick={() => scrollTo(scenariosRef)} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>How It Works</button>
+            <button onClick={() => scrollTo(focusRef)} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>How It Works</button>
             <button onClick={() => scrollTo(scienceRef)} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>The Science</button>
             <button onClick={() => scrollTo(testimonialsRef)} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>Stories</button>
             <button onClick={openLogin} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>Sign In</button>
@@ -94,7 +94,7 @@ export default function AuthPage() {
         </div>
         {mobileMenuOpen && (
           <div className="sm:hidden px-5 pb-4 space-y-3 border-t border-white/5 pt-3">
-            <button onClick={() => scrollTo(scenariosRef)} className="block text-sm" style={{ color: PINK_MUTED }}>How It Works</button>
+            <button onClick={() => scrollTo(focusRef)} className="block text-sm" style={{ color: PINK_MUTED }}>How It Works</button>
             <button onClick={() => scrollTo(scienceRef)} className="block text-sm" style={{ color: PINK_MUTED }}>The Science</button>
             <button onClick={() => scrollTo(testimonialsRef)} className="block text-sm" style={{ color: PINK_MUTED }}>Stories</button>
             <button onClick={openLogin} className="block text-sm" style={{ color: PINK_MUTED }}>Sign In</button>
@@ -107,6 +107,10 @@ export default function AuthPage() {
         <div className="absolute inset-0" style={{ backgroundImage: `url(${HERO_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,10,26,0.6) 0%, rgba(10,10,26,0.45) 40%, rgba(10,10,26,0.75) 100%)' }} />
         </div>
+        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,20,147,0.5) 0%, rgba(255,20,147,0) 70%)' }} />
+        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(212,168,83,0.5) 0%, rgba(212,168,83,0) 70%)', animationDelay: '1.6s' }} />
+        <div className="pulsating-orb" style={{ width: 110, height: 110, top: '46%', right: '12%', background: 'radial-gradient(circle, rgba(201,184,240,0.45) 0%, rgba(201,184,240,0) 70%)', animationDelay: '3.1s' }} />
+
         <div className="relative z-10 w-full max-w-xl mx-auto px-6 py-20 text-center sm:text-left">
           <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT }} data-testid="hero-eyebrow">Science, Not Stars</p>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white leading-tight mb-5" style={{ fontFamily: HEADING_FONT }} data-testid="hero-title">
@@ -119,7 +123,7 @@ export default function AuthPage() {
             <button onClick={openSignup} data-testid="hero-cta-btn" className="w-full sm:w-auto px-8 py-3.5 rounded-full text-white font-medium text-sm tracking-wide transition-all duration-300" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)' }}>
               Get Started
             </button>
-            <button onClick={() => scrollTo(scenariosRef)} className="w-full sm:w-auto px-6 py-3.5 rounded-full text-sm transition-all" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(201,184,240,0.15)', color: PINK }} data-testid="hero-secondary-btn">
+            <button onClick={() => scrollTo(focusRef)} className="w-full sm:w-auto px-6 py-3.5 rounded-full text-sm transition-all" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(201,184,240,0.15)', color: PINK }} data-testid="hero-secondary-btn">
               See How It Works
             </button>
           </div>
@@ -127,7 +131,7 @@ export default function AuthPage() {
             <Shield className="w-3.5 h-3.5" /> Private &amp; secure.
           </p>
         </div>
-        <button onClick={() => scrollTo(scenariosRef)} className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce" style={{ color: PINK_MUTED }}>
+        <button onClick={() => scrollTo(focusRef)} className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce" style={{ color: PINK_MUTED }}>
           <ChevronDown className="w-6 h-6" />
         </button>
       </section>
@@ -149,51 +153,39 @@ export default function AuthPage() {
         </div>
       </section>
 
-      {/* DAY 24 SCENARIOS — Show, Don't Tell */}
-      <section ref={scenariosRef} className="py-20 px-6 relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(${SCENARIO_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-          <div className="absolute inset-0" style={{ background: 'rgba(10,10,26,0.85)' }} />
-        </div>
+      {/* WHAT IT IS FOR — the Journal and Attuned Partner Mode, and
+          the privacy promise (Angelita, Oct 21, 2026). The example
+          sections (Day 24 scenarios, relationship translator) are gone
+          on her order; the front door concentrates on these two. */}
+      <section ref={focusRef} className="py-20 px-6 relative overflow-hidden">
+        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,20,147,0.5) 0%, rgba(255,20,147,0) 70%)' }} />
+        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(212,168,83,0.5) 0%, rgba(212,168,83,0) 70%)', animationDelay: '1.6s' }} />
+        <div className="pulsating-orb" style={{ width: 110, height: 110, top: '46%', right: '12%', background: 'radial-gradient(circle, rgba(201,184,240,0.45) 0%, rgba(201,184,240,0) 70%)', animationDelay: '3.1s' }} />
         <div className="max-w-2xl mx-auto relative z-10">
-          <div className="text-center mb-14">
-            <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>How It Works</p>
-            <h2 className="text-3xl sm:text-4xl text-white mb-4" style={{ fontFamily: HEADING_FONT }} data-testid="scenarios-heading">
-              Your daily reading.<br />
-              <span style={{ color: PURPLE_LIGHT }}>Based on biology, not the stars.</span>
-            </h2>
+          <div className="text-center mb-12">
+            <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>What HORMOscope is for</p>
+            <h2 className="text-3xl sm:text-4xl text-white mb-4" style={{ fontFamily: HEADING_FONT }}>Your journal. Your partner. Your cycle.</h2>
           </div>
-
-          {/* Scenario Cards — showing the "aha" moment */}
-          <div className="space-y-4">
-            {[
-              {
-                before: 'Someone makes a small comment and you replay it 47 times, convinced they meant it in the worst way possible.',
-                after: 'You\'re on Day 24, late in your cycle, when many women feel more sensitive and replay things. That is a pattern worth knowing, not a personality flaw.',
-                day: '24'
-              },
-              {
-                before: 'You snap at your partner over nothing and spend the rest of the night feeling guilty.',
-                after: 'You\'re on Day 3, the early days of a new cycle, when energy often runs low and patience runs thin. You\'re not mean. You\'re on Day 3.',
-                day: '3'
-              },
-              {
-                before: 'Some weeks you feel unstoppable. Other weeks you can barely get off the couch.',
-                after: 'Day 13: right before ovulation, the stretch when many women feel their energy peak. HORMOscope helps you see that window coming.',
-                day: '13'
-              }
-            ].map((s) => (
-              <div key={`scenario-${s.day}`} className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(123,79,166,0.15)' }} data-testid={`scenario-${s.day}`}>
-                <div className="p-5" style={{ background: 'rgba(255,70,70,0.04)' }}>
-                  <p className="text-xs tracking-wider uppercase mb-2" style={{ color: '#ff6b6b', fontFamily: 'Poppins, sans-serif' }}>What you think</p>
-                  <p className="text-white text-sm leading-relaxed" style={{ fontFamily: HEADING_FONT }}>&ldquo;{s.before}&rdquo;</p>
-                </div>
-                <div className="p-5" style={{ background: 'rgba(123,79,166,0.06)' }}>
-                  <p className="text-xs tracking-wider uppercase mb-2" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>What HORMOscope shows you</p>
-                  <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: HEADING_FONT }}>{s.after}</p>
-                  <span className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium" style={{ background: 'rgba(123,79,166,0.2)', color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>Day {s.day}</span>
-                </div>
-              </div>
-            ))}
+          <div className="space-y-4 mb-4">
+            <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(212,168,83,0.25)' }} data-testid="focus-journal">
+              <h3 className="text-white text-lg mb-2" style={{ fontFamily: "'Poiret One', cursive" }}>The Journal</h3>
+              <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
+                A real book, one page for every day, written by you and kept for you. Inside it lives your companion, who knows your cycle and your words, and talks with you about what the day truly felt like.
+              </p>
+            </div>
+            <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,20,147,0.25)' }} data-testid="focus-attuned">
+              <h3 className="text-white text-lg mb-2" style={{ fontFamily: "'Poiret One', cursive" }}>Attuned Partner Mode</h3>
+              <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
+                Link with your partner and sync your cycles. Each of you can see where the other is in her cycle, so the hard days never blindside either of you. HORMOscope is built for same sex couples from the ground up, not adapted as an afterthought.
+              </p>
+            </div>
+          </div>
+          <div className="p-6 rounded-2xl text-center" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.35)' }} data-testid="focus-privacy">
+            <p className="text-xs font-medium tracking-widest uppercase mb-3" style={{ color: '#D4A853', fontFamily: 'Poppins, sans-serif' }}>Our number one promise</p>
+            <h3 className="text-white text-xl mb-3" style={{ fontFamily: HEADING_FONT }}>Your privacy comes first. Always.</h3>
+            <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
+              Your journal, your cycle, and your conversations are encrypted when they travel and when they rest, protected by security we keep updated ahead of the standard, and never sold or shared with anyone. Not other users. Not your partner. Nobody. Protecting your data is the first job of this app, before everything else.
+            </p>
           </div>
         </div>
       </section>
@@ -206,10 +198,10 @@ export default function AuthPage() {
         <div className="max-w-2xl mx-auto relative z-10">
           <div className="text-center mb-14">
             <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>The science</p>
-            <h2 className="text-3xl sm:text-4xl text-white mb-4" style={{ fontFamily: HEADING_FONT }} data-testid="science-heading">
+            <h2 className="text-3xl sm:text-4xl text-white mb-4" style={{ fontFamily: "'Times New Roman', Times, serif" }} data-testid="science-heading">
               3 questions, one full cycle of clarity.
             </h2>
-            <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: HEADING_FONT }}>
+            <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
               Every woman&apos;s cycle follows the same hormonal blueprint. We just map yours to it.
             </p>
           </div>
@@ -226,7 +218,7 @@ export default function AuthPage() {
                   <span className="text-3xl flex-shrink-0" style={{ color: 'rgba(212,168,83,0.45)', fontFamily: "'Poiret One', cursive" }}>{step.num}</span>
                   <div>
                     <h3 className="text-white text-base mb-1.5" style={{ fontFamily: "'Poiret One', cursive" }}>{step.title}</h3>
-                    <p className="text-sm leading-relaxed" style={{ color: PINK_MUTED, fontFamily: HEADING_FONT }}>{step.desc}</p>
+                    <p className="text-sm leading-relaxed" style={{ color: PINK_MUTED, fontFamily: "'Times New Roman', Times, serif" }}>{step.desc}</p>
                   </div>
                 </div>
               </div>
@@ -241,54 +233,6 @@ export default function AuthPage() {
               Try It <ArrowRight className="w-4 h-4 inline ml-1" />
             </button>
           </div>
-        </div>
-      </section>
-
-      {/* RELATIONSHIP TRANSLATOR — Elevated from buried testimonials */}
-      <section className="py-20 px-6 relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(${RELATIONSHIP_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-          <div className="absolute inset-0" style={{ background: 'rgba(10,10,26,0.87)' }} />
-        </div>
-        <div className="max-w-2xl mx-auto relative z-10">
-          <div className="text-center mb-14">
-            <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>Beyond just you</p>
-            <h2 className="text-3xl sm:text-4xl text-white mb-4" style={{ fontFamily: HEADING_FONT }} data-testid="relationship-heading">
-              Your cycle data is a<br /><span style={{ color: PURPLE_LIGHT }}>relationship translator.</span>
-            </h2>
-            <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: HEADING_FONT }}>
-              When you understand your biology, you can communicate it. No more unexplained mood swings. No more guilt. Just clarity — for both of you.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="p-5 rounded-2xl" style={{ background: 'rgba(123,79,166,0.06)', border: '1px solid rgba(123,79,166,0.15)' }} data-testid="relationship-scenario-1">
-              <div className="flex items-start gap-3 mb-3">
-                <MessageCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: PURPLE_LIGHT }} />
-                <p className="text-white text-sm leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>&ldquo;We need to talk about the budget.&rdquo;</p>
-              </div>
-              <div className="ml-8 p-3 rounded-xl" style={{ background: 'rgba(123,79,166,0.1)' }}>
-                <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: HEADING_FONT }}>
-                  HORMOscope shows you are in a stretch where you usually feel more on edge. <strong className="text-white">You reschedule to Thursday</strong>, a part of your cycle that tends to feel steadier for you. Argument avoided. Problem still solved.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl" style={{ background: 'rgba(123,79,166,0.06)', border: '1px solid rgba(123,79,166,0.15)' }} data-testid="relationship-scenario-2">
-              <div className="flex items-start gap-3 mb-3">
-                <Heart className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: PINK }} />
-                <p className="text-white text-sm leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>&ldquo;Why are you being so distant?&rdquo;</p>
-              </div>
-              <div className="ml-8 p-3 rounded-xl" style={{ background: 'rgba(123,79,166,0.1)' }}>
-                <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: HEADING_FONT }}>
-                  Instead of spiraling into guilt, you show your partner: <strong className="text-white">&ldquo;I&apos;m on Day 26, late in my cycle. I need quiet tonight.&rdquo;</strong> They get it. You both feel better.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-center text-xs mt-8" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-            You&apos;re not giving someone a manual on how to handle you. You&apos;re using your data to set boundaries and advocate for yourself.
-          </p>
         </div>
       </section>
 
@@ -380,6 +324,9 @@ export default function AuthPage() {
         <div className="absolute inset-0" style={{ backgroundImage: `url(/images/img-0546-alt.jpeg)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: 'rgba(10,10,26,0.82)' }} />
         </div>
+        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,20,147,0.5) 0%, rgba(255,20,147,0) 70%)' }} />
+        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(212,168,83,0.5) 0%, rgba(212,168,83,0) 70%)', animationDelay: '1.6s' }} />
+        <div className="pulsating-orb" style={{ width: 110, height: 110, top: '46%', right: '12%', background: 'radial-gradient(circle, rgba(201,184,240,0.45) 0%, rgba(201,184,240,0) 70%)', animationDelay: '3.1s' }} />
         <div className="max-w-lg mx-auto relative z-10">
           <h2 className="text-3xl sm:text-4xl mb-4 text-white" style={{ fontFamily: HEADING_FONT }} data-testid="final-cta-heading">
             You&apos;re not crazy,<br />

@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import DateSelect from '../components/DateSelect';
 import { Label } from '../components/ui/label';
-import { Calendar, Moon, Sparkles, ChevronRight, ChevronLeft, Cake, Bell, BellOff, Clock, Heart, Lock } from 'lucide-react';
+import { Calendar, Sparkles, ChevronRight, ChevronLeft, Cake, Bell, BellOff, Clock, Heart, Lock } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 import { subscribeToPush } from '../utils/pushNotifications';
@@ -98,8 +98,8 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#1a1a2e] mb-4">
-                  <img src={LOGO_URL} alt="horMoscope" className="w-16 h-16 object-contain" />
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full overflow-hidden mb-4" style={{ border: '1px solid rgba(212,168,83,0.35)' }}>
+                  <img src={LOGO_URL} alt="horMoscope" className="w-full h-full object-cover" />
                 </div>
                 <h2 className="text-2xl font-semibold text-[#F5F5F5]" >
                   What&apos;s your name?
@@ -148,7 +148,7 @@ export default function OnboardingPage() {
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#12121A] border border-[#7B1E30]/50 mb-4">
-                  <Moon className="w-8 h-8 text-[#7B1E30]" />
+                  <Calendar className="w-8 h-8 text-[#7B1E30]" />
                 </div>
                 <h2 className="text-2xl font-semibold text-[#F5F5F5]" >
                   First Day of Your Last Period
@@ -338,7 +338,7 @@ export default function OnboardingPage() {
                   Your Secret Calendar
                 </h2>
                 <p className="text-[#A0A0A0] mt-2">
-                  This is a one-time message. Only you will know this exists.
+                  This is a one-time message. Only you will know this exists. Your data is encrypted and kept private, and protecting it is our first job.
                 </p>
               </div>
               <div className="space-y-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
