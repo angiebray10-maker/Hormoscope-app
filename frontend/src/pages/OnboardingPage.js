@@ -104,7 +104,12 @@ export default function OnboardingPage() {
                 <h2 className="text-3xl font-semibold text-[#F5F5F5]" style={{ fontFamily: "'Poiret One', cursive" }}>
                   Science, not Stars
                 </h2>
-                <p className="text-[#A0A0A0] mt-2 text-sm">Not your horoscope. Your hormones.</p>
+                <p className="text-[#C9C9D6] mt-3 text-sm leading-relaxed" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                  A daily reading inspired by your menstrual cycle, not your zodiac sign. Explore patterns in your mood and energy, learn about your estimated cycle phase, and check in with how you actually feel.
+                </p>
+                <p className="text-[#C9C9D6] mt-3 text-sm leading-relaxed" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                  Attuned Partner Mode was inspired by our same sex couples, and built around what they asked for.
+                </p>
                 <h3 className="text-xl text-[#F5F5F5] mt-6" style={{ fontFamily: "'Poiret One', cursive" }}>
                   What&apos;s your name?
                 </h3>
