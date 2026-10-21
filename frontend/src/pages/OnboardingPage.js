@@ -101,10 +101,13 @@ export default function OnboardingPage() {
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full overflow-hidden mb-4" style={{ border: '1px solid rgba(212,168,83,0.35)' }}>
                   <img src={LOGO_URL} alt="horMoscope" className="w-full h-full object-cover" />
                 </div>
-                <h2 className="text-2xl font-semibold text-[#F5F5F5]" >
-                  What&apos;s your name?
+                <h2 className="text-3xl font-semibold text-[#F5F5F5]" style={{ fontFamily: "'Poiret One', cursive" }}>
+                  Science, not Stars
                 </h2>
-                <p className="text-[#A0A0A0] mt-2">Let&apos;s personalize your experience</p>
+                <p className="text-[#A0A0A0] mt-2 text-sm">Not your horoscope. Your hormones.</p>
+                <h3 className="text-xl text-[#F5F5F5] mt-6" style={{ fontFamily: "'Poiret One', cursive" }}>
+                  What&apos;s your name?
+                </h3>
               </div>
               <div>
                 <Label className="text-[#A0A0A0] mb-2 block">Your Name</Label>

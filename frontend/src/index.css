@@ -638,3 +638,18 @@ h1, h2, h3, .heading {
   filter: blur(28px);
   animation: orbPulse 5s ease-in-out infinite;
 }
+
+/* Her font law (Angelita, Oct 21, 2026): headers wear Poiret One, ALL
+   small text and paragraphs wear Poppins, and official or professional
+   text wears the formal serif. The .official-doc scope protects the
+   serif documents (Terms, Privacy, science and privacy copy) from
+   the Poppins paragraph rule. Display script lines keep their face. */
+p, li, label, td, th, input, textarea, select, button {
+  font-family: 'Poppins', sans-serif !important;
+}
+.font-script {
+  font-family: 'Poiret One', cursive !important;
+}
+.official-doc p, .official-doc li {
+  font-family: 'Times New Roman', Times, serif !important;
+}

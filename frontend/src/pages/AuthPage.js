@@ -167,20 +167,20 @@ export default function AuthPage() {
             <h2 className="text-3xl sm:text-4xl text-white mb-4" style={{ fontFamily: HEADING_FONT }}>Your journal. Your partner. Your cycle.</h2>
           </div>
           <div className="space-y-4 mb-4">
-            <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(212,168,83,0.25)' }} data-testid="focus-journal">
+            <div className="p-6 rounded-2xl official-doc" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(212,168,83,0.25)' }} data-testid="focus-journal">
               <h3 className="text-white text-lg mb-2" style={{ fontFamily: "'Poiret One', cursive" }}>The Journal</h3>
               <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
                 A real book, one page for every day, written by you and kept for you. Inside it lives your companion, who knows your cycle and your words, and talks with you about what the day truly felt like.
               </p>
             </div>
-            <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,20,147,0.25)' }} data-testid="focus-attuned">
+            <div className="p-6 rounded-2xl official-doc" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,20,147,0.25)' }} data-testid="focus-attuned">
               <h3 className="text-white text-lg mb-2" style={{ fontFamily: "'Poiret One', cursive" }}>Attuned Partner Mode</h3>
               <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
                 Link with your partner and sync your cycles. Each of you can see where the other is in her cycle, so the hard days never blindside either of you. HORMOscope is built for same sex couples from the ground up, not adapted as an afterthought.
               </p>
             </div>
           </div>
-          <div className="p-6 rounded-2xl text-center" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.35)' }} data-testid="focus-privacy">
+          <div className="p-6 rounded-2xl text-center official-doc" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.35)' }} data-testid="focus-privacy">
             <p className="text-xs font-medium tracking-widest uppercase mb-3" style={{ color: '#D4A853', fontFamily: 'Poppins, sans-serif' }}>Our number one promise</p>
             <h3 className="text-white text-xl mb-3" style={{ fontFamily: HEADING_FONT }}>Your privacy comes first. Always.</h3>
             <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
@@ -191,7 +191,7 @@ export default function AuthPage() {
       </section>
 
       {/* THE SCIENCE — Demystify How It Works */}
-      <section ref={scienceRef} className="py-20 px-6 relative overflow-hidden">
+      <section ref={scienceRef} className="py-20 px-6 relative overflow-hidden official-doc">
         <div className="absolute inset-0" style={{ backgroundImage: `url(${SCIENCE_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: 'rgba(10,10,26,0.88)' }} />
         </div>
