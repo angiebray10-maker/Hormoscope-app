@@ -22,9 +22,9 @@ const toISODateLocal = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).
 // Educational card that opens when a phase row is tapped (Angelita's phase
 // cards, approved Oct 17). Rows carry no hint text; tapping is discovered.
 const PHASE_CARDS = {
-  menstrual: { src: '/images/phase-menstrual.jpg', name: 'Menstrual Phase' },
-  follicular: { src: '/images/phase-follicular.jpg', name: 'Follicular Phase' },
-  ovulatory: { src: '/images/phase-ovulatory.jpg', name: 'Ovulatory Phase' },
+  menstrual: { src: '/images/phase-menstrual.png', name: 'Menstrual Phase' },
+  follicular: { src: '/images/phase-follicular.png', name: 'Follicular Phase' },
+  ovulatory: { src: '/images/phase-ovulatory.png', name: 'Ovulatory Phase' },
   luteal: { src: '/images/phase-luteal.png', name: 'Luteal Phase' },
 };
 
