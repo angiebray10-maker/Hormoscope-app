@@ -62,9 +62,25 @@ export default function OnboardingPage() {
 
   const totalSteps = 6;
 
+  // Her pictures woven into the onboarding pages themselves (Angelita,
+  // Oct 21, 2026): one behind each step, barely visible, never standing
+  // alone as their own slides.
+  const STEP_BG = {
+    1: '/images/onboarding-phase-signs.jpg',
+    2: '/images/onboarding-better-moods.jpg',
+    3: '/images/onboarding-decoded.jpg',
+    4: '/images/onboarding-check-hormones.jpg',
+    5: '/images/onboarding-not-astrology.jpg',
+    6: '/images/onboarding-keep-him.jpg',
+  };
+
   return (
-    <div className="min-h-screen bg-[#05050A] stars-bg flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-[#05050A] stars-bg flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true" data-testid="onboarding-bg">
+        <img key={step} src={STEP_BG[step]} alt="" className="w-full h-full object-cover" style={{ opacity: 0.15 }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,5,10,0.5) 0%, rgba(5,5,10,0.8) 100%)' }} />
+      </div>
+      <div className="w-full max-w-md relative">
         {/* Progress */}
         <div className="flex items-center justify-center gap-2 mb-10">
           {[1, 2, 3, 4, 5, 6].map((s) => (
@@ -77,37 +93,13 @@ export default function OnboardingPage() {
           ))}
         </div>
 
-        {/* Her onboarding pictures (Angelita, Oct 21, 2026): a swipeable
-            welcome strip on the first step, above the questions. */}
-        {step === 1 && (
-          <div className="mb-6" data-testid="onboarding-gallery">
-            <div className="flex gap-3 overflow-x-auto pb-2 items-start" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
-              {[
-                { src: '/images/onboarding-phase-signs.jpg', alt: 'Women holding signs for each phase of the cycle, HORMOscope in the middle' },
-                { src: '/images/onboarding-better-moods.jpg', alt: 'Better moods, every single day. Period.' },
-                { src: '/images/onboarding-not-astrology.jpg', alt: 'Astrology says the moon is sad. HORMOscope says your estrogen dropped.' },
-                { src: '/images/onboarding-decoded.jpg', alt: 'Hormones decoded, life optimized, love in sync' },
-                { src: '/images/onboarding-check-hormones.jpg', alt: 'Check your hormones' },
-                { src: '/images/onboarding-keep-him.jpg', alt: 'Using HORMOscope to keep him for good' },
-              ].map((img, i) => (
-                <div key={img.src} className="shrink-0" style={{ width: '88%', scrollSnapAlign: 'center' }}>
-                  <img src={img.src} alt={img.alt} className="w-full h-auto rounded-2xl"
-                    style={{ border: '1px solid rgba(255,143,171,0.25)', boxShadow: '0 14px 30px rgba(0,0,0,0.45)' }}
-                    data-testid={`onboarding-pic-${i + 1}`} />
-                </div>
-              ))}
-            </div>
-            <p className="text-center text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Swipe through. This is HORMOscope.</p>
-          </div>
-        )}
-
         {/* Step Content */}
         <div className="glass-card p-8">
           {step === 1 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#1a1a2e] mb-4">
-                  <img src={LOGO_URL} alt="horMoscope" className="w-16 h-16 object-contain" />
+                <div className="inline-flex items-center justify-center w-28 h-28 rounded-[1.6rem] overflow-hidden mb-4" style={{ border: '1px solid rgba(212,168,83,0.35)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+                  <img src={LOGO_URL} alt="HORMOscope" className="w-full h-full object-cover" data-testid="onboarding-logo" />
                 </div>
                 <h2 className="text-2xl font-semibold text-[#F5F5F5]" >
                   What&apos;s your name?
