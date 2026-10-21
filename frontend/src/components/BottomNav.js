@@ -5,7 +5,7 @@ import { Home, MessageCircle, Calendar, User, BookOpen, BookHeart, Heart } from 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/journal', icon: BookOpen, label: 'Journal' },
-  { path: '/devotional', icon: BookHeart, label: 'Devotional' },
+  { path: '/devotional', icon: BookHeart, label: '31 Proverbs' },
   { path: '/attunement', icon: Heart, label: 'Attunement' },
   { path: '/calendar', icon: Calendar, label: 'Calendar' },
   { path: '/profile', icon: User, label: 'Profile' },

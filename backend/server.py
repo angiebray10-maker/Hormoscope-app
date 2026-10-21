@@ -2834,6 +2834,53 @@ Generate a deeply personal, warm reading for her today. Make it feel like HORMOs
 
 
 
+# ==================== 31 PROVERBS COMMUNITY ====================
+# The 31 Proverbs tab is the community hub (Angelita, Oct 21, 2026):
+# one full chapter a day, and underneath it the women talk. Comments
+# belong to the chapter, so chapter 5's conversation is there every
+# time day 5 comes around. A comment carries only her first name.
+
+class DevotionalCommentCreate(BaseModel):
+    chapter: int
+    text: str
+
+@api_router.get("/devotional/comments")
+async def get_devotional_comments(chapter: int, current_user: dict = Depends(get_current_user)):
+    if chapter < 1 or chapter > 31:
+        raise HTTPException(status_code=400, detail="Chapter must be between 1 and 31")
+    comments = await db.devotional_comments.find(
+        {"chapter": chapter}, {"_id": 0}
+    ).sort("created_at", -1).to_list(length=100)
+    return {"comments": comments}
+
+@api_router.post("/devotional/comments")
+async def create_devotional_comment(payload: DevotionalCommentCreate, current_user: dict = Depends(get_current_user)):
+    if payload.chapter < 1 or payload.chapter > 31:
+        raise HTTPException(status_code=400, detail="Chapter must be between 1 and 31")
+    text = (payload.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Write something first")
+    if len(text) > 500:
+        raise HTTPException(status_code=400, detail="Keep comments to 500 characters")
+    first = (current_user.get("name") or "A sister").split(" ")[0]
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "name": first,
+        "chapter": payload.chapter,
+        "text": text,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.devotional_comments.insert_one(doc)
+    return doc
+
+@api_router.delete("/devotional/comments/{comment_id}")
+async def delete_devotional_comment(comment_id: str, current_user: dict = Depends(get_current_user)):
+    result = await db.devotional_comments.delete_one({"id": comment_id, "user_id": current_user["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    return {"message": "Comment deleted"}
+
 # ==================== ATTUNED PARTNER MODE ====================
 
 @api_router.post("/partner/generate-link")
