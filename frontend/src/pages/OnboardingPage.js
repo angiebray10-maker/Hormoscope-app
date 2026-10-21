@@ -77,6 +77,30 @@ export default function OnboardingPage() {
           ))}
         </div>
 
+        {/* Her onboarding pictures (Angelita, Oct 21, 2026): a swipeable
+            welcome strip on the first step, above the questions. */}
+        {step === 1 && (
+          <div className="mb-6" data-testid="onboarding-gallery">
+            <div className="flex gap-3 overflow-x-auto pb-2 items-start" style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+              {[
+                { src: '/images/onboarding-phase-signs.jpg', alt: 'Women holding signs for each phase of the cycle, HORMOscope in the middle' },
+                { src: '/images/onboarding-better-moods.jpg', alt: 'Better moods, every single day. Period.' },
+                { src: '/images/onboarding-not-astrology.jpg', alt: 'Astrology says the moon is sad. HORMOscope says your estrogen dropped.' },
+                { src: '/images/onboarding-decoded.jpg', alt: 'Hormones decoded, life optimized, love in sync' },
+                { src: '/images/onboarding-check-hormones.jpg', alt: 'Check your hormones' },
+                { src: '/images/onboarding-keep-him.jpg', alt: 'Using HORMOscope to keep him for good' },
+              ].map((img, i) => (
+                <div key={img.src} className="shrink-0" style={{ width: '88%', scrollSnapAlign: 'center' }}>
+                  <img src={img.src} alt={img.alt} className="w-full h-auto rounded-2xl"
+                    style={{ border: '1px solid rgba(255,143,171,0.25)', boxShadow: '0 14px 30px rgba(0,0,0,0.45)' }}
+                    data-testid={`onboarding-pic-${i + 1}`} />
+                </div>
+              ))}
+            </div>
+            <p className="text-center text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Swipe through. This is HORMOscope.</p>
+          </div>
+        )}
+
         {/* Step Content */}
         <div className="glass-card p-8">
           {step === 1 && (
