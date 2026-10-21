@@ -918,7 +918,7 @@ export default function JournalPage() {
                     <p className="text-white/85 whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px' }}>{ex.user_message}</p>
                     <div className="rounded-lg px-3 py-2.5 mt-2" style={{ background: 'rgba(244,167,185,0.08)', border: '1px solid rgba(244,167,185,0.15)' }}>
                       <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>{ex.companion_name || companion.name}</p>
-                      <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
+                      <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: "'Times New Roman', Times, serif", fontStyle: 'italic', fontSize: '16px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
                     </div>
                   </div>
                 ))}
@@ -1065,7 +1065,7 @@ export default function JournalPage() {
                                       <p className="text-white/85 whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px' }}>{ex.user_message}</p>
                                       <div className="rounded-lg px-3 py-2.5 mt-2" style={{ background: 'rgba(244,167,185,0.08)', border: '1px solid rgba(244,167,185,0.15)' }}>
                                         <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>{ex.companion_name}</p>
-                                        <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
+                                        <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: "'Times New Roman', Times, serif", fontStyle: 'italic', fontSize: '16px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
                                       </div>
                                     </div>
                                   ))}
