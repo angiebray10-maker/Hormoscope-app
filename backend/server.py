@@ -216,6 +216,212 @@ def get_age_group(age: int) -> str:
     else:
         return "experienced"
 
+
+# Recipes and vitamins matched to each daily nutrition entry above
+# (Angelita, Oct 20, 2026): every daily food list gets one easy recipe
+# built from those exact foods, plus the vitamins that matter that day.
+# Keyed by the entry's tip text so both fresh and cached daily content
+# can find its match.
+NUTRITION_EXTRAS = {
+    "Focus on iron-rich foods to replenish what's lost.": {
+        "recipe": {"title": "Skillet Beef, Lentils and Greens", "minutes": 25,
+                   "ingredients": ["Red meat, sliced thin or ground", "Cooked lentils", "Dark leafy greens", "Pumpkin seeds", "Garlic and olive oil"],
+                   "steps": ["Brown the meat in olive oil with the garlic.", "Stir in the lentils and warm them through.", "Fold in the greens until just wilted.", "Shower pumpkin seeds over the top and serve hot."]},
+        "vitamins": [{"name": "Iron", "why": "Replenishes what your period takes from you."},
+                     {"name": "Vitamin C", "why": "Helps your body absorb that iron."},
+                     {"name": "Vitamin B12", "why": "Supports your energy while you bleed."}]},
+    "Warm, nourishing foods support your body during menstruation.": {
+        "recipe": {"title": "Ginger Root Vegetable Soup", "minutes": 30,
+                   "ingredients": ["Bone broth", "Root vegetables (carrots, sweet potato, parsnip)", "Fresh ginger", "Dark chocolate, for after"],
+                   "steps": ["Chop the root vegetables into chunks.", "Simmer them in the bone broth with grated ginger until soft.", "Season, ladle into a warm bowl, and sip slowly.", "A square of dark chocolate after, just because."]},
+        "vitamins": [{"name": "Vitamin A", "why": "Root vegetables support your immune system."},
+                     {"name": "Vitamin C", "why": "Helps you fight off the run-down feeling."},
+                     {"name": "Iron", "why": "Bone broth and roots help rebuild."}]},
+    "Anti-inflammatory foods help reduce cramps and discomfort.": {
+        "recipe": {"title": "Turmeric Salmon with Walnut Greens", "minutes": 20,
+                   "ingredients": ["Salmon fillet", "Turmeric", "Olive oil", "Walnuts", "A handful of greens"],
+                   "steps": ["Rub the salmon with turmeric and a pinch of salt.", "Sear it in olive oil until just cooked through.", "Rest it over the greens so they soften in the warmth.", "Scatter crushed walnuts and a drizzle of olive oil over everything."]},
+        "vitamins": [{"name": "Omega-3", "why": "Naturally eases inflammation and cramps."},
+                     {"name": "Vitamin D", "why": "Salmon is one of the best sources there is."},
+                     {"name": "Vitamin E", "why": "Walnuts and olive oil protect your cells."}]},
+    "Stay hydrated to help with bloating and fatigue.": {
+        "recipe": {"title": "Watermelon Cucumber Cooler", "minutes": 10,
+                   "ingredients": ["Watermelon", "Cucumber", "Coconut water", "Herbal tea, for later", "Mint or lime if you have it"],
+                   "steps": ["Blend the watermelon with the coconut water.", "Cut the cucumber into thin ribbons and stir them in.", "Chill it well and sip it through the day.", "Follow with warm herbal tea when you want something cozy."]},
+        "vitamins": [{"name": "Vitamin C", "why": "Watermelon brings it along with all that water."},
+                     {"name": "Potassium", "why": "Helps with bloating and water balance."},
+                     {"name": "Vitamin A", "why": "Supports your skin and immune system."}]},
+    "Vitamin C helps with iron absorption during your period.": {
+        "recipe": {"title": "Sweet Pepper and Broccoli Stir-Fry with Orange", "minutes": 15,
+                   "ingredients": ["Bell peppers", "Broccoli", "One orange", "Strawberries, for after", "Garlic and olive oil"],
+                   "steps": ["Sizzle the garlic in olive oil.", "Add the broccoli and peppers and cook until bright and tender-crisp.", "Squeeze the orange over the pan and toss everything in its juice.", "Strawberries for dessert."]},
+        "vitamins": [{"name": "Vitamin C", "why": "The star today: it unlocks iron from your food."},
+                     {"name": "Vitamin K", "why": "Broccoli supports healthy blood and bones."},
+                     {"name": "Folate", "why": "Helps your body build new cells."}]},
+    "Omega-3s can help reduce menstrual pain naturally.": {
+        "recipe": {"title": "Sardine Toasts with Seed Crunch", "minutes": 10,
+                   "ingredients": ["Sardines", "Good toast", "Chia seeds", "Ground flaxseed", "Hemp seeds", "A lemon wedge"],
+                   "steps": ["Mash the sardines with lemon juice and a pinch of salt.", "Pile them onto warm toast.", "Sprinkle the chia, flaxseed, and hemp seeds over the top.", "Eat right away, while the toast is still crisp."]},
+        "vitamins": [{"name": "Omega-3", "why": "Can take the edge off period pain."},
+                     {"name": "Vitamin D", "why": "Sardines carry it in every bite."},
+                     {"name": "Calcium", "why": "Those tiny sardine bones are full of it."}]},
+    "Zinc supports hormone balance during menstruation.": {
+        "recipe": {"title": "Beef and Chickpea Skillet with Cashews", "minutes": 20,
+                   "ingredients": ["Beef strips", "Chickpeas", "Cashews", "Smoked paprika", "Oysters on the side, if they are your thing"],
+                   "steps": ["Sear the beef until browned at the edges.", "Add the chickpeas and paprika and crisp them in the same pan.", "Fold in the cashews for the last minute.", "Serve hot, with lemon if you like it bright."]},
+        "vitamins": [{"name": "Zinc", "why": "Supports hormone balance during your period."},
+                     {"name": "Iron", "why": "Beef and chickpeas both bring it."},
+                     {"name": "Vitamin B6", "why": "Helps with mood and energy."}]},
+    "Light, fresh foods support your rising energy.": {
+        "recipe": {"title": "Citrus Sprout Salad with Chicken", "minutes": 15,
+                   "ingredients": ["Salad greens", "Sprouts", "Citrus fruit", "Cooked chicken or turkey", "Olive oil"],
+                   "steps": ["Layer the greens and sprouts in a wide bowl.", "Add the citrus in segments, saving the juice.", "Top with the sliced protein.", "Dress with the citrus juice and olive oil."]},
+        "vitamins": [{"name": "Vitamin C", "why": "Citrus keeps your immune system strong as energy rises."},
+                     {"name": "Folate", "why": "Greens and sprouts help build healthy cells."},
+                     {"name": "Vitamin K", "why": "Supports blood and bone health."}]},
+    "Fermented foods support estrogen metabolism.": {
+        "recipe": {"title": "Kimchi Yogurt Grain Bowl", "minutes": 15,
+                   "ingredients": ["Warm rice or grains", "Kimchi", "Sauerkraut", "Greek yogurt", "Kombucha, to drink"],
+                   "steps": ["Spoon the warm grains into a bowl.", "Pile the kimchi and sauerkraut over one side.", "Add a generous dollop of yogurt.", "Sip kombucha alongside."]},
+        "vitamins": [{"name": "Probiotics", "why": "A happy gut helps your body handle rising estrogen."},
+                     {"name": "Vitamin B12", "why": "Yogurt supports energy and nerves."},
+                     {"name": "Vitamin K", "why": "Fermented foods are a quiet source."}]},
+    "Protein supports the follicle development happening now.": {
+        "recipe": {"title": "Golden Tofu and Egg Scramble", "minutes": 12,
+                   "ingredients": ["Eggs", "Tofu", "Greek yogurt", "Chives or herbs", "Chicken breast on the side, if you want more"],
+                   "steps": ["Crumble the tofu into a warm pan and let it take a little color.", "Pour the beaten eggs over and scramble softly.", "Take the pan off the heat and swirl in the yogurt.", "Finish with herbs and eat warm."]},
+        "vitamins": [{"name": "Choline", "why": "Eggs support the follicle developing now."},
+                     {"name": "Vitamin B12", "why": "Fuels your rising energy."},
+                     {"name": "Vitamin D", "why": "In the yolks, for hormone health."}]},
+    "B vitamins boost the energy surge you're feeling.": {
+        "recipe": {"title": "Avocado Grain Bowl with Seeds", "minutes": 15,
+                   "ingredients": ["Cooked whole grains", "Avocado", "Legumes (beans or lentils)", "Sunflower seeds", "Lemon"],
+                   "steps": ["Warm the grains and legumes together.", "Spoon them into a bowl.", "Lay the avocado over the top in slices.", "Scatter sunflower seeds and finish with lemon and salt."]},
+        "vitamins": [{"name": "B vitamins", "why": "Whole grains and legumes fuel the energy surge."},
+                     {"name": "Folate", "why": "Legumes help your body build and repair."},
+                     {"name": "Vitamin E", "why": "Avocado and seeds protect your cells."}]},
+    "Phytoestrogens support healthy estrogen levels.": {
+        "recipe": {"title": "Berry Soy Smoothie with Flax and Sesame", "minutes": 5,
+                   "ingredients": ["Soy milk or silken tofu", "Berries", "Ground flaxseeds", "Sesame seeds or tahini", "Honey if you like it sweeter"],
+                   "steps": ["Put everything in the blender.", "Blend until completely smooth.", "Pour it cold and drink it slowly.", "That is the whole recipe. Enjoy the easy one."]},
+        "vitamins": [{"name": "Vitamin C", "why": "Berries support your skin and immune system."},
+                     {"name": "Vitamin E", "why": "Sesame brings a gentle dose."},
+                     {"name": "Calcium", "why": "Soy milk is usually fortified with it."}]},
+    "Vitamin E supports egg health during this phase.": {
+        "recipe": {"title": "Sweet Potato and Spinach Hash with Almonds", "minutes": 20,
+                   "ingredients": ["Sweet potato", "Spinach", "Almonds", "Sunflower seeds", "An egg on top, if you like"],
+                   "steps": ["Dice the sweet potato small and crisp it in a pan.", "Wilt the spinach in at the end.", "Top with almonds and sunflower seeds.", "A fried egg over everything never hurts."]},
+        "vitamins": [{"name": "Vitamin E", "why": "Supports egg health in this phase."},
+                     {"name": "Vitamin A", "why": "Sweet potato is loaded with it."},
+                     {"name": "Iron", "why": "Spinach quietly adds some."}]},
+    "Fresh vegetables support your body's natural detox.": {
+        "recipe": {"title": "Roasted Beet, Carrot and Asparagus Plate", "minutes": 25,
+                   "ingredients": ["Beets", "Carrots", "Asparagus", "Artichoke hearts", "Olive oil and lemon"],
+                   "steps": ["Roast the beets and carrots until sweet and tender.", "Add the asparagus for the last ten minutes.", "Plate with the artichoke hearts.", "Finish with olive oil, lemon, and salt."]},
+        "vitamins": [{"name": "Folate", "why": "Beets and asparagus are full of it."},
+                     {"name": "Vitamin A", "why": "Carrots support your eyes and skin."},
+                     {"name": "Vitamin K", "why": "Asparagus helps blood and bones."}]},
+    "Raw vegetables and fiber support peak metabolism.": {
+        "recipe": {"title": "Quinoa Crunch Bowl with Light Fish", "minutes": 20,
+                   "ingredients": ["Quinoa", "Raw veggies (peppers, cucumber, carrot)", "Berries", "Light fish", "Lemon and olive oil"],
+                   "steps": ["Cook the quinoa and let it cool a little.", "Sear the fish until just flaky.", "Chop the raw veggies into bite-size crunch.", "Bowl it all together, berries on top, lemon over everything."]},
+        "vitamins": [{"name": "Vitamin C", "why": "Raw veggies keep all of theirs."},
+                     {"name": "Folate", "why": "Supports the cell activity of this peak phase."},
+                     {"name": "Vitamin B12", "why": "The fish brings energy support."}]},
+    "Antioxidant-rich foods support this fertile phase.": {
+        "recipe": {"title": "Spinach and Blueberry Salad with Pomegranate", "minutes": 10,
+                   "ingredients": ["Spinach", "Blueberries", "Pomegranate seeds", "Walnuts if you have them", "Green tea, to drink"],
+                   "steps": ["Lay the spinach in a wide bowl.", "Scatter the blueberries and pomegranate seeds over it.", "Add walnuts for crunch if you have them.", "Brew the green tea and eat slowly."]},
+        "vitamins": [{"name": "Antioxidants", "why": "Berries and pomegranate protect your cells at your peak."},
+                     {"name": "Vitamin C", "why": "Supports your immune system and skin."},
+                     {"name": "Vitamin K", "why": "Spinach carries it quietly."}]},
+    "Glutathione-rich foods support egg quality.": {
+        "recipe": {"title": "Garlic Asparagus with Avocado and Spinach", "minutes": 15,
+                   "ingredients": ["Asparagus", "Garlic", "Spinach", "Avocado", "An egg, if you like"],
+                   "steps": ["Sizzle the garlic in olive oil.", "Add the asparagus and cook until bright green.", "Wilt the spinach in the same pan.", "Serve with avocado slices over the top."]},
+        "vitamins": [{"name": "Folate", "why": "Asparagus is one of the richest sources."},
+                     {"name": "Vitamin C", "why": "Supports egg quality alongside the greens."},
+                     {"name": "Vitamin E", "why": "Avocado protects your cells."}]},
+    "Light proteins keep energy high without weighing you down.": {
+        "recipe": {"title": "Lemon Shrimp with Tempeh Crumbles", "minutes": 15,
+                   "ingredients": ["Shrimp", "Tempeh", "Lemon", "Garlic", "Greens to serve"],
+                   "steps": ["Crumble and crisp the tempeh in a hot pan.", "Add the shrimp and garlic and cook until the shrimp turn pink.", "Squeeze lemon over everything.", "Serve over greens, light and bright."]},
+        "vitamins": [{"name": "Vitamin B12", "why": "Shrimp supports energy at your peak."},
+                     {"name": "Selenium", "why": "Supports thyroid and egg health."},
+                     {"name": "Vitamin D", "why": "A little from the shrimp, a lot of good from it."}]},
+    "Zinc is crucial for ovulation and fertility.": {
+        "recipe": {"title": "Lamb and Chickpea Plate with Pumpkin Seeds", "minutes": 25,
+                   "ingredients": ["Lamb chops or ground lamb", "Chickpeas", "Pumpkin seeds", "Cocoa, for a hot drink after"],
+                   "steps": ["Sear the lamb until browned and rested.", "Crisp the chickpeas in the same pan juices.", "Scatter pumpkin seeds over the plate.", "A small hot cocoa after, rich and dark."]},
+        "vitamins": [{"name": "Zinc", "why": "Crucial for ovulation, and lamb brings it."},
+                     {"name": "Iron", "why": "Supports the blood work of this phase."},
+                     {"name": "Vitamin B12", "why": "For energy and healthy cells."}]},
+    "Stay cool with hydrating foods during peak fertility.": {
+        "recipe": {"title": "Watermelon, Cucumber and Celery Salad", "minutes": 10,
+                   "ingredients": ["Watermelon", "Cucumber", "Celery", "Coconut water, to drink", "Lime and mint if you have them"],
+                   "steps": ["Chop the watermelon, cucumber, and celery into chunks.", "Toss with lime juice and mint.", "Chill before eating if you can wait.", "Sip coconut water alongside, cold."]},
+        "vitamins": [{"name": "Vitamin C", "why": "Light and bright, like this phase."},
+                     {"name": "Vitamin A", "why": "Watermelon supports skin and immunity."},
+                     {"name": "Potassium", "why": "Keeps fluids balanced while you hydrate."}]},
+    "Folate supports cellular health during ovulation.": {
+        "recipe": {"title": "Warm Lentil and Greens Bowl with Citrus", "minutes": 20,
+                   "ingredients": ["Lentils", "Leafy greens", "Citrus fruit", "Olive oil", "Fortified cereal makes an easy breakfast the same day"],
+                   "steps": ["Simmer the lentils until tender.", "Wilt the greens into the warm lentils.", "Segment the citrus over the bowl and squeeze in its juice.", "Finish with olive oil and salt."]},
+        "vitamins": [{"name": "Folate", "why": "Supports cellular health during ovulation."},
+                     {"name": "Iron", "why": "Lentils are a gentle, steady source."},
+                     {"name": "Vitamin C", "why": "The citrus helps the iron absorb."}]},
+    "Complex carbs help stabilize mood and reduce PMS.": {
+        "recipe": {"title": "Savory Sweet Potato Oatmeal", "minutes": 15,
+                   "ingredients": ["Oats", "Sweet potato, grated or finely diced", "Cooked brown rice, stirred in if you have it", "Butter or olive oil", "An egg on top"],
+                   "steps": ["Simmer the oats with the sweet potato until thick and soft.", "Stir in the brown rice to warm it through.", "Add butter or olive oil and salt.", "Top with a soft egg and eat it warm and slow."]},
+        "vitamins": [{"name": "Vitamin B6", "why": "Helps steady mood in the luteal days."},
+                     {"name": "Vitamin A", "why": "Sweet potato supports your immune system."},
+                     {"name": "Magnesium", "why": "Whole grains bring a calming dose."}]},
+    "Magnesium helps with water retention and mood swings.": {
+        "recipe": {"title": "Banana Avocado Chocolate Mousse", "minutes": 10,
+                   "ingredients": ["Banana", "Avocado", "Dark chocolate", "Almonds, crushed"],
+                   "steps": ["Melt the dark chocolate gently.", "Blend it with the banana and avocado until silky.", "Chill for twenty minutes if you can wait.", "Crushed almonds over the top."]},
+        "vitamins": [{"name": "Magnesium", "why": "Dark chocolate and avocado ease water retention and mood swings."},
+                     {"name": "Potassium", "why": "Banana helps with bloating."},
+                     {"name": "Vitamin E", "why": "Almonds protect and nourish."}]},
+    "Calcium can reduce PMS symptoms by up to 50%.": {
+        "recipe": {"title": "Creamy Kale with Yogurt and Sardine Toasts", "minutes": 15,
+                   "ingredients": ["Kale", "Yogurt", "Sardines", "Toast", "Fortified milk, as a drink", "Garlic"],
+                   "steps": ["Wilt the kale with garlic until tender.", "Take it off the heat and stir in the yogurt until creamy.", "Mash the sardines onto toast with lemon or salt.", "A glass of fortified milk alongside."]},
+        "vitamins": [{"name": "Calcium", "why": "Can take a real bite out of PMS symptoms."},
+                     {"name": "Vitamin D", "why": "Sardines and fortified milk team up."},
+                     {"name": "Vitamin K", "why": "Kale is full of it."}]},
+    "Vitamin B6 helps with mood and reduces bloating.": {
+        "recipe": {"title": "Chicken and Potato Tray Bake with Pistachios", "minutes": 30,
+                   "ingredients": ["Chicken", "Potatoes", "Pistachios", "A banana, for after", "Olive oil and herbs"],
+                   "steps": ["Roast the chicken and potatoes together until golden.", "Rest them a few minutes.", "Scatter pistachios over the top.", "Banana for dessert, simple and sweet."]},
+        "vitamins": [{"name": "Vitamin B6", "why": "Chicken and potatoes both carry it, for mood and bloating."},
+                     {"name": "Potassium", "why": "Helps your body let go of extra water."},
+                     {"name": "Niacin", "why": "Supports energy when the luteal slump hits."}]},
+    "Fiber helps your body process excess hormones.": {
+        "recipe": {"title": "Broccoli Lentil Soup with Chia and Apple", "minutes": 25,
+                   "ingredients": ["Lentils", "Broccoli", "Chia seeds", "An apple", "Garlic and olive oil"],
+                   "steps": ["Simmer the lentils with garlic until soft.", "Add the broccoli and cook until tender.", "Stir in the chia seeds and let the soup thicken.", "Apple slices on the side, or diced in for sweetness."]},
+        "vitamins": [{"name": "Folate", "why": "Lentils and broccoli help your body process and clear."},
+                     {"name": "Vitamin C", "why": "Broccoli brings plenty."},
+                     {"name": "Vitamin K", "why": "Supports blood and bone health."}]},
+    "Healthy fats support progesterone production.": {
+        "recipe": {"title": "Salmon and Egg Bowl with Walnuts", "minutes": 15,
+                   "ingredients": ["Salmon", "Eggs, yolks in", "Olive oil", "Walnuts", "Greens to serve"],
+                   "steps": ["Sear the salmon in olive oil.", "Soft-scramble the eggs in the same pan warmth.", "Serve both over greens.", "Walnuts scattered over, and a last drizzle of olive oil."]},
+        "vitamins": [{"name": "Omega-3", "why": "Healthy fats support progesterone production now."},
+                     {"name": "Vitamin D", "why": "Salmon and yolks, a luteal dream team."},
+                     {"name": "Vitamin B12", "why": "Steady energy for the wind-down."}]},
+    "Tryptophan-rich foods boost serotonin for better mood.": {
+        "recipe": {"title": "Turkey and Cheese Melts with Pumpkin Seeds", "minutes": 12,
+                   "ingredients": ["Turkey slices", "Cheese", "Pumpkin seeds", "Oatcakes or toast", "A little butter"],
+                   "steps": ["Layer the turkey and cheese on the oatcakes or toast.", "Grill until the cheese bubbles.", "Scatter pumpkin seeds over the melts.", "Eat warm, preferably somewhere comfortable."]},
+        "vitamins": [{"name": "Tryptophan", "why": "Turkey helps your body make serotonin, for mood and sleep."},
+                     {"name": "Vitamin B6", "why": "Helps that serotonin pathway along."},
+                     {"name": "Calcium", "why": "The cheese brings it."}]},
+}
+
+
 async def get_or_create_daily_content(user_id: str, phase: str, cycle_day: int, age_group: str, database, estrogen: int = 50, progesterone: int = 20):
     """Get cached daily content or create new one - AUTOMATICALLY changes at midnight UTC every day"""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -231,13 +437,16 @@ async def get_or_create_daily_content(user_id: str, phase: str, cycle_day: int, 
     
     if cached and "mood_prediction" in cached:
         print(f"[DAILY CONTENT] ✓ Cache HIT for {today}")
+        extras = NUTRITION_EXTRAS.get(cached["nutrition_tip"], {})
         return {
             "affirmation": cached["affirmation"],
             "nutrition_tip": cached["nutrition_tip"],
             "foods_to_eat": cached["foods_to_eat"],
             "foods_to_avoid": cached["foods_to_avoid"],
             "wellness_tip": cached["wellness_tip"],
-            "mood_prediction": cached["mood_prediction"]
+            "mood_prediction": cached["mood_prediction"],
+            "recipe": cached.get("recipe") or extras.get("recipe"),
+            "vitamins": cached.get("vitamins") or extras.get("vitamins")
         }
     
     print(f"[DAILY CONTENT] ✗ Cache MISS - generating NEW content for {today}")
@@ -442,6 +651,9 @@ async def get_or_create_daily_content(user_id: str, phase: str, cycle_day: int, 
     phase_nutrition = nutrition_tips.get(phase, nutrition_tips["menstrual"])
     phase_wellness = wellness_tips.get(phase, wellness_tips["menstrual"])
     
+    chosen_nutrition = phase_nutrition[nutrition_index % len(phase_nutrition)]
+    nutrition_extras = NUTRITION_EXTRAS.get(chosen_nutrition["tip"], {})
+
     # Generate mood prediction for caching - use mood_index for variety
     mood_prediction = get_mood_prediction(phase, cycle_day, estrogen, progesterone, user_id, mood_index)
     
@@ -453,7 +665,9 @@ async def get_or_create_daily_content(user_id: str, phase: str, cycle_day: int, 
         "nutrition_tip": phase_nutrition[nutrition_index % len(phase_nutrition)]["tip"],
         "foods_to_eat": phase_nutrition[nutrition_index % len(phase_nutrition)]["foods_eat"],
         "foods_to_avoid": phase_nutrition[nutrition_index % len(phase_nutrition)]["foods_avoid"],
-        "wellness_tip": phase_wellness[wellness_index % len(phase_wellness)]
+        "wellness_tip": phase_wellness[wellness_index % len(phase_wellness)],
+        "recipe": nutrition_extras.get("recipe"),
+        "vitamins": nutrition_extras.get("vitamins")
     }
     
     # Build content to save
@@ -466,7 +680,9 @@ async def get_or_create_daily_content(user_id: str, phase: str, cycle_day: int, 
         "foods_to_eat": content["foods_to_eat"],
         "foods_to_avoid": content["foods_to_avoid"],
         "wellness_tip": content["wellness_tip"],
-        "mood_prediction": mood_prediction  # Cache mood prediction too
+        "mood_prediction": mood_prediction,  # Cache mood prediction too
+        "recipe": content.get("recipe"),
+        "vitamins": content.get("vitamins")
     }
     
     # Save to database so it stays the same all day
@@ -484,7 +700,9 @@ async def get_or_create_daily_content(user_id: str, phase: str, cycle_day: int, 
         "foods_to_eat": content["foods_to_eat"],
         "foods_to_avoid": content["foods_to_avoid"],
         "wellness_tip": content["wellness_tip"],
-        "mood_prediction": mood_prediction
+        "mood_prediction": mood_prediction,
+        "recipe": content.get("recipe"),
+        "vitamins": content.get("vitamins")
     }
 
 def get_daily_seed(user_id: str, cycle_day: int) -> int:
@@ -1791,6 +2009,8 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
         "foods_to_avoid": daily_content["foods_to_avoid"],
         "wellness_tip": daily_content["wellness_tip"],
         "mood_prediction": daily_content["mood_prediction"],
+        "recipe": daily_content.get("recipe"),
+        "vitamins": daily_content.get("vitamins"),
         "is_premium": current_user.get("is_premium", False),
     }
 

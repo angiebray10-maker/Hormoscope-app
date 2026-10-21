@@ -400,6 +400,37 @@ export default function HomePage() {
             ))}
           </div>
         </div>
+
+        {/* Easy recipe for today, built from today's foods (Angelita, Oct 20) */}
+        {data?.recipe && (
+          <div className="mt-5" style={{ borderTop: '1px solid rgba(244,167,185,0.12)', paddingTop: '16px' }} data-testid="daily-recipe">
+            <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-2">EASY RECIPE FOR TODAY</p>
+            <p className="text-white text-sm font-medium mb-1">{data.recipe.title}</p>
+            <p className="text-[#6c6c8a] text-[11px] mb-3">About {data.recipe.minutes} minutes</p>
+            <div className="space-y-1.5 mb-3">
+              {(data.recipe.ingredients || []).map((ing) => (
+                <p key={`ing-${ing}`} className="text-[#b8b8d1] text-xs">• {ing}</p>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              {(data.recipe.steps || []).map((step, i) => (
+                <p key={`step-${i}`} className="text-[#b8b8d1] text-xs leading-relaxed">{i + 1}. {step}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Vitamins for today and this phase (Angelita, Oct 20) */}
+        {Array.isArray(data?.vitamins) && data.vitamins.length > 0 && (
+          <div className="mt-5" style={{ borderTop: '1px solid rgba(244,167,185,0.12)', paddingTop: '16px' }} data-testid="daily-vitamins">
+            <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-2">VITAMINS FOR TODAY</p>
+            <div className="space-y-2">
+              {data.vitamins.map((v) => (
+                <p key={`vit-${v.name}`} className="text-[#b8b8d1] text-xs leading-relaxed"><span className="text-white font-medium">{v.name}:</span> {v.why}</p>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Wellness Tip */}
