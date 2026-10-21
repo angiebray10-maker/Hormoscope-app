@@ -188,8 +188,13 @@ export default function HomePage() {
 
       {/* Welcome message after onboarding */}
       {showWelcome && (
-        <div className="card p-6 mb-6 border border-[#D4A853]/40 bg-[#D4A853]/10 text-center" data-testid="welcome-banner">
-          <p className="text-xl text-white font-script mb-2">Welcome to your true HORMOscope.</p>
+        <div className="card p-6 mb-6 border border-[#D4A853]/40 bg-[#D4A853]/10 text-center relative overflow-hidden" data-testid="welcome-banner">
+          {/* Her girls holding signs picture in the welcome banner, and
+              the welcome words in bright pink (Angelita, Oct 21, 2026). */}
+          <img src="/images/welcome-signs.jpg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.35 }} />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,10,26,0.45) 0%, rgba(10,10,26,0.72) 100%)' }} />
+          <div className="relative">
+          <p className="text-xl font-script mb-2" style={{ color: '#FF1493' }}>Welcome to your true HORMOscope.</p>
           <p className="text-[#b8b8d1] text-sm">Your cycle, decoded. Let&apos;s begin.</p>
           <button
             onClick={() => setShowWelcome(false)}
@@ -198,6 +203,7 @@ export default function HomePage() {
           >
             Begin
           </button>
+          </div>
         </div>
       )}
 
