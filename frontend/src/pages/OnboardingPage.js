@@ -82,8 +82,8 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-28 h-28 rounded-[1.6rem] overflow-hidden mb-4" style={{ border: '1px solid rgba(212,168,83,0.35)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-                  <img src={LOGO_URL} alt="HORMOscope" className="w-full h-full object-cover" data-testid="onboarding-logo" />
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#1a1a2e] mb-4">
+                  <img src={LOGO_URL} alt="horMoscope" className="w-16 h-16 object-contain" />
                 </div>
                 <h2 className="text-2xl font-semibold text-[#F5F5F5]" >
                   What&apos;s your name?
