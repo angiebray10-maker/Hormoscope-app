@@ -670,6 +670,12 @@ export default function JournalPage() {
           <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }}>{todayStr}</p>
         </button>
 
+        <div className="flex items-center justify-center gap-3 mt-1 mb-5" aria-hidden="true">
+          <span style={{ height: '1px', width: '52px', background: 'linear-gradient(90deg, transparent, rgba(212,168,83,0.5))' }} />
+          <span style={{ color: 'rgba(212,168,83,0.65)', fontSize: '11px' }}>✿</span>
+          <span style={{ height: '1px', width: '52px', background: 'linear-gradient(90deg, rgba(212,168,83,0.5), transparent)' }} />
+        </div>
+
         {/* Companion settings: her name for it, and the off switch.
             This little panel is the only trace that stays when the
             companion is off, so she can always bring it back. */}
@@ -737,7 +743,7 @@ export default function JournalPage() {
 
         {/* Writing Area */}
         {writing && (
-          <div className="rounded-xl mb-5 overflow-hidden" style={{ border: '1px solid rgba(255,20,147,0.15)', background: 'rgba(255,255,255,0.03)' }} data-testid="journal-editor">
+          <div className="rounded-2xl mb-5 overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.2)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,20,147,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35)' }} data-testid="journal-editor">
             {/* No ruled-line background: it started at the top of the box
                 while the text starts lower, so the words never sat on the
                 lines. Clean, even line spacing instead (28px), which
@@ -747,7 +753,7 @@ export default function JournalPage() {
                 type="text" value={currentTitle} onChange={(e) => setCurrentTitle(e.target.value)}
                 placeholder="Title..."
                 className="w-full bg-transparent border-none text-white text-sm mb-3 placeholder-white/20 outline-none"
-                style={{ fontFamily: "'Poiret One', cursive", fontSize: '18px' }}
+                style={{ fontFamily: "'Poiret One', cursive", fontSize: '18px', borderBottom: '1px solid rgba(244,167,185,0.14)', paddingBottom: '8px' }}
                 data-testid="journal-title-input"
               />
               <textarea
@@ -795,10 +801,12 @@ export default function JournalPage() {
           <p className="text-center text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }} data-testid="journal-page-notice">{pageNotice}</p>
         )}
         {entries.length === 0 && !writing ? (
-          <div className="text-center py-20">
-            <p className="text-3xl mb-3" style={{ color: 'rgba(201,184,240,0.15)' }}>✿</p>
-            <p className="text-white/30 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing written yet today</p>
-            <p className="text-white/15 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap + to write. Your past days are sealed in your vault, under the lock up top.</p>
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, rgba(255,20,147,0.14) 0%, rgba(255,20,147,0.03) 70%)', border: '1px solid rgba(244,167,185,0.18)' }}>
+              <p className="text-2xl" style={{ color: 'rgba(244,167,185,0.55)' }}>✿</p>
+            </div>
+            <p className="text-white/45 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing written yet today</p>
+            <p className="text-white/25 text-xs mt-1 px-8 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap + to write. Your past days are sealed in your vault, under the lock up top.</p>
           </div>
         ) : pages.length > 0 ? (
           <div data-testid="journal-book">
@@ -807,13 +815,13 @@ export default function JournalPage() {
               return (
                 <>
                   <div className="flex items-end justify-between mb-2 px-1">
-                    <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: '#F4D3DC' }}>{fmtDayLong(page.date)}</p>
+                    <p style={{ fontFamily: "'Poiret One', cursive", fontSize: '17px', color: '#F4D3DC', borderBottom: '1px solid rgba(212,168,83,0.35)', paddingBottom: '3px' }}>{fmtDayLong(page.date)}</p>
                     <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>
                       Page {Math.min(pageIndex, pages.length - 1) + 1} of {pages.length}
                     </p>
                   </div>
-                  <div className="rounded-xl overflow-hidden"
-                    style={{ border: '1px solid rgba(201,184,240,0.12)', borderLeft: '3px solid rgba(255,20,147,0.45)', background: 'rgba(255,255,255,0.02)' }}>
+                  <div className="rounded-2xl overflow-hidden"
+                    style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: '3px solid rgba(255,20,147,0.5)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,20,147,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
                     {page.entries.map((entry, i) => (
                       <div key={entry.id} className="p-4"
                         style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}}
@@ -879,7 +887,7 @@ export default function JournalPage() {
             serif and a soft pink tint, with the companion's name as
             the speaker, so the page still reads like her book. */}
         {companion?.enabled && (
-          <div className="rounded-xl overflow-hidden mt-6" style={{ border: '1px solid rgba(244,167,185,0.25)', borderLeft: '3px solid #f4a7b9', background: 'rgba(244,167,185,0.04)' }} data-testid="journal-companion">
+          <div className="rounded-2xl overflow-hidden mt-6" style={{ border: '1px solid rgba(244,167,185,0.25)', borderLeft: '3px solid #f4a7b9', background: 'linear-gradient(180deg, rgba(244,167,185,0.06) 0%, rgba(244,167,185,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35)' }} data-testid="journal-companion">
             {/* Her approved Journal Companion picture (Angelita, Oct 20,
                 2026): shown whole at its natural shape, never cropped, so
                 every silhouette and the wordmark stay fully visible. */}
@@ -1011,7 +1019,7 @@ export default function JournalPage() {
                                 Sealed day {Math.min(vaultPage, vaultDays.length - 1) + 1} of {vaultDays.length}
                               </p>
                             </div>
-                            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(201,184,240,0.12)', borderLeft: `3px solid ${GOLD}`, background: 'rgba(255,255,255,0.02)' }}>
+                            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: `3px solid ${GOLD}`, background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,20,147,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
                               {day.entries.map((entry, i) => (
                                 <div key={entry.id} className="p-4" style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`vault-entry-${entry.id}`}>
                                   <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>{entry.title}</h3>
