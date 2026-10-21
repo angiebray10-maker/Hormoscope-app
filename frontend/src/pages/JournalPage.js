@@ -625,7 +625,6 @@ export default function JournalPage() {
   // she attempts to send one more message (showOffer).
   const companionNeedsSub = !!companion && !companion.has_access
     && (companionLocked || !!companion.needs_subscription || companion.free_remaining === 0);
-  const companionFreeLeft = typeof companion?.free_remaining === 'number' ? companion.free_remaining : null;
 
   return (
     <div className="min-h-screen pb-20 lg:ml-64" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-testid="journal-page">
@@ -901,11 +900,6 @@ export default function JournalPage() {
               Write to {companion.name} here. {companion.name} knows where you are in your cycle and what today has
               held, and answers you inside these pages only. Nothing here is ever shared with anyone.
             </p>
-            {!companion.has_access && companionFreeLeft !== null && companionFreeLeft > 0 && (
-              <p className="px-4 pb-3 text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }} data-testid="companion-free-note">
-                Your first 3 messages with {companion.name} are free. You have {companionFreeLeft} free {companionFreeLeft === 1 ? 'message' : 'messages'} left.
-              </p>
-            )}
             {companionExchanges.length > 0 && (
               <div className="px-4 pb-2">
                 {companionExchanges.map((ex) => (
