@@ -1,19 +1,19 @@
 {
   "files": {
-    "main.css": "/Hormoscope-app/preview/static/css/main.e5788aa6.css",
-    "main.js": "/Hormoscope-app/preview/static/js/main.3958c412.js",
-    "static/js/809.d9c38f67.chunk.js": "/Hormoscope-app/preview/static/js/809.d9c38f67.chunk.js",
-    "static/js/398.f69d3e7f.chunk.js": "/Hormoscope-app/preview/static/js/398.f69d3e7f.chunk.js",
+    "main.css": "/Hormoscope-app/preview/static/css/main.29e17224.css",
+    "main.js": "/Hormoscope-app/preview/static/js/main.eb0f7b3c.js",
+    "static/js/469.98469507.chunk.js": "/Hormoscope-app/preview/static/js/469.98469507.chunk.js",
+    "static/js/338.cbbf6dd8.chunk.js": "/Hormoscope-app/preview/static/js/338.cbbf6dd8.chunk.js",
     "static/media/Affair.woff": "/Hormoscope-app/preview/static/media/Affair.745af167e229a4bc88de.woff",
     "static/media/Affair.woff2": "/Hormoscope-app/preview/static/media/Affair.868d5f3578627321ad56.woff2",
     "index.html": "/Hormoscope-app/preview/index.html",
-    "main.e5788aa6.css.map": "/Hormoscope-app/preview/static/css/main.e5788aa6.css.map",
-    "main.3958c412.js.map": "/Hormoscope-app/preview/static/js/main.3958c412.js.map",
-    "809.d9c38f67.chunk.js.map": "/Hormoscope-app/preview/static/js/809.d9c38f67.chunk.js.map",
-    "398.f69d3e7f.chunk.js.map": "/Hormoscope-app/preview/static/js/398.f69d3e7f.chunk.js.map"
+    "main.29e17224.css.map": "/Hormoscope-app/preview/static/css/main.29e17224.css.map",
+    "main.eb0f7b3c.js.map": "/Hormoscope-app/preview/static/js/main.eb0f7b3c.js.map",
+    "469.98469507.chunk.js.map": "/Hormoscope-app/preview/static/js/469.98469507.chunk.js.map",
+    "338.cbbf6dd8.chunk.js.map": "/Hormoscope-app/preview/static/js/338.cbbf6dd8.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.e5788aa6.css",
-    "static/js/main.3958c412.js"
+    "static/css/main.29e17224.css",
+    "static/js/main.eb0f7b3c.js"
   ]
 }
