@@ -172,6 +172,7 @@ export default function JournalPage() {
   const [companionLocked, setCompanionLocked] = useState(false);
   const [subBusy, setSubBusy] = useState(''); // '' | 'buy' | 'restore'
   const [editingId, setEditingId] = useState(null); // entry being edited, if any
+  const [showOffer, setShowOffer] = useState(false); // subscription invitation, only after she tries to send past her free messages
   const [subMsg, setSubMsg] = useState('');
   const [companionSettingsOpen, setCompanionSettingsOpen] = useState(false);
   const [companionNameDraft, setCompanionNameDraft] = useState('');
@@ -266,6 +267,14 @@ export default function JournalPage() {
   const handleSendToCompanion = async () => {
     const text = companionInput.trim();
     if (!text || companionBusy) return;
+    // Angelita, Oct 20, 2026 (final correction): after her 3 free
+    // messages, the conversation and the message box stay exactly as
+    // they are. Only when she attempts to send another message does the
+    // subscription invitation appear inside the conversation, and her
+    // drafted words stay in the box, untouched.
+    const allowanceUsed = !!companion && !companion.has_access
+      && (companionLocked || !!companion.needs_subscription || companion.free_remaining === 0);
+    if (allowanceUsed) { setShowOffer(true); return; }
     setCompanionBusy(true);
     setCompanionError('');
     setCompanionLocked(false);
@@ -273,9 +282,10 @@ export default function JournalPage() {
       const res = await axios.post(`${API}/journal/companion/reply`, { message: text },
         { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 });
       if (res.data?.exchange) setCompanionExchanges(prev => [...prev, res.data.exchange]);
-      // Keep the free allowance state in step with the server, so the
-      // moment her second free reply lands, the offer replaces the
-      // message box without a reload and without losing the exchange.
+      // Keep the free allowance state in step with the server. When her
+      // last free reply lands, nothing on screen changes: the whole
+      // conversation stays readable and the message box stays hers. The
+      // invitation appears only if she tries to send once more.
       if (typeof res.data?.free_remaining === 'number') {
         setCompanion(prev => prev ? {
           ...prev,
@@ -297,6 +307,7 @@ export default function JournalPage() {
       // subscription offer, not an error she has to decode.
       if (err?.response?.status === 403 && typeof detail === 'string' && detail.includes('free companion messages are used')) {
         setCompanionLocked(true);
+        setShowOffer(true);
         setCompanion(prev => prev ? { ...prev, free_remaining: 0, needs_subscription: true } : prev);
         setCompanionError('');
       }
@@ -608,9 +619,10 @@ export default function JournalPage() {
 
   // Subscription state for the companion (server is the source of truth):
   // she may write while she has access (subscribed, test list, public) or
-  // while free messages remain. Once the server says the free messages
-  // are used, the message box is replaced by the subscription offer. Her
-  // exchanges above it never move: subscribing keeps the whole history.
+  // while free messages remain. Once the free messages are used, NOTHING
+  // on the page changes: her exchanges and her message box stay put. The
+  // subscription invitation appears inside the conversation only when
+  // she attempts to send one more message (showOffer).
   const companionNeedsSub = !!companion && !companion.has_access
     && (companionLocked || !!companion.needs_subscription || companion.free_remaining === 0);
   const companionFreeLeft = typeof companion?.free_remaining === 'number' ? companion.free_remaining : null;
@@ -913,7 +925,7 @@ export default function JournalPage() {
             {companionError && (
               <p className="px-4 pb-2 text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="companion-error">{companionError}</p>
             )}
-            {companionNeedsSub ? (
+            {showOffer && companionNeedsSub && (
               <div className="px-4 pb-4" data-testid="companion-offer">
                 <div className="rounded-xl p-4 text-center" style={{ border: '1px solid rgba(212,168,83,0.4)', background: 'rgba(212,168,83,0.06)' }}>
                   <p className="text-white text-base mb-1" style={{ fontFamily: "'Poiret One', cursive", fontSize: '19px' }}>Journal Companion</p>
@@ -937,8 +949,8 @@ export default function JournalPage() {
                   )}
                 </div>
               </div>
-            ) : (
-              <>
+            )}
+            <>
                 <div className="flex gap-2 p-3" style={{ borderTop: '1px solid rgba(244,167,185,0.12)' }}>
                   <input
                     type="text" value={companionInput}
@@ -961,7 +973,6 @@ export default function JournalPage() {
                   <p className="px-4 pb-3 text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }}>{companion.name} is writing back...</p>
                 )}
               </>
-            )}
           </div>
         )}
       </div>
