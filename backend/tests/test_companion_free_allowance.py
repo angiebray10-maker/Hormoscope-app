@@ -1,4 +1,4 @@
-"""Standalone verification for the Journal Companion 2-free-message gate.
+"""Standalone verification for the Journal Companion free-message gate (3 per day).
 
 Runs server.py with an in-memory fake db and a fake Anthropic reply.
 No network, no real AI call, no charge. Rate-slot and daily-reserve
@@ -31,7 +31,9 @@ class FakeCompanionCollection:
     def __init__(self):
         self.docs = []
     async def count_documents(self, filt):
-        return sum(1 for d in self.docs if d.get("user_id") == filt.get("user_id"))
+        since = (filt.get("created_at") or {}).get("$gte")
+        return sum(1 for d in self.docs if d.get("user_id") == filt.get("user_id")
+                   and (since is None or str(d.get("created_at", "")) >= since))
     def find(self, filt, projection=None):
         out = [d for d in self.docs
                if d.get("user_id") == filt.get("user_id")
@@ -104,7 +106,7 @@ async def main():
     results.append(("free msg 3 ok + needs_subscription flips true", code == "ok" and res["free_used"] == 3 and res["free_remaining"] == 0 and res["needs_subscription"] is True))
     # 2. Fourth message is refused with the subscribe detail, before any AI call.
     code, detail = await send(free, "hello four")
-    results.append(("free msg 4 blocked 403 subscribe-required", code == 403 and "free companion messages are used" in str(detail)))
+    results.append(("free msg 4 blocked 403 subscribe-required", code == 403 and "free companion messages" in str(detail)))
     st = await server._companion_status(free)
     results.append(("status after 3: needs_subscription true", st["needs_subscription"] is True and st["free_used"] == 3))
     # History preserved: all three exchanges still stored.
@@ -113,6 +115,13 @@ async def main():
     # 3. Same account "on a new device" is the same server record: still blocked.
     code, detail = await send(free, "new phone, who dis")
     results.append(("reinstall/new device does not reset", code == 403))
+
+    # 3b. The allowance resets daily: move today's exchanges to yesterday.
+    for d in fake_db.journal_companion.docs:
+        if d.get("user_id") == free["id"]:
+            d["created_at"] = "2000-01-01T00:00:00+00:00"
+    code, detail = await send(free, "a new day")
+    results.append(("free allowance resets the next day", code == "ok"))
 
     # 4. A failed AI call does not burn a free message.
     free2 = make_user("u-free2", "free2@hormoscope-demo.com")

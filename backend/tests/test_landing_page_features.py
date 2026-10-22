@@ -78,7 +78,7 @@ class TestAuthEndpoints:
     def test_signup_creates_user(self):
         """Test signup creates a new user and returns token"""
         unique_email = f"test-signup-{int(time.time())}@example.com"
-        response = requests.post(f"{BASE_URL}/api/auth/signup", json={
+        response = requests.post(f"{BASE_URL}/api/auth/signup", json={"is_adult": True, "accepted_terms": True, 
             "email": unique_email,
             "password": "TestPass123!"
         })
@@ -100,14 +100,14 @@ class TestAuthEndpoints:
         """Test signup with existing email returns error"""
         # Create first user
         unique_email = f"test-dup-{int(time.time())}@example.com"
-        response1 = requests.post(f"{BASE_URL}/api/auth/signup", json={
+        response1 = requests.post(f"{BASE_URL}/api/auth/signup", json={"is_adult": True, "accepted_terms": True, 
             "email": unique_email,
             "password": "TestPass123!"
         })
         assert response1.status_code == 200
         
         # Try to create with same email
-        response2 = requests.post(f"{BASE_URL}/api/auth/signup", json={
+        response2 = requests.post(f"{BASE_URL}/api/auth/signup", json={"is_adult": True, "accepted_terms": True, 
             "email": unique_email,
             "password": "DifferentPass123!"
         })
@@ -122,7 +122,7 @@ class TestAuthEndpoints:
         unique_email = f"test-login-{int(time.time())}@example.com"
         password = os.environ.get('TEST_LOGIN_PASSWORD', 'TestLogin123!')
         
-        signup_response = requests.post(f"{BASE_URL}/api/auth/signup", json={
+        signup_response = requests.post(f"{BASE_URL}/api/auth/signup", json={"is_adult": True, "accepted_terms": True, 
             "email": unique_email,
             "password": password
         })
@@ -156,7 +156,7 @@ class TestAuthEndpoints:
         """Test GET /api/auth/me returns user info with valid token"""
         # Create user and get token
         unique_email = f"test-me-{int(time.time())}@example.com"
-        signup_response = requests.post(f"{BASE_URL}/api/auth/signup", json={
+        signup_response = requests.post(f"{BASE_URL}/api/auth/signup", json={"is_adult": True, "accepted_terms": True, 
             "email": unique_email,
             "password": "TestMe123!"
         })
@@ -187,7 +187,7 @@ class TestOnboardingEndpoint:
         """Test onboarding endpoint updates user profile"""
         # Create user
         unique_email = f"test-onboard-{int(time.time())}@example.com"
-        signup_response = requests.post(f"{BASE_URL}/api/auth/signup", json={
+        signup_response = requests.post(f"{BASE_URL}/api/auth/signup", json={"is_adult": True, "accepted_terms": True, 
             "email": unique_email,
             "password": "TestOnboard123!"
         })

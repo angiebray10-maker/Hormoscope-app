@@ -40,7 +40,7 @@ def fresh_user(session):
     password = "TestPass123!"
 
     # Signup
-    r = session.post(f"{BASE_URL}/api/auth/signup", json={"email": email, "password": password})
+    r = session.post(f"{BASE_URL}/api/auth/signup", json={"is_adult": True, "accepted_terms": True, "email": email, "password": password})
     assert r.status_code in (200, 201), f"Signup failed: {r.status_code} {r.text}"
     data = r.json()
     token = data.get("access_token") or data.get("token")

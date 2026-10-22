@@ -25,7 +25,7 @@ def _signup_user(suffix=""):
     ts = int(time.time() * 1000)
     email = f"qa_{ts}{suffix}@test.com"
     pw = "TestPass123!"
-    r = requests.post(f"{API}/auth/signup", json={"email": email, "password": pw, "name": "QA"}, timeout=30)
+    r = requests.post(f"{API}/auth/signup", json={"is_adult": True, "accepted_terms": True, "email": email, "password": pw, "name": "QA"}, timeout=30)
     assert r.status_code in (200, 201), f"signup failed: {r.status_code} {r.text}"
     body = r.json()
     token = body.get("access_token") or body.get("token")

@@ -37,7 +37,7 @@ class TestUserSignup:
     
     def test_signup_creates_user(self):
         """Test user signup creates new user and returns token"""
-        response = requests.post(f"{BASE_URL}/api/auth/signup", json={
+        response = requests.post(f"{BASE_URL}/api/auth/signup", json={"is_adult": True, "accepted_terms": True, 
             "email": TEST_EMAIL,
             "password": TEST_PASSWORD,
             "name": TEST_NAME
@@ -65,7 +65,7 @@ class TestUserSignup:
     
     def test_signup_duplicate_email_fails(self):
         """Test signup with existing email returns 400"""
-        response = requests.post(f"{BASE_URL}/api/auth/signup", json={
+        response = requests.post(f"{BASE_URL}/api/auth/signup", json={"is_adult": True, "accepted_terms": True, 
             "email": TEST_EMAIL,
             "password": TEST_PASSWORD
         })
@@ -117,7 +117,7 @@ class TestOnboardingFlow:
         """Test 'not sure' option defaults cycle length to 31"""
         # Create new user for this test
         new_email = f"test_notsure_{uuid.uuid4().hex[:8]}@example.com"
-        signup_res = requests.post(f"{BASE_URL}/api/auth/signup", json={
+        signup_res = requests.post(f"{BASE_URL}/api/auth/signup", json={"is_adult": True, "accepted_terms": True, 
             "email": new_email,
             "password": TEST_PASSWORD
         })
@@ -352,7 +352,7 @@ class TestUnderageUserFields:
         """Test user under 18 receives no boyfriend mode fields"""
         # Create new user
         new_email = f"test_underage_{uuid.uuid4().hex[:8]}@example.com"
-        signup_res = requests.post(f"{BASE_URL}/api/auth/signup", json={
+        signup_res = requests.post(f"{BASE_URL}/api/auth/signup", json={"is_adult": True, "accepted_terms": True, 
             "email": new_email,
             "password": TEST_PASSWORD
         })
