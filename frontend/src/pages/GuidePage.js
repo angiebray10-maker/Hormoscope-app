@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 
 // Instructional Guide — the one home for how to use HORMOscope, living on
-// the Profile tab next to the Founder's Note (Angelita, Oct 17). Written to
+// the Profile tab next to the Founder's Note (Angelita, Oct 17; refreshed for the current app). Written to
 // match what the app actually does today.
 export default function GuidePage() {
   return (
@@ -22,121 +22,57 @@ export default function GuidePage() {
         </p>
 
         <div className="space-y-10 text-[#d4d4e0] text-sm sm:text-base leading-relaxed" data-testid="guide-body">
-          <section>
+          <section data-testid="guide-free">
+            <h2 className="text-xl sm:text-2xl text-white mb-3">What is free</h2>
+            <p className="mb-3">Everything in HORMOscope is free: cycle tracking, the calendar, your Daily Read, mood and symptom logging, phase guides and Attuned Partner Mode.</p>
+            <p className="mb-3">The only paid feature is the Journal Companion. You get 3 free Journal Companion messages every day. Unlimited messages cost $9.99/month after a 7-day free trial, or $59.99/year.</p>
+          </section>
+          <section data-testid="guide-verify">
+            <h2 className="text-xl sm:text-2xl text-white mb-3">Confirm your email</h2>
+            <p className="mb-3">When you sign up we email you a link and a 6-digit code. Tap the link, or type the code into the pink banner at the top of the app. You can keep using the app before you confirm; tap Resend email if it has not arrived (check spam), or Later to hide the banner for now.</p>
+          </section>
+          <section data-testid="guide-home">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Home</h2>
-            <p>
-              Home is your day at a glance. The glowing orb shows what day of your cycle you are on and which
-              phase you are in. Under it you will find Today&apos;s Mood, food and
-              activity guidance for right where you are in your cycle, and a card called This Time Last Cycle,
-              which shows you what you logged on this same cycle day one cycle ago. Everything you log lives
-              on the Calendar, so nothing you record is ever lost.
-            </p>
-            <p className="mt-3">
-              The Your Cycle Phases list shows all four phases. Tap any phase and its full card opens: a
-              picture of what is happening inside your body in that phase, what your hormones are doing, and
-              how that usually feels. It is the fastest way to understand why a day feels the way it does.
-            </p>
+            <p className="mb-3">Home is your day at a glance. The day circle shows which day of your cycle you are on and which phase you are in. It glows with a slow, pulsing orb in your phase&apos;s colour: rose for your period, pink for follicular, gold around ovulation and lilac for luteal.</p>
+            <p className="mb-3">Under it you will see a one-line read of how today may feel, and your Daily Read. Tap See more to open the phase list, food and activity tips for where you are in your cycle.</p>
+            <p className="mb-3">Prefer stillness? Turn off the pulsing orb, or turn on Gentle motion, in Profile. The orb also stays still if your phone is set to reduce motion.</p>
           </section>
-
-          <section>
-            <h2 className="text-xl sm:text-2xl text-white mb-3">Daily Devotional</h2>
-            <p>
-              The Devotional tab, right beside Home, holds the day&apos;s verse from Proverbs: one chapter
-              for each day of the month, so a fresh reading is waiting for you every morning. It is a quiet
-              minute that is just for you.
-            </p>
+          <section data-testid="guide-quicklog">
+            <h2 className="text-xl sm:text-2xl text-white mb-3">Quick log</h2>
+            <p className="mb-3">Under Log today there are 5 buttons: Mood, Energy, Symptoms, Cravings and Sleep. Tap one to open it and choose what fits. Every tap saves to today straight away and you will see a small Saved to today message. Mood starts with 8 core feelings; tap More feelings for the rest. Everything you log is kept on your Calendar.</p>
           </section>
-
-          <section>
-            <h2 className="text-xl sm:text-2xl text-white mb-3">Quick Log</h2>
-            <p>
-              The floating icons on Home are your quick log. Tap any one of them once and the whole sheet
-              opens at once. Nothing goes around in a circle that you have to wait for.
-            </p>
-            <p className="mt-3">
-              It starts with How do you feel? The faces and every feeling are all there together, the good
-              ones and the hard ones too: anger, sadness, hurt, feeling misunderstood, jealousy, all of them.
-              Your feelings are real, and every one of them belongs here. Below that you can log symptoms,
-              cravings, how you collected your flow (tampon, pads, cup, disc, period underwear, or any mix of
-              them), your energy, and your sleep.
-            </p>
-            <p className="mt-3">
-              Every tap saves to that day the moment you tap it, and you will see a small Saved to today
-              message so you know it landed. Add a note at the bottom if you like, then tap Done.
-            </p>
-          </section>
-
-          <section>
+          <section data-testid="guide-calendar">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Calendar</h2>
-            <p>
-              The Calendar is your whole record. Tap any day to see everything you logged on that day, and to
-              log your period or intimacy for it. A small pink heart marks the days you logged intimacy.
-            </p>
-            <p className="mt-3">
-              Green days are your estimated fertile window, worked out from the cycle dates you log, and
-              the strongest green is the estimated ovulation day. These are estimates, not measurements,
-              and every body varies, so please do not rely on them to prevent pregnancy: HORMOscope is for
-              awareness, not contraception. If you press and hold a day with a heart, you can privately note who you were with.
-              That note is for your eyes only and is never shown anywhere else.
-            </p>
-            <p className="mt-3">
-              The little calendar in the corner of your Journal works the same way, green ovulation days and
-              all, and tapping a day there takes you straight to that day&apos;s page in your book.
-            </p>
+            <p className="mb-3">The Calendar is your whole record. Tap any day to see what you logged, or to log or edit your period and intimacy for that day, including past or irregular periods.</p>
+            <p className="mb-3">Green days are your estimated fertile window, worked out from the period dates you log. These are estimates, not measurements: please do not use HORMOscope to prevent pregnancy. If your cycle situation makes predictions unreliable (for example pregnancy, breastfeeding or hormonal birth control), fertile-window predictions are switched off.</p>
           </section>
-
-          <section>
-            <h2 className="text-xl sm:text-2xl text-white mb-3">Journal</h2>
-            <p>
-              Your Journal is a real book, one day per page. Write whatever the day held, tap Save, and it is
-              kept on that day&apos;s page for good. Turn the pages with the Older day and Newer day buttons,
-              and use the little calendar in the corner to jump straight to a day you want to read again.
-            </p>
-            <p className="mt-3">
-              Over time the book becomes your story: you can look back, compare days, and see in your own
-              words how far you have come. Your Journal is yours, always.
-            </p>
-            <p className="mt-3">
-              Your journal also holds a companion, if you want one: you pick the name, and your companion
-              answers you right inside the book, knowing your cycle and what your day has held. If you would
-              rather it be only you and your thoughts, turn the companion off in the journal settings and the
-              page is yours alone.
-            </p>
+          <section data-testid="guide-journal">
+            <h2 className="text-xl sm:text-2xl text-white mb-3">Journal and Journal Companion</h2>
+            <p className="mb-3">Your Journal is a book, one day per page. Write, tap Save, and use Older day, Newer day or the small calendar to move between pages.</p>
+            <p className="mb-3">The Journal Companion answers you on the page, knowing where you are in your cycle and what you have logged. You can name it, or switch it off in the journal settings so the page is yours alone. 3 Journal Companion messages a day are free; for unlimited messages it is $9.99/month after a 7-day free trial, or $59.99/year.</p>
           </section>
-
-          <section>
-            <h2 className="text-xl sm:text-2xl text-white mb-3">Attunement</h2>
-            <p>
-              Attunement lets someone you trust follow your cycle with you, so they understand what your
-              body is going through and care lands right on time. Send your partner a sign-up link and you track
-              side by side.
-            </p>
-            <p className="mt-3">
-              There is also one simple share link on the same tab. Send it to anyone else you would like to
-              share your cycle with. For now, one person can be linked at a time, and the page will always
-              tell you honestly where things stand.
-            </p>
+          <section data-testid="guide-attuned">
+            <h2 className="text-xl sm:text-2xl text-white mb-3">Attuned Partner Mode</h2>
+            <p className="mb-3">Attuned Partner Mode lets someone you trust follow your cycle with you, for free.</p>
+            <ul className="list-disc pl-5 space-y-1 mb-3">
+              <li><strong>Invite code:</strong> in Profile, tap Create &amp; share invite code and send it. Your partner signs up and enters the code in the Partner Hub.</li>
+              <li><strong>Boyfriend or partner without a cycle:</strong> they see your phase, what it may feel like and how to show up for you.</li>
+              <li><strong>Girlfriend sync:</strong> if you both track your cycles, the Attunement tab shows your two cycles side by side for the next 4 weeks and highlights the days your phases overlap.</li>
+              <li><strong>Visibility settings:</strong> in Profile, under My details, you choose exactly what your partner can see. Anything you switch off stays private to you.</li>
+            </ul>
           </section>
-
-          <section>
-            <h2 className="text-xl sm:text-2xl text-white mb-3">Journal Companion</h2>
-            <p>
-              Inside your Journal lives your companion, Your Journey&apos;s Companion: yours to name,
-              yours to write with on the page, knowing your cycle and what your day has held.
-            </p>
-          </section>
-
-          <section>
+          <section data-testid="guide-profile">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Profile</h2>
-            <p>
-              Your Profile tab is home base for you: your name and picture, your cycle settings, and your
-              account. It is also where the Founder&apos;s Note lives, and where this guide sits whenever you
-              need it.
-            </p>
-            <p className="mt-3 text-[#F4D3DC]">
-              Your body has been telling you the truth all along. HORMOscope just helps you read it.
-            </p>
+            <p className="mb-3">Profile holds your name and photo, My details (optional birthday, cycle situation, conditions like PMDD, PCOS or endometriosis, and partner visibility), motion settings, reminders and your account. You can delete your account and data here at any time.</p>
+            <p className="mb-3">Profile is also where the Founder&apos;s Note, this guide and the App Map live.</p>
           </section>
+          <section data-testid="guide-appmap">
+            <h2 className="text-xl sm:text-2xl text-white mb-3">App Map</h2>
+            <p className="mb-3">Lost? The <Link to="/app-map" className="text-[#FF4F9A] underline">App Map</Link> lists every section of HORMOscope with a link straight to it.</p>
+          </section>
+          <p className="text-[#F4D3DC] text-center pt-4">
+            Your body has been telling you the truth all along. HORMOscope just helps you read it.
+          </p>
         </div>
       </div>
     </div>

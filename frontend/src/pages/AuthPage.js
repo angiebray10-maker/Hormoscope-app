@@ -174,7 +174,7 @@ export default function AuthPage() {
             <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>Journal Companion</p>
             <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>A journal that writes back</h2>
             <p className="text-sm leading-relaxed mb-3" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
-              Write about your day and your AI companion answers, knowing where you are in your cycle. The more cycles you write, the more it learns your patterns.
+              Write about your day and your Journal Companion answers, knowing where you are in your cycle. The more cycles you write, the more it learns your patterns.
             </p>
             <p className="text-sm text-white" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="landing-companion-price">
               3 free messages every day. Unlimited: $9.99/month after a 7-day free trial, or $59.99/year. Cancel anytime.

@@ -525,7 +525,7 @@ export default function ProfilePage() {
                   <li>Your cycle history and daily logs</li>
                   <li>Your journal, including sealed vault days</li>
                   <li>Your intimacy records</li>
-                  <li>Your AI conversations and journal companion</li>
+                  <li>Your Journal Companion conversations</li>
                   <li>Your partner connections (they are disconnected)</li>
                 </ul>
                 <p className="text-sm text-[#CDBEC6] leading-relaxed mb-3">

@@ -650,7 +650,7 @@ export default function JournalPage() {
               <span className="text-[10px] whitespace-nowrap" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>{firstName ? `${firstName}'s Vault` : 'Your Vault'}</span>
             </button>
             {!companionUnavailable && (
-              <button onClick={() => setCompanionSettingsOpen(!companionSettingsOpen)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(244,167,185,0.3)', background: companionSettingsOpen ? 'rgba(244,167,185,0.15)' : 'rgba(244,167,185,0.05)' }} data-testid="companion-settings-btn" aria-label="Companion settings" title="Your journal companion">
+              <button onClick={() => setCompanionSettingsOpen(!companionSettingsOpen)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(244,167,185,0.3)', background: companionSettingsOpen ? 'rgba(244,167,185,0.15)' : 'rgba(244,167,185,0.05)' }} data-testid="companion-settings-btn" aria-label="Journal Companion settings" title="Journal Companion">
                 <Settings2 className="w-4 h-4" style={{ color: '#f4a7b9' }} />
               </button>
             )}
@@ -681,7 +681,7 @@ export default function JournalPage() {
             companion is off, so she can always bring it back. */}
         {companionSettingsOpen && !companionUnavailable && (
           <div className="rounded-xl p-4 mb-4" style={{ border: '1px solid rgba(244,167,185,0.3)', background: 'rgba(244,167,185,0.05)' }} data-testid="companion-settings">
-            <p className="text-sm text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '17px' }}>Your journal companion</p>
+            <p className="text-sm text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '17px' }}>Journal Companion</p>
             {companion ? (
               <>
                 <p className="text-xs leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }}>
@@ -894,11 +894,11 @@ export default function JournalPage() {
             <div data-testid="companion-hero-image">
               <img src="/images/journal-companion-life-stages.jpg" alt="Journal Companion: a woman's life, from baby to elder, with the HORMOscope wordmark"
                 className="w-full block" style={{ height: 'auto', objectFit: 'contain' }} />
-              <p className="text-center text-xs pt-2 pb-1" style={{ fontFamily: "'Poiret One', sans-serif", color: GOLD }}>Your Journey&apos;s Companion.</p>
+              <p className="text-center text-xs pt-2 pb-1" style={{ fontFamily: "'Poiret One', sans-serif", color: GOLD }}>Journal Companion</p>
             </div>
             <div className="px-4 pt-4 pb-1">
               <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Journal Companion</p>
-              <p className="text-[11px] mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }}>Your Journey&apos;s Companion.</p>
+              <p className="text-[11px] mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }}>Journal Companion</p>
               <div className="flex items-center gap-2">
                 <Heart className="w-4 h-4" style={{ color: '#FF4F9A' }} fill="#FF4F9A" />
                 <h2 className="text-white text-base" style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '18px' }}>{companion.name} is here with you</h2>
@@ -937,7 +937,7 @@ export default function JournalPage() {
               <div className="px-4 pb-4" data-testid="companion-offer">
                 <div className="rounded-xl p-4 text-center" style={{ border: '1px solid rgba(201,184,240,0.4)', background: 'rgba(201,184,240,0.06)' }}>
                   <p className="text-white text-base mb-1" style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '19px' }}>Journal Companion</p>
-                  <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>Your Journey&apos;s Companion.</p>
+                  <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>Journal Companion</p>
                   <p className="text-xs leading-relaxed mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
                     To keep writing together, with {companion.name} knowing your cycle and meeting you on
                     the page each day, continue with Journal Companion.
