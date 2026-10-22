@@ -65,10 +65,10 @@ export default function InstallPrompt() {
           </div>
 
           <div className="flex-1">
-            <h3 className="text-white text-base" style={{ fontFamily: "'Poiret One', cursive" }}>
+            <h3 className="text-white text-base" style={{ fontFamily: "'Poiret One', sans-serif" }}>
               Add HORMOscope to Home Screen
             </h3>
-            <p className="text-[#9A8B91] text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            <p className="text-[#CFC3CC] text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
               {isIOS
                 ? 'Tap the Share button, then "Add to Home Screen"'
                 : 'Quick access from your home screen'}

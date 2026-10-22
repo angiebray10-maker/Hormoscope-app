@@ -51,7 +51,7 @@ export default function DailyReminder({ cycleDay, phase, userName }) {
         {/* Close button */}
         <button
           onClick={handleDismiss}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[#9A8B91] hover:text-[#FDF8FA] transition-colors"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[#CFC3CC] hover:text-[#FDF8FA] transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -61,12 +61,12 @@ export default function DailyReminder({ cycleDay, phase, userName }) {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#F4D3DC] to-[#E8A4B8] mb-4 shadow-[0_0_40px_rgba(244,211,220,0.3)]">
             <Sparkles className="w-8 h-8 text-[#12090E]" />
           </div>
-          <h1 className="text-2xl" style={{ fontFamily: "'Poiret One', cursive", fontWeight: 400, color: '#c9b8f0' }}>HORMOscope</h1>
+          <h1 className="text-2xl" style={{ fontFamily: "'Poiret One', sans-serif", fontWeight: 400, color: '#c9b8f0' }}>HORMOscope</h1>
         </div>
 
         {/* Cycle Day - Big and prominent */}
         <div className="text-center mb-6">
-          <p className="text-[#9A8B91] text-xs tracking-[0.3em] uppercase mb-2">Today you are on</p>
+          <p className="text-[#CFC3CC] text-xs tracking-[0.3em] uppercase mb-2">Today you are on</p>
           <div className="inline-flex items-baseline gap-2">
             <span className="text-[#F4D3DC] text-lg tracking-wider">DAY</span>
             <span className="text-5xl font-semibold text-[#FDF8FA]">{cycleDay}</span>
@@ -83,7 +83,7 @@ export default function DailyReminder({ cycleDay, phase, userName }) {
 
         {/* Greeting */}
         {userName && (
-          <p className="text-center text-[#9A8B91] text-sm">
+          <p className="text-center text-[#CFC3CC] text-sm">
             Have a beautiful day, {userName} ✨
           </p>
         )}

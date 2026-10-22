@@ -1,13 +1,6 @@
-@font-face {
-    font-family: 'Affair';
-    src: url('./fonts/Affair.woff2') format('woff2'),
-         url('./fonts/Affair.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
 
-@import url('https://fonts.googleapis.com/css2?family=Poiret+One&family=Poppins:wght@300;400;500;600;700&family=Satisfy&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Poiret+One&family=Poppins:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -18,7 +11,7 @@
    ============================================= */
 
 :root {
-    --bg: #0a0a1a;
+    --bg: #0B0B1E;
     --bg-card: #141425;
     --pink: #f4a7b9;
     --pink-soft: #f4a7b9;
@@ -44,7 +37,7 @@
 body {
     font-family: 'Poppins', sans-serif;
     font-weight: 400;
-    background: linear-gradient(180deg, #0a0a1a 0%, #0a0a1a 100%);
+    background: linear-gradient(180deg, #0B0B1E 0%, #0B0B1E 100%);
     color: var(--text);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
@@ -54,7 +47,7 @@ body p, body span, body div, body li, body button, body input, body textarea, bo
 
 /* ALL headings default to Poiret One (overridable via inline style if ever needed) */
 h1, h2, h3, h4, h5, h6 {
-    font-family: 'Poiret One', cursive !important;
+    font-family: 'Poiret One', sans-serif !important;
     font-weight: 400;
     letter-spacing: 0.01em;
 }
@@ -70,17 +63,17 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Elegant heading font */
 .font-script {
-    font-family: 'Poiret One', cursive;
+    font-family: 'Poiret One', sans-serif;
 }
 
 h1, h2, h3, .heading {
-    font-family: 'Poiret One', cursive;
+    font-family: 'Poiret One', sans-serif;
     font-weight: 400;
 }
 
 /* Accent text */
 .font-accent {
-    font-family: 'Poiret One', cursive;
+    font-family: 'Poiret One', sans-serif;
 }
 
 /* Body font */
@@ -89,7 +82,7 @@ h1, h2, h3, .heading {
 }
 
 .brand-name, .font-brand {
-    font-family: 'Poiret One', cursive;
+    font-family: 'Poiret One', sans-serif;
     font-weight: 400;
     font-style: normal;
     letter-spacing: 0.02em;
@@ -134,25 +127,12 @@ h1, h2, h3, .heading {
     filter: blur(4px);
 }
 
-.orb-menstrual {
-    --orb-color: #ff6b6b;
-    background: linear-gradient(135deg, #ff8a8a 0%, #ff6b6b 100%);
-}
-
-.orb-follicular {
-    --orb-color: #74b9ff;
-    background: linear-gradient(135deg, #a8d4f0 0%, #74b9ff 100%);
-}
-
-.orb-ovulatory {
-    --orb-color: #55efc4;
-    background: linear-gradient(135deg, #81ecec 0%, #55efc4 100%);
-}
-
-.orb-luteal {
-    --orb-color: #a29bfe;
-    background: linear-gradient(135deg, #d4c4fb 0%, #a29bfe 100%);
-}
+/* Per-phase colours: keep in sync with src/lib/phases.js */
+.orb-menstrual { --orb-color: #E85A6B; background: linear-gradient(135deg, #F07C8A 0%, #E85A6B 100%); }
+.orb-follicular { --orb-color: #FF9EC7; background: linear-gradient(135deg, #FFC0DA 0%, #FF9EC7 100%); }
+.orb-ovulatory { --orb-color: #F5C26B; background: linear-gradient(135deg, #F8D493 0%, #F5C26B 100%); }
+.orb-luteal { --orb-color: #A98BEA; background: linear-gradient(135deg, #C2AAF2 0%, #A98BEA 100%); }
+.orb-unknown { --orb-color: #9C9CB8; background: linear-gradient(135deg, #B5B5CC 0%, #9C9CB8 100%); }
 
 /* =============================================
    CARDS
@@ -571,7 +551,7 @@ h1, h2, h3, .heading {
    ============================================= */
 
 .font-heading {
-    font-family: 'Poiret One', cursive;
+    font-family: 'Poiret One', sans-serif;
 }
 
 .font-body {
@@ -579,17 +559,17 @@ h1, h2, h3, .heading {
 }
 
 h1, h2, h3, .heading {
-    font-family: 'Poiret One', cursive;
+    font-family: 'Poiret One', sans-serif;
 }
 
 .heading-elegant {
-    font-family: 'Poiret One', cursive;
+    font-family: 'Poiret One', sans-serif;
     font-weight: 400;
     letter-spacing: 0.01em;
 }
 
 .heading-display {
-    font-family: 'Poiret One', cursive;
+    font-family: 'Poiret One', sans-serif;
     font-weight: 400;
     letter-spacing: 0.02em;
 }
@@ -639,17 +619,32 @@ h1, h2, h3, .heading {
   animation: orbPulse 5s ease-in-out infinite;
 }
 
-/* Her font law (Angelita, Oct 21, 2026): headers wear Poiret One, ALL
-   small text and paragraphs wear Poppins, and official or professional
-   text wears the formal serif. The .official-doc scope protects the
+/* Font law (launch fixes, Oct 22, 2026): headings wear Poiret One and
+   ALL body text, including official documents, wears Poppins. The .official-doc scope protects the
    serif documents (Terms, Privacy, science and privacy copy) from
    the Poppins paragraph rule. Display script lines keep their face. */
 p, li, label, td, th, input, textarea, select, button {
   font-family: 'Poppins', sans-serif !important;
 }
 .font-script {
-  font-family: 'Poiret One', cursive !important;
+  font-family: 'Poiret One', sans-serif !important;
 }
 .official-doc p, .official-doc li {
-  font-family: 'Times New Roman', Times, serif !important;
+  font-family: 'Poppins', sans-serif !important;
+}
+
+
+/* Motion is OFF by default (launch fixes). Profile > "Gentle motion"
+   adds .hs-motion to <html> to bring back the soft pulses. */
+html:not(.hs-motion) .emotion-chip,
+html:not(.hs-motion) .pulsating-orb,
+html:not(.hs-motion) .cycle-orb,
+html:not(.hs-motion) .animate-pulse,
+html:not(.hs-motion) .hs-orbit-item,
+html:not(.hs-motion) .hs-orbit-icon {
+  animation: none !important;
+}
+html:not(.hs-motion) .pulsating-orb { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
 }

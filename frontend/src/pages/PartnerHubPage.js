@@ -4,19 +4,13 @@ import { usePremium } from '../context/PremiumContext';
 import { Link } from 'react-router-dom';
 import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2 } from 'lucide-react';
 import axios from 'axios';
+import { PHASE_COLORS as SHARED_PHASE_COLORS } from '../lib/phases';
 import logger from '../utils/logger';
 
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const PHASE_COLORS = {
-  menstrual: '#ff6b6b',
-  follicular: '#74b9ff',
-  ovulatory: '#55efc4',
-  luteal: '#a29bfe',
-  late: '#ff6b6b',
-  unknown: '#74b9ff',
-};
+const PHASE_COLORS = SHARED_PHASE_COLORS;
 
 const PHASE_NAMES = {
   menstrual: 'Menstrual Phase',
@@ -102,7 +96,7 @@ function NotesTab({ token, currentUserId, onUnreadChange }) {
       {notes.length === 0 ? (
         <div className="text-center py-12">
           <Heart className="w-10 h-10 text-[#f4a7b9]/40 mx-auto mb-3" />
-          <p className="text-white/50 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing here yet.</p>
+          <p className="text-white/75 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing here yet.</p>
           <p className="text-white/25 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Leave the first little note below.</p>
         </div>
       ) : (
@@ -112,7 +106,7 @@ function NotesTab({ token, currentUserId, onUnreadChange }) {
             return (
               <div key={n.id}
                 className={`rounded-2xl p-4 border border-white/[0.06] ${mine ? 'ml-8' : 'mr-8'}`}
-                style={{ background: mine ? 'rgba(255,20,147,0.07)' : 'rgba(255,255,255,0.03)' }}>
+                style={{ background: mine ? 'rgba(255,79,154,0.07)' : 'rgba(255,255,255,0.03)' }}>
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-white text-sm leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Poppins, sans-serif' }}>{n.content}</p>
                   {mine && (
@@ -141,7 +135,7 @@ function NotesTab({ token, currentUserId, onUnreadChange }) {
         />
         <button onClick={handleSend} disabled={sending || !draft.trim()}
           className="w-12 h-12 rounded-full flex items-center justify-center disabled:opacity-40 shrink-0"
-          style={{ background: '#FF1493' }} data-testid="note-send">
+          style={{ background: '#FF4F9A' }} data-testid="note-send">
           <Send className="w-5 h-5 text-white" />
         </button>
       </div>
@@ -162,11 +156,11 @@ function CalendarTab({ markedDays }) {
   return (
     <div data-testid="partner-calendar">
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => setViewDate(new Date(y, m - 1, 1))} className="px-3 py-1.5 rounded-full text-white/60 text-sm border border-white/10">‹</button>
-        <span className="text-white text-base" style={{ fontFamily: "'Poiret One', cursive" }}>
+        <button onClick={() => setViewDate(new Date(y, m - 1, 1))} className="px-3 py-1.5 rounded-full text-white/80 text-sm border border-white/10">‹</button>
+        <span className="text-white text-base" style={{ fontFamily: "'Poiret One', sans-serif" }}>
           {viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </span>
-        <button onClick={() => setViewDate(new Date(y, m + 1, 1))} className="px-3 py-1.5 rounded-full text-white/60 text-sm border border-white/10">›</button>
+        <button onClick={() => setViewDate(new Date(y, m + 1, 1))} className="px-3 py-1.5 rounded-full text-white/80 text-sm border border-white/10">›</button>
       </div>
       <div className="grid grid-cols-7 gap-1">
         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
@@ -194,7 +188,7 @@ function CalendarTab({ markedDays }) {
       </div>
       <div className="flex flex-wrap gap-3 mt-4">
         {Object.entries(KIND_STYLES).map(([k, st]) => (
-          <span key={k} className="flex items-center gap-1.5 text-white/50 text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <span key={k} className="flex items-center gap-1.5 text-white/75 text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>
             <span className="w-3 h-3 rounded" style={{ background: st.bg }} />
             {st.label}
           </span>
@@ -251,7 +245,7 @@ export default function PartnerHubPage() {
 
   if (status === null || rcLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a1a' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0B0B1E' }}>
         <Loader2 className="w-8 h-8 text-[#f4a7b9] animate-spin" />
       </div>
     );
@@ -264,16 +258,16 @@ export default function PartnerHubPage() {
   // Not linked: invite-code entry
   if (!status.is_linked) {
     return (
-      <div className="min-h-screen px-5 py-10 pb-24" style={{ background: '#0a0a1a' }}>
+      <div className="min-h-screen px-5 py-10 pb-24" style={{ background: '#0B0B1E' }}>
         <div className="max-w-md mx-auto text-center">
-          <div className="w-16 h-16 rounded-full bg-[#FF1493]/15 flex items-center justify-center mx-auto mb-5">
-            <Link2 className="w-7 h-7 text-[#FF1493]" />
+          <div className="w-16 h-16 rounded-full bg-[#FF4F9A]/15 flex items-center justify-center mx-auto mb-5">
+            <Link2 className="w-7 h-7 text-[#FF4F9A]" />
           </div>
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>
             Attunement Mode
           </p>
-          <h1 className="text-2xl text-white mb-3" style={{ fontFamily: "'Poiret One', cursive" }}>Link Your Accounts</h1>
-          <p className="text-[#9A8B91] text-sm mb-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <h1 className="text-2xl text-white mb-3" style={{ fontFamily: "'Poiret One', sans-serif" }}>Link Your Accounts</h1>
+          <p className="text-[#CFC3CC] text-sm mb-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Ask her for the invite code from her Profile, then enter it below. You will be able to follow her cycle —
             ovulation days, fertile window, and when to expect her period.
           </p>
@@ -290,11 +284,11 @@ export default function PartnerHubPage() {
           )}
           <button onClick={handleAccept} disabled={accepting || !inviteCode.trim()}
             className="w-full py-3.5 rounded-full text-white text-sm font-medium disabled:opacity-40"
-            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
+            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
             data-testid="accept-invite-btn">
             {accepting ? 'Linking...' : 'Link Accounts'}
           </button>
-          <p className="text-[#6c6c8a] text-[10px] mt-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <p className="text-[#B4B0C8] text-[10px] mt-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Her journal and private entries are never shared. You only see what she chose to share.
           </p>
         </div>
@@ -306,17 +300,17 @@ export default function PartnerHubPage() {
   const tips = calData?.partner_tips;
 
   return (
-    <div className="min-h-screen px-5 py-8 pb-28" style={{ background: '#0a0a1a' }} data-testid="partner-hub">
+    <div className="min-h-screen px-5 py-8 pb-28" style={{ background: '#0B0B1E' }} data-testid="partner-hub">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-6">
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>
             Attunement Mode
           </p>
-          <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', cursive" }}>
+          <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>
             {calData ? `${calData.name}'s Cycle` : 'Partner Hub'}
           </h1>
           {status.role === 'owner' && (
-            <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
               Linked with {status.partner_name} · this is what they see
             </p>
           )}
@@ -333,7 +327,7 @@ export default function PartnerHubPage() {
                 className="flex-1 py-2.5 rounded-full text-sm font-medium relative"
                 style={{
                   fontFamily: 'Poppins, sans-serif',
-                  background: tab === t.id ? '#FF1493' : 'rgba(255,255,255,0.04)',
+                  background: tab === t.id ? '#FF4F9A' : 'rgba(255,255,255,0.04)',
                   color: tab === t.id ? '#fff' : 'rgba(255,255,255,0.5)',
                   border: '1px solid rgba(255,255,255,0.08)'
                 }}
@@ -354,16 +348,16 @@ export default function PartnerHubPage() {
                 <span className="text-white/70 text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif' }}>Day</span>
                 <span className="text-5xl font-bold text-white">{calData.cycle_day}</span>
               </div>
-              <h2 className="mt-4 text-xl" style={{ fontFamily: "'Poiret One', cursive", color: phaseColor }}>
+              <h2 className="mt-4 text-xl" style={{ fontFamily: "'Poiret One', sans-serif", color: phaseColor }}>
                 {PHASE_NAMES[calData.phase] || calData.phase}
               </h2>
               {calData.next_period_date && (
-                <p className="text-[#9A8B91] text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                <p className="text-[#CFC3CC] text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
                   Next period {calData.days_until_period === 0 ? 'expected today' : `in ${calData.days_until_period} days`} · {calData.next_period_date}
                 </p>
               )}
               {calData.ovulation_date && (
-                <p className="text-[#9A8B91] text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                <p className="text-[#CFC3CC] text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
                   Ovulation around {calData.ovulation_date}
                 </p>
               )}
@@ -400,8 +394,8 @@ export default function PartnerHubPage() {
             )}
             <div className="text-center mt-6">
               <div className="flex items-center justify-center gap-1.5">
-                <Shield className="w-3 h-3 text-[#6c6c8a]" />
-                <span className="text-[#6c6c8a] text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Her journal stays private. You only see what she chose to share.</span>
+                <Shield className="w-3 h-3 text-[#B4B0C8]" />
+                <span className="text-[#B4B0C8] text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Her journal stays private. You only see what she chose to share.</span>
               </div>
             </div>
           </div>

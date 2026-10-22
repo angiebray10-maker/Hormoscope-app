@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, ChevronDown, Shield, Check, ArrowRight, Heart, Users, Award, Zap, Calendar, MessageCircle } from 'lucide-react';
 
-const BRAND_FONT = "'Poiret One', cursive";
-const HEADING_FONT = "'Poiret One', cursive";
+const BRAND_FONT = "'Poiret One', sans-serif";
+const HEADING_FONT = "'Poiret One', sans-serif";
 const PURPLE = '#7b4fa6';
 const PURPLE_LIGHT = '#c9b8f0';
 const PINK = '#f4a7b9';
@@ -64,7 +64,7 @@ export default function AuthPage() {
 
 
   return (
-    <div className="min-h-screen" style={{ background: '#0a0a1a' }}>
+    <div className="min-h-screen" style={{ background: '#0B0B1E' }}>
 
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50" style={{ background: 'rgba(10,10,26,0.92)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(201,184,240,0.08)' }}>
@@ -100,8 +100,8 @@ export default function AuthPage() {
         <div className="absolute inset-0" style={{ backgroundImage: `url(${HERO_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,10,26,0.6) 0%, rgba(10,10,26,0.45) 40%, rgba(10,10,26,0.75) 100%)' }} />
         </div>
-        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,20,147,0.5) 0%, rgba(255,20,147,0) 70%)' }} />
-        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(212,168,83,0.5) 0%, rgba(212,168,83,0) 70%)', animationDelay: '1.6s' }} />
+        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,79,154,0.5) 0%, rgba(255,79,154,0) 70%)' }} />
+        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(201,184,240,0.5) 0%, rgba(201,184,240,0) 70%)', animationDelay: '1.6s' }} />
         <div className="pulsating-orb" style={{ width: 110, height: 110, top: '46%', right: '12%', background: 'radial-gradient(circle, rgba(201,184,240,0.45) 0%, rgba(201,184,240,0) 70%)', animationDelay: '3.1s' }} />
 
         <div className="relative z-10 w-full max-w-xl mx-auto px-6 py-20 text-center sm:text-left">
@@ -151,8 +151,8 @@ export default function AuthPage() {
           sections (Day 24 scenarios, relationship translator) are gone
           on her order; the front door concentrates on these two. */}
       <section ref={focusRef} className="py-20 px-6 relative overflow-hidden">
-        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,20,147,0.5) 0%, rgba(255,20,147,0) 70%)' }} />
-        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(212,168,83,0.5) 0%, rgba(212,168,83,0) 70%)', animationDelay: '1.6s' }} />
+        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,79,154,0.5) 0%, rgba(255,79,154,0) 70%)' }} />
+        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(201,184,240,0.5) 0%, rgba(201,184,240,0) 70%)', animationDelay: '1.6s' }} />
         <div className="pulsating-orb" style={{ width: 110, height: 110, top: '46%', right: '12%', background: 'radial-gradient(circle, rgba(201,184,240,0.45) 0%, rgba(201,184,240,0) 70%)', animationDelay: '3.1s' }} />
         <div className="max-w-2xl mx-auto relative z-10">
           <div className="text-center mb-12">
@@ -160,23 +160,23 @@ export default function AuthPage() {
             <h2 className="text-3xl sm:text-4xl text-white mb-4" style={{ fontFamily: HEADING_FONT }}>Your journal. Your partner. Your cycle.</h2>
           </div>
           <div className="space-y-4 mb-4">
-            <div className="p-6 rounded-2xl official-doc" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(212,168,83,0.25)' }} data-testid="focus-journal">
-              <h3 className="text-white text-lg mb-2" style={{ fontFamily: "'Poiret One', cursive" }}>The Journal</h3>
-              <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
+            <div className="p-6 rounded-2xl official-doc" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(201,184,240,0.25)' }} data-testid="focus-journal">
+              <h3 className="text-white text-lg mb-2" style={{ fontFamily: "'Poiret One', sans-serif" }}>The Journal</h3>
+              <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: "'Poppins', sans-serif" }}>
                 A real book, one page for every day, written by you and kept for you. Inside it lives your companion, who knows your cycle and your words, and talks with you about what the day truly felt like.
               </p>
             </div>
-            <div className="p-6 rounded-2xl official-doc" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,20,147,0.25)' }} data-testid="focus-attuned">
-              <h3 className="text-white text-lg mb-2" style={{ fontFamily: "'Poiret One', cursive" }}>Attuned Partner Mode</h3>
-              <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
+            <div className="p-6 rounded-2xl official-doc" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,79,154,0.25)' }} data-testid="focus-attuned">
+              <h3 className="text-white text-lg mb-2" style={{ fontFamily: "'Poiret One', sans-serif" }}>Attuned Partner Mode</h3>
+              <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: "'Poppins', sans-serif" }}>
                 Link with your partner and sync your cycles. Each of you can see where the other is in her cycle, so the hard days never blindside either of you. HORMOscope is built for same sex couples from the ground up, not adapted as an afterthought.
               </p>
             </div>
           </div>
-          <div className="p-6 rounded-2xl text-center official-doc" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.35)' }} data-testid="focus-privacy">
-            <p className="text-xs font-medium tracking-widest uppercase mb-3" style={{ color: '#D4A853', fontFamily: 'Poppins, sans-serif' }}>Our number one promise</p>
+          <div className="p-6 rounded-2xl text-center official-doc" style={{ background: 'rgba(201,184,240,0.06)', border: '1px solid rgba(201,184,240,0.35)' }} data-testid="focus-privacy">
+            <p className="text-xs font-medium tracking-widest uppercase mb-3" style={{ color: '#C9B8F0', fontFamily: 'Poppins, sans-serif' }}>Our number one promise</p>
             <h3 className="text-white text-xl mb-3" style={{ fontFamily: HEADING_FONT }}>Your privacy comes first. Always.</h3>
-            <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
+            <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: "'Poppins', sans-serif" }}>
               Your journal, your cycle, and your conversations travel over secure, encrypted connections and are never sold. Other users and your partner only ever see what you choose to share. Companion messages are processed by our AI provider to write replies, and nothing else.
             </p>
           </div>
@@ -191,10 +191,10 @@ export default function AuthPage() {
         <div className="max-w-2xl mx-auto relative z-10">
           <div className="text-center mb-14">
             <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>The science</p>
-            <h2 className="text-3xl sm:text-4xl text-white mb-4" style={{ fontFamily: "'Times New Roman', Times, serif" }} data-testid="science-heading">
+            <h2 className="text-3xl sm:text-4xl text-white mb-4" style={{ fontFamily: "'Poppins', sans-serif" }} data-testid="science-heading">
               3 questions, one full cycle of clarity.
             </h2>
-            <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
+            <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: "'Poppins', sans-serif" }}>
               Every woman&apos;s cycle follows the same hormonal blueprint. We just map yours to it.
             </p>
           </div>
@@ -208,10 +208,10 @@ export default function AuthPage() {
             ].map((step) => (
               <div key={step.num} className="p-5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }} data-testid={`science-step-${step.num}`}>
                 <div className="flex items-start gap-4">
-                  <span className="text-3xl flex-shrink-0" style={{ color: 'rgba(212,168,83,0.45)', fontFamily: "'Poiret One', cursive" }}>{step.num}</span>
+                  <span className="text-3xl flex-shrink-0" style={{ color: 'rgba(201,184,240,0.45)', fontFamily: "'Poiret One', sans-serif" }}>{step.num}</span>
                   <div>
-                    <h3 className="text-white text-base mb-1.5" style={{ fontFamily: "'Poiret One', cursive" }}>{step.title}</h3>
-                    <p className="text-sm leading-relaxed" style={{ color: PINK_MUTED, fontFamily: "'Times New Roman', Times, serif" }}>{step.desc}</p>
+                    <h3 className="text-white text-base mb-1.5" style={{ fontFamily: "'Poiret One', sans-serif" }}>{step.title}</h3>
+                    <p className="text-sm leading-relaxed" style={{ color: PINK_MUTED, fontFamily: "'Poppins', sans-serif" }}>{step.desc}</p>
                   </div>
                 </div>
               </div>
@@ -268,14 +268,14 @@ export default function AuthPage() {
           <div className="absolute inset-0" style={{ background: 'rgba(10,10,26,0.88)' }} />
         </div>
         <div className="max-w-md mx-auto relative z-10 text-center">
-          <p className="text-sm tracking-[0.3em] uppercase mb-3" style={{ fontFamily: "'Poiret One', cursive", color: '#D4A853' }}>Begin</p>
-          <h2 className="text-white leading-[1.1] mb-5" style={{ fontFamily: "'Poiret One', cursive", fontSize: 'clamp(2rem, 7vw, 3rem)' }}>
-            Start tracking <br /><span style={{ color: '#D4A853' }}>today.</span>
+          <p className="text-sm tracking-[0.3em] uppercase mb-3" style={{ fontFamily: "'Poiret One', sans-serif", color: '#C9B8F0' }}>Begin</p>
+          <h2 className="text-white leading-[1.1] mb-5" style={{ fontFamily: "'Poiret One', sans-serif", fontSize: 'clamp(2rem, 7vw, 3rem)' }}>
+            Start tracking <br /><span style={{ color: '#C9B8F0' }}>today.</span>
           </h2>
           <p className="text-xs sm:text-sm leading-relaxed mb-7" style={{ fontFamily: HEADING_FONT, color: PINK_SOFT }}>
             Track your cycle, mood, and intimacy, with daily readings and a private journal written around your body.
           </p>
-          <button onClick={openSignup} data-testid="start-free-cta" className="px-8 py-3.5 rounded-full text-white text-base transition-all" style={{ fontFamily: "'Poiret One', cursive", letterSpacing: '0.05em', background: 'linear-gradient(135deg, #D4A853, #c9a030)', boxShadow: '0 0 25px rgba(212,168,83,0.3)' }}>
+          <button onClick={openSignup} data-testid="start-free-cta" className="px-8 py-3.5 rounded-full text-white text-base transition-all" style={{ fontFamily: "'Poiret One', sans-serif", letterSpacing: '0.05em', background: 'linear-gradient(135deg, #C9B8F0, #B7A3EA)', boxShadow: '0 0 25px rgba(201,184,240,0.3)' }}>
             Get Started
           </button>
         </div>
@@ -286,8 +286,8 @@ export default function AuthPage() {
         <div className="absolute inset-0" style={{ backgroundImage: `url(/images/img-0546-alt.jpeg)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: 'rgba(10,10,26,0.82)' }} />
         </div>
-        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,20,147,0.5) 0%, rgba(255,20,147,0) 70%)' }} />
-        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(212,168,83,0.5) 0%, rgba(212,168,83,0) 70%)', animationDelay: '1.6s' }} />
+        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,79,154,0.5) 0%, rgba(255,79,154,0) 70%)' }} />
+        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(201,184,240,0.5) 0%, rgba(201,184,240,0) 70%)', animationDelay: '1.6s' }} />
         <div className="pulsating-orb" style={{ width: 110, height: 110, top: '46%', right: '12%', background: 'radial-gradient(circle, rgba(201,184,240,0.45) 0%, rgba(201,184,240,0) 70%)', animationDelay: '3.1s' }} />
         <div className="max-w-lg mx-auto relative z-10">
           <h2 className="text-3xl sm:text-4xl mb-4 text-white" style={{ fontFamily: HEADING_FONT }} data-testid="final-cta-heading">
@@ -314,7 +314,7 @@ export default function AuthPage() {
       {showAuthModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={() => setShowAuthModal(false)}>
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-          <div className="relative w-full max-w-sm p-7 rounded-3xl border border-white/10" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0a0a1a 100%)' }} onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-sm p-7 rounded-3xl border border-white/10" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0B0B1E 100%)' }} onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 hover:text-white transition-colors text-xl" style={{ color: PINK_MUTED }} data-testid="auth-close-btn">&times;</button>
             <div className="text-center mb-6">
               <img src={NEW_LOGO} alt="HORMOscope" className="w-14 h-14 rounded-full mx-auto mb-3 object-cover" style={{ border: '1px solid rgba(139,92,246,0.2)' }} />

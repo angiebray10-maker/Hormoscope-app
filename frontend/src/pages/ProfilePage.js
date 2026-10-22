@@ -59,31 +59,31 @@ function AttunedSection({ token }) {
   return (
     <div className="glass-card p-5 mb-6" data-testid="attuned-section">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full bg-[#FF1493]/20 flex items-center justify-center">
-          <Heart className="w-5 h-5 text-[#FF1493]" fill="#FF1493" />
+        <div className="w-10 h-10 rounded-full bg-[#FF4F9A]/20 flex items-center justify-center">
+          <Heart className="w-5 h-5 text-[#FF4F9A]" fill="#FF4F9A" />
         </div>
         <div>
           <p className="text-[#F4D3DC] text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>Attunement Mode</p>
-          <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Built by one woman, a breast cancer survivor, from real personal experience.</p>
+          <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Built by one woman, a breast cancer survivor, from real personal experience.</p>
         </div>
       </div>
 
       {status === null ? (
-        <div className="flex justify-center py-2"><Loader2 className="w-5 h-5 text-[#FF1493] animate-spin" /></div>
+        <div className="flex justify-center py-2"><Loader2 className="w-5 h-5 text-[#FF4F9A] animate-spin" /></div>
       ) : status.is_linked ? (
         <div>
           <p className="text-white text-sm mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Linked with <span className="font-semibold" style={{ color: '#f4a7b9' }}>{status.partner_name}</span>
           </p>
-          <p className="text-[#9A8B91] text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <p className="text-[#CFC3CC] text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
             He can see your cycle calendar — ovulation, fertile days, and your next period. Your journal stays private.
           </p>
           <div className="flex gap-2">
             <Link to="/attunement" className="flex-1 py-2.5 rounded-full text-white text-sm font-medium text-center"
-              style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}>
+              style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}>
               Open Attunement Mode
             </Link>
-            <button onClick={handleUnlink} className="px-4 py-2.5 rounded-full text-white/50 text-xs"
+            <button onClick={handleUnlink} className="px-4 py-2.5 rounded-full text-white/75 text-xs"
               style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.12)' }}>
               Unlink
             </button>
@@ -91,29 +91,29 @@ function AttunedSection({ token }) {
         </div>
       ) : inviteCode ? (
         <div>
-          <p className="text-[#9A8B91] text-xs mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <p className="text-[#CFC3CC] text-xs mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Share this code with your partner. He creates his own HORMOscope account, opens Partner Hub, and enters it.
           </p>
           <button onClick={copyCode}
             className="w-full py-3 rounded-xl text-center mb-2"
-            style={{ background: 'rgba(255,20,147,0.08)', border: '1px dashed rgba(255,20,147,0.4)' }}>
+            style={{ background: 'rgba(255,79,154,0.08)', border: '1px dashed rgba(255,79,154,0.4)' }}>
             <span className="text-white text-xl font-bold tracking-[0.3em]" style={{ fontFamily: 'Poppins, sans-serif' }}>{inviteCode}</span>
-            <span className="block text-[#9A8B91] text-[10px] mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            <span className="block text-[#CFC3CC] text-[10px] mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
               {copied ? 'Copied!' : 'Tap to copy'}
             </span>
           </button>
-          <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
             He sees your cycle calendar only — never your journal.
           </p>
         </div>
       ) : (
         <div>
-          <p className="text-[#9A8B91] text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <p className="text-[#CFC3CC] text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Link his account to yours so he can follow your cycle — ovulation days, fertile window, and when to expect your period.
           </p>
           <button onClick={handleInvite} disabled={generating}
             className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50"
-            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}>
+            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}>
             {generating ? 'Creating invite...' : 'Invite Your Partner'}
           </button>
         </div>
@@ -273,7 +273,7 @@ export default function ProfilePage() {
             />
             <label
               htmlFor="profile-photo-input"
-              className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#F4D3DC] to-[#9B7BC9] flex items-center justify-center overflow-hidden border-2 border-[#F4D3DC]/30 hover:border-[#F4D3DC] transition-all cursor-pointer block"
+              className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#F4D3DC] to-[#C9B8F0] flex items-center justify-center overflow-hidden border-2 border-[#F4D3DC]/30 hover:border-[#F4D3DC] transition-all cursor-pointer block"
               data-testid="profile-photo-btn"
             >
               {photoPreview ? (
@@ -300,7 +300,7 @@ export default function ProfilePage() {
             )}
           </div>
           
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {isEditing ? (
               <input
                 data-testid="profile-name-input"
@@ -314,7 +314,7 @@ export default function ProfilePage() {
                 {user?.name || 'Beautiful'}
               </h2>
             )}
-            <p className="text-[#9A8B91] text-sm">{user?.email}</p>
+            <p className="text-[#E6E0EE] text-sm break-all" data-testid="profile-email">{user?.email}</p>
           </div>
         </div>
       </div>
@@ -329,7 +329,7 @@ export default function ProfilePage() {
             <Sparkles className="w-5 h-5 text-[#E8A4B8]" />
             <span className="text-[#FDF8FA]">Founder&apos;s Note</span>
           </div>
-          <ChevronRight className="w-5 h-5 text-[#9A8B91]" />
+          <ChevronRight className="w-5 h-5 text-[#CFC3CC]" />
         </Link>
 
         <Link
@@ -340,7 +340,7 @@ export default function ProfilePage() {
             <BookOpen className="w-5 h-5 text-[#E8A4B8]" />
             <span className="text-[#FDF8FA]">Instructional Guide</span>
           </div>
-          <ChevronRight className="w-5 h-5 text-[#9A8B91]" />
+          <ChevronRight className="w-5 h-5 text-[#CFC3CC]" />
         </Link>
         
         <Link 
@@ -351,7 +351,7 @@ export default function ProfilePage() {
             <Mail className="w-5 h-5 text-[#F4D3DC]" />
             <span className="text-[#FDF8FA]">Contact Us</span>
           </div>
-          <ChevronRight className="w-5 h-5 text-[#9A8B91]" />
+          <ChevronRight className="w-5 h-5 text-[#CFC3CC]" />
         </Link>
 
         <Link 
@@ -359,10 +359,10 @@ export default function ProfilePage() {
           className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-t border-white/5"
         >
           <div className="flex items-center gap-3">
-            <Shield className="w-5 h-5 text-[#9B7BC9]" />
+            <Shield className="w-5 h-5 text-[#C9B8F0]" />
             <span className="text-[#FDF8FA]">Privacy Policy</span>
           </div>
-          <ChevronRight className="w-5 h-5 text-[#9A8B91]" />
+          <ChevronRight className="w-5 h-5 text-[#CFC3CC]" />
         </Link>
 
         <Link 
@@ -370,10 +370,10 @@ export default function ProfilePage() {
           className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-t border-white/5"
         >
           <div className="flex items-center gap-3">
-            <FileText className="w-5 h-5 text-[#9B7BC9]" />
+            <FileText className="w-5 h-5 text-[#C9B8F0]" />
             <span className="text-[#FDF8FA]">Terms of Service</span>
           </div>
-          <ChevronRight className="w-5 h-5 text-[#9A8B91]" />
+          <ChevronRight className="w-5 h-5 text-[#CFC3CC]" />
         </Link>
       </div>
 
@@ -394,7 +394,7 @@ export default function ProfilePage() {
       <button
         data-testid="delete-account-btn"
         onClick={() => setShowDelete(true)}
-        className="w-full mt-4 py-3 text-sm text-[#9A8B91] hover:text-[#E85A6B] transition-colors flex items-center justify-center gap-2"
+        className="w-full mt-4 py-3 text-sm text-[#CFC3CC] hover:text-[#E85A6B] transition-colors flex items-center justify-center gap-2"
       >
         <Trash2 className="w-4 h-4" />
         Delete My Account
@@ -405,7 +405,7 @@ export default function ProfilePage() {
           <div className="glass-card max-w-md w-full p-6" style={{ maxHeight: '88vh', overflowY: 'auto' }}>
             {!deleted ? (
               <>
-                <h2 className="text-2xl text-[#F4D3DC] mb-3" style={{ fontFamily: "'Poiret One', serif" }}>Delete your account?</h2>
+                <h2 className="text-2xl text-[#F4D3DC] mb-3" style={{ fontFamily: "'Poiret One', sans-serif" }}>Delete your account?</h2>
                 <p className="text-sm text-[#CDBEC6] leading-relaxed mb-3">
                   This permanently deletes your HORMOscope account and everything in it:
                 </p>
@@ -454,7 +454,7 @@ export default function ProfilePage() {
               </>
             ) : (
               <>
-                <h2 className="text-2xl text-[#F4D3DC] mb-3" style={{ fontFamily: "'Poiret One', serif" }}>Your account is deleted</h2>
+                <h2 className="text-2xl text-[#F4D3DC] mb-3" style={{ fontFamily: "'Poiret One', sans-serif" }}>Your account is deleted</h2>
                 <p className="text-sm text-[#CDBEC6] leading-relaxed mb-5">
                   Your account and your personal data have been removed. You have been
                   signed out, and this email can no longer sign in. Thank you for the
@@ -464,7 +464,7 @@ export default function ProfilePage() {
                   onClick={handleDeletedDone}
                   data-testid="deleted-done-btn"
                   className="w-full py-3 rounded-full text-white text-sm font-semibold"
-                  style={{ background: 'linear-gradient(135deg, #FF5C8A, #FF1493)' }}
+                  style={{ background: 'linear-gradient(135deg, #FF5C8A, #FF4F9A)' }}
                 >
                   Done
                 </button>

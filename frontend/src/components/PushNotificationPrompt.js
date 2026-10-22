@@ -58,7 +58,7 @@ export default function PushNotificationPrompt() {
       <div className="bg-gradient-to-r from-[#1a1a2e] to-[#2d1f3d] rounded-2xl p-4 border border-[#ff8fab]/30 shadow-2xl max-w-sm mx-auto">
         <button 
           onClick={handleDismiss}
-          className="absolute top-2 right-2 text-white/40 hover:text-white"
+          className="absolute top-2 right-2 text-white/70 hover:text-white"
         >
           <X className="w-4 h-4" />
         </button>
@@ -69,7 +69,7 @@ export default function PushNotificationPrompt() {
           </div>
           <div className="flex-1">
             <h3 className="text-white font-medium text-sm">Enable Daily Check-ins?</h3>
-            <p className="text-white/60 text-xs mt-1">
+            <p className="text-white/80 text-xs mt-1">
               Get personalized updates about your cycle and how you're feeling.
             </p>
             <div className="flex gap-2 mt-3">
@@ -82,7 +82,7 @@ export default function PushNotificationPrompt() {
               </button>
               <button
                 onClick={handleDismiss}
-                className="px-4 py-1.5 text-white/50 text-xs hover:text-white transition-all"
+                className="px-4 py-1.5 text-white/75 text-xs hover:text-white transition-all"
               >
                 Not now
               </button>

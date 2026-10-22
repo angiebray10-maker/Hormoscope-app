@@ -6,6 +6,7 @@ import axios from 'axios';
 import DailyRead from '../components/DailyRead';
 import FloatingCarousel from '../components/FloatingCarousel';
 import logger from '../utils/logger';
+import { PHASE_COLORS } from '../lib/phases';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -29,13 +30,20 @@ const PHASE_CARDS = {
 };
 
 const phases = {
-  menstrual: { orb: 'orb-menstrual', color: '#ff6b6b', name: 'Menstrual Phase' },
-  follicular: { orb: 'orb-follicular', color: '#74b9ff', name: 'Follicular Phase' },
-  ovulatory: { orb: 'orb-ovulatory', color: '#55efc4', name: 'Ovulatory Phase' },
-  luteal: { orb: 'orb-luteal', color: '#a29bfe', name: 'Luteal Phase' },
-  late: { orb: 'orb-menstrual', color: '#ff6b6b', name: 'Period Expected' },
-  unknown: { orb: 'orb-follicular', color: '#74b9ff', name: 'Setup Required' }
+  menstrual: { orb: 'orb-menstrual', color: PHASE_COLORS.menstrual, name: 'Menstrual Phase' },
+  follicular: { orb: 'orb-follicular', color: PHASE_COLORS.follicular, name: 'Follicular Phase' },
+  ovulatory: { orb: 'orb-ovulatory', color: PHASE_COLORS.ovulatory, name: 'Ovulatory Phase' },
+  luteal: { orb: 'orb-luteal', color: PHASE_COLORS.luteal, name: 'Luteal Phase' },
+  late: { orb: 'orb-menstrual', color: PHASE_COLORS.menstrual, name: 'Period Expected' },
+  unknown: { orb: 'orb-unknown', color: PHASE_COLORS.unknown, name: 'Log your period to begin' }
 };
+
+const PHASE_ROWS = [
+  { id: 'menstrual', name: 'Menstrual Phase', days: 'Days 1-5 • Rest & renewal' },
+  { id: 'follicular', name: 'Follicular Phase', days: 'Days 6-12 • Rising energy' },
+  { id: 'ovulatory', name: 'Ovulatory Phase', days: 'Around ovulation • Peak confidence' },
+  { id: 'luteal', name: 'Luteal Phase', days: 'Before your period • Slow down' },
+];
 
 export default function HomePage() {
   const { user, token } = useAuth();
@@ -46,6 +54,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [paymentBanner, setPaymentBanner] = useState(null); // 'pending' | 'success' | 'failed'
   const [showWelcome, setShowWelcome] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   // Welcome message after onboarding completes
   useEffect(() => {
     if (localStorage.getItem('hormoscope-show-welcome') === 'true') {
@@ -178,7 +187,7 @@ export default function HomePage() {
       
       {/* Header */}
       <div className="text-center mb-8">
-        <p className="text-[#6c6c8a] text-xs tracking-widest uppercase mb-2">
+        <p className="text-[#B4B0C8] text-xs tracking-widest uppercase mb-2">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
         <h1 className="text-3xl text-white mb-3 font-script">
@@ -188,28 +197,22 @@ export default function HomePage() {
 
       {/* Welcome message after onboarding */}
       {showWelcome && (
-        <div className="card p-6 mb-6 border border-[#D4A853]/40 bg-[#D4A853]/10 text-center relative overflow-hidden" data-testid="welcome-banner">
-          {/* Her girls holding signs picture in the welcome banner, and
-              the welcome words in bright pink (Angelita, Oct 21, 2026). */}
-          <img src="/images/welcome-signs.jpg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.35 }} />
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,10,26,0.45) 0%, rgba(10,10,26,0.72) 100%)' }} />
-          <div className="relative">
-          <p className="text-xl font-script mb-2" style={{ color: '#FF1493' }}>Welcome to your true HORMOscope.</p>
-          <p className="text-[#b8b8d1] text-sm">Your cycle, decoded. Let&apos;s begin.</p>
+        <div className="rounded-2xl p-5 mb-10 border border-[#FF4F9A]/40 text-center" style={{ background: 'rgba(255,79,154,0.08)' }} data-testid="welcome-banner">
+          <p className="text-xl font-script mb-1 text-white">Welcome to your HORMOscope.</p>
+          <p className="text-[#E6E0EE] text-sm">Your cycle, decoded. Log how you feel each day and it gets more personal.</p>
           <button
             onClick={() => setShowWelcome(false)}
             className="mt-4 px-6 py-2 rounded-full text-sm text-white"
-            style={{ background: '#FF1493' }}
+            style={{ background: '#FF4F9A' }}
           >
             Begin
           </button>
-          </div>
         </div>
       )}
 
       {/* Stripe payment banner */}
       {paymentBanner && (
-        <div className={`card p-4 mb-6 border ${paymentBanner === 'success' ? 'border-[#D4A853]/40 bg-[#D4A853]/10' : paymentBanner === 'failed' ? 'border-[#ff6b6b]/30 bg-[#ff6b6b]/5' : 'border-white/20 bg-white/5'}`} data-testid={`payment-banner-${paymentBanner}`}>
+        <div className={`card p-4 mb-6 border ${paymentBanner === 'success' ? 'border-[#C9B8F0]/40 bg-[#C9B8F0]/10' : paymentBanner === 'failed' ? 'border-[#ff6b6b]/30 bg-[#ff6b6b]/5' : 'border-white/20 bg-white/5'}`} data-testid={`payment-banner-${paymentBanner}`}>
           <p className="text-sm text-white">
             {paymentBanner === 'pending' && 'Confirming your payment…'}
             {paymentBanner === 'success' && '✨ Your subscription is active. Welcome in.'}
@@ -234,53 +237,60 @@ export default function HomePage() {
       )}
 
       {/* Cycle Orb */}
-      <div className="flex flex-col items-center mb-10">
-        <div className={`cycle-orb ${config.orb}`}>
-          <span className="text-white/90 text-sm tracking-widest uppercase font-semibold">
-            {periodIsLate ? 'CYCLE DAY' : 'YOU ARE ON DAY'}
+      <div className="flex flex-col items-center mb-8">
+        <div className={`cycle-orb ${config.orb}`} style={{ boxShadow: `0 0 36px ${config.color}66` }} data-testid="day-circle">
+          <span className="text-[#1B1030] text-xs tracking-widest uppercase font-semibold">
+            {phase === 'unknown' ? 'CYCLE DAY' : periodIsLate ? 'CYCLE DAY' : 'YOU ARE ON DAY'}
           </span>
-          <span className="text-7xl font-bold text-white">{cycle.cycle_day || '?'}</span>
+          <span className="text-7xl font-bold text-[#1B1030]">{phase === 'unknown' ? '–' : (cycle.cycle_day || '?')}</span>
         </div>
-        <h2 className="mt-6 text-2xl font-script" style={{ color: config.color }}>
+        <h2 className="mt-5 text-2xl font-script" style={{ color: config.color }}>
           {config.name}
         </h2>
-        <p className="text-[#b8b8d1] text-sm mt-1">
-          {periodIsLate
-            ? `Expected ${cycle.cycle_length}-day cycle`
-            : cycle.days_until_period > 0
-              ? `${cycle.days_until_period} days until next period`
-              : ''
-          }
+        <p className="text-[#E6E0EE] text-sm mt-1">
+          {phase === 'unknown'
+            ? 'Tap Calendar and log the day your period starts.'
+            : periodIsLate
+              ? `Expected ${cycle.cycle_length}-day cycle`
+              : cycle.days_until_period > 0
+                ? `${cycle.days_until_period} days until next period`
+                : ''}
         </p>
       </div>
 
-      {/* Floating quick-log carousel */}
+      {/* One line for today */}
+      {mood.mood && phase !== 'unknown' && (
+        <p className="text-center text-white text-base mb-6 px-2" data-testid="today-one-line">
+          <span style={{ color: config.color }}>Today: {mood.mood}.</span>{' '}
+          <span className="text-[#E6E0EE]">{(mood.emotional_state || '').split('. ')[0].replace(/\.$/, '')}.</span>
+        </p>
+      )}
+
+      {/* Quick log: static row of five buttons */}
       <FloatingCarousel token={token} />
 
-      {/* Mood Card: highlighted and outlined in pink (fix list, Oct 16) */}
-      <div
-        className="card card-pink p-5 mb-4"
-        style={{ border: '2px solid #FF1493', boxShadow: '0 0 24px rgba(255,20,147,0.35)' }}
-      >
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-1">TODAY&apos;S MOOD</p>
-            <h3 className="text-white text-xl font-script">{mood.mood || 'Unknown'}</h3>
-          </div>
-        </div>
-        <p className="text-[#b8b8d1] text-sm leading-relaxed">{mood.emotional_state}</p>
-        {mood.relationship_advice && (
-          <p className="text-[#ff8fab] text-xs mt-3 pt-3 border-t border-white/10">
-            {mood.relationship_advice}
-          </p>
-        )}
+      {/* Card to the full Daily Read */}
+      <div className="mb-4">
+        <DailyRead />
       </div>
 
+      <button
+        type="button"
+        onClick={() => setShowMore(!showMore)}
+        className="w-full py-3 mb-4 rounded-full border border-white/15 text-white text-sm"
+        data-testid="home-see-more"
+        aria-expanded={showMore}
+      >
+        {showMore ? 'Show less' : 'See more: phases, food, tips'}
+      </button>
+
+      {showMore && (
+      <>
       {/* This Time Last Cycle: her own record of this same cycle day, one
           cycle ago. This is where she reads how she felt then. */}
       {lastCycle && (
         <div className="card p-5 mb-4" data-testid="this-time-last-cycle">
-          <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-1">This Time Last Cycle</p>
+          <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-1">This Time Last Cycle</p>
           <p className="text-[#ff8fab] text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
             {lastCycle.dateLabel} · Cycle day {lastCycle.cycleDay}
           </p>
@@ -295,71 +305,36 @@ export default function HomePage() {
               Nothing logged on this day last cycle yet. What you log today is what you will find waiting here next cycle.
             </p>
           )}
-          <p className="text-[#6c6c8a] text-xs mt-3 pt-3 border-t border-white/10">
+          <p className="text-[#B4B0C8] text-xs mt-3 pt-3 border-t border-white/10">
             Every day you log lives on the Calendar. Tap any day to see it.
           </p>
         </div>
       )}
 
-      {/* Your Daily Read is FREE for everyone (Angelita's model, Oct 18,
-          2026; the backend serves it without any gate). No Pro check here. */}
-      <div className="mb-4">
-        <DailyRead />
-      </div>
-
       {/* Cycle Phases */}
       <div className="card p-5 mb-4">
-        <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-4">YOUR CYCLE PHASES</p>
+        <p className="text-[#E6E0EE] text-xs tracking-widest uppercase mb-4">Your cycle phases · tap to learn</p>
         <div className="space-y-3">
-          <button type="button" onClick={() => setOpenPhaseCard('menstrual')} className={`w-full text-left cursor-pointer active:opacity-80 transition-opacity flex items-center gap-3 p-3 rounded-xl ${phase === 'menstrual' ? 'bg-[#ff6b6b]/20 border border-[#ff6b6b]/40' : 'bg-white/5'}`}>
-            <div className="w-3 h-3 rounded-full bg-[#ff6b6b]" />
-            <div className="flex-1">
-              <p className={`text-sm font-medium ${phase === 'menstrual' ? 'text-[#ff6b6b]' : 'text-white/70'}`}>Menstrual Phase</p>
-              <p className="text-[#6c6c8a] text-xs">Days 1-5 • Rest & renewal</p>
-            </div>
-            {phase === 'menstrual' && <span className="text-[#ff6b6b] text-xs font-medium">NOW</span>}
-          </button>
-          <button type="button" onClick={() => setOpenPhaseCard('follicular')} className={`w-full text-left cursor-pointer active:opacity-80 transition-opacity flex items-center gap-3 p-3 rounded-xl ${phase === 'follicular' ? 'bg-[#74b9ff]/20 border border-[#74b9ff]/40' : 'bg-white/5'}`}>
-            <div className="w-3 h-3 rounded-full bg-[#74b9ff]" />
-            <div className="flex-1">
-              <p className={`text-sm font-medium ${phase === 'follicular' ? 'text-[#74b9ff]' : 'text-white/70'}`}>Follicular Phase</p>
-              <p className="text-[#6c6c8a] text-xs">Days 6-12 • Rising energy</p>
-            </div>
-            {phase === 'follicular' && <span className="text-[#74b9ff] text-xs font-medium">NOW</span>}
-          </button>
-          <button type="button" onClick={() => setOpenPhaseCard('ovulatory')} className={`w-full text-left cursor-pointer active:opacity-80 transition-opacity flex items-center gap-3 p-3 rounded-xl ${phase === 'ovulatory' ? 'bg-[#55efc4]/20 border border-[#55efc4]/40' : 'bg-white/5'}`}>
-            <div className="w-3 h-3 rounded-full bg-[#55efc4]" />
-            <div className="flex-1">
-              <p className={`text-sm font-medium ${phase === 'ovulatory' ? 'text-[#55efc4]' : 'text-white/70'}`}>Ovulatory Phase</p>
-              <p className="text-[#6c6c8a] text-xs">Days 13-19 • Peak confidence</p>
-            </div>
-            {phase === 'ovulatory' && <span className="text-[#55efc4] text-xs font-medium">NOW</span>}
-          </button>
-          <button type="button" onClick={() => setOpenPhaseCard('luteal')} className={`w-full text-left cursor-pointer active:opacity-80 transition-opacity flex items-center gap-3 p-3 rounded-xl ${phase === 'luteal' ? 'bg-[#a29bfe]/20 border border-[#a29bfe]/40' : 'bg-white/5'}`}>
-            <div className="w-3 h-3 rounded-full bg-[#a29bfe]" />
-            <div className="flex-1">
-              <p className={`text-sm font-medium ${phase === 'luteal' ? 'text-[#a29bfe]' : 'text-white/70'}`}>Luteal Phase</p>
-              <p className="text-[#6c6c8a] text-xs">Days 20+ • Slow down</p>
-            </div>
-            {phase === 'luteal' && <span className="text-[#a29bfe] text-xs font-medium">NOW</span>}
-          </button>
-          {/* Period Expected - shows when late */}
-          {periodIsLate && (
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-[#ff6b6b]/20 border border-[#ff6b6b]/40 animate-pulse">
-              <div className="w-3 h-3 rounded-full bg-[#ff6b6b]" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-[#ff6b6b]">Period Expected</p>
-                <p className="text-[#6c6c8a] text-xs">Waiting for your period to start</p>
-              </div>
-              <span className="text-[#ff6b6b] text-xs font-medium">WAITING</span>
-            </div>
-          )}
+          {PHASE_ROWS.map((row) => {
+            const c = PHASE_COLORS[row.id];
+            const now = phase === row.id;
+            return (
+              <button key={row.id} type="button" onClick={() => setOpenPhaseCard(row.id)} className="w-full text-left flex items-center gap-3 p-3 rounded-xl" style={now ? { background: `${c}22`, border: `1px solid ${c}88` } : { background: 'rgba(255,255,255,0.05)' }} data-testid={`phase-row-${row.id}`}>
+                <div className="w-3 h-3 rounded-full" style={{ background: c }} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium" style={{ color: now ? c : '#F7F4FA' }}>{row.name}</p>
+                  <p className="text-[#CFC8DC] text-xs">{row.days}</p>
+                </div>
+                {now && <span className="text-xs font-medium" style={{ color: c }}>NOW</span>}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Affirmation */}
       <div className="card p-5 mb-4">
-        <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-3">TODAY&apos;S AFFIRMATION</p>
+        <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-3">TODAY&apos;S AFFIRMATION</p>
         <p className="text-white text-base italic leading-relaxed">&ldquo;{data?.affirmation}&rdquo;</p>
       </div>
 
@@ -385,7 +360,7 @@ export default function HomePage() {
 
       {/* Nutrition - Eat & Avoid */}
       <div className="card p-5 mb-4">
-        <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-3">NUTRITION</p>
+        <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-3">NUTRITION</p>
         <p className="text-[#b8b8d1] text-sm mb-4">{data?.nutrition_tip}</p>
         
         {/* Eat Section */}
@@ -411,9 +386,9 @@ export default function HomePage() {
         {/* Easy recipe for today, built from today's foods (Angelita, Oct 20) */}
         {data?.recipe && (
           <div className="mt-5" style={{ borderTop: '1px solid rgba(244,167,185,0.12)', paddingTop: '16px' }} data-testid="daily-recipe">
-            <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-2">EASY RECIPE FOR TODAY</p>
+            <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-2">EASY RECIPE FOR TODAY</p>
             <p className="text-white text-sm font-medium mb-1">{data.recipe.title}</p>
-            <p className="text-[#6c6c8a] text-[11px] mb-3">About {data.recipe.minutes} minutes</p>
+            <p className="text-[#B4B0C8] text-[11px] mb-3">About {data.recipe.minutes} minutes</p>
             <div className="space-y-1.5 mb-3">
               {(data.recipe.ingredients || []).map((ing) => (
                 <p key={`ing-${ing}`} className="text-[#b8b8d1] text-xs">• {ing}</p>
@@ -430,7 +405,7 @@ export default function HomePage() {
         {/* Vitamins for today and this phase (Angelita, Oct 20) */}
         {Array.isArray(data?.vitamins) && data.vitamins.length > 0 && (
           <div className="mt-5" style={{ borderTop: '1px solid rgba(244,167,185,0.12)', paddingTop: '16px' }} data-testid="daily-vitamins">
-            <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-2">VITAMINS FOR TODAY</p>
+            <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-2">VITAMINS FOR TODAY</p>
             <div className="space-y-2">
               {data.vitamins.map((v) => (
                 <p key={`vit-${v.name}`} className="text-[#b8b8d1] text-xs leading-relaxed"><span className="text-white font-medium">{v.name}:</span> {v.why}</p>
@@ -442,10 +417,11 @@ export default function HomePage() {
 
       {/* Wellness Tip */}
       <div className="card p-5">
-        <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-3">WELLNESS TIP</p>
+        <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-3">WELLNESS TIP</p>
         <p className="text-[#b8b8d1] text-sm leading-relaxed">{data?.wellness_tip}</p>
       </div>
-
+      </>
+      )}
 
       {/* Phase card overlay — opens from a phase row, covers the whole
           screen including the bottom nav, scrolls vertically. data-no-swipe
@@ -453,7 +429,7 @@ export default function HomePage() {
       {openPhaseCard && PHASE_CARDS[openPhaseCard] && (
         <div
           className="fixed inset-0 z-[80] flex flex-col"
-          style={{ background: '#0a0a1a' }}
+          style={{ background: '#0B0B1E' }}
           data-no-swipe="true"
           data-testid="phase-card-overlay"
         >

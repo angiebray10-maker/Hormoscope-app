@@ -6,7 +6,7 @@ const LOGO_URL = "/logo192.png";
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-[#05050A] p-6 pb-24 official-doc" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+    <div className="min-h-screen bg-[#0B0B1E] p-6 pb-24 official-doc" style={{ fontFamily: "'Poppins', sans-serif" }}>
       <Link to="/profile" className="inline-flex items-center gap-2 text-[#b8b8d1] hover:text-white mb-8">
         <ChevronLeft className="w-5 h-5" />
         Back
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
         </h1>
       </div>
 
-      <div className="glass-card p-6 space-y-6 text-[#A0A0A0]">
+      <div className="glass-card p-6 space-y-6 text-[#CFC8DC]">
         <section>
           <h2 className="text-lg font-semibold text-[#F5F5F5] mb-3" >
             Your Privacy Matters
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <p className="text-[#505050] text-sm pt-4 border-t border-[#12121A]">
+        <p className="text-[#CFC8DC] text-sm pt-4 border-t border-[#12121A]">
           Last updated: December 2025
         </p>
       </div>

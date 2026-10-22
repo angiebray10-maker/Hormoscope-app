@@ -3,6 +3,11 @@ import ReactDOM from "react-dom/client";
 import "@/index.css";
 import App from "@/App";
 
+// Decorative motion is off unless she turns it on in Profile.
+if (localStorage.getItem("hormoscope-motion") === "on") {
+  document.documentElement.classList.add("hs-motion");
+}
+
 
 
 // Register Service Worker for PWA

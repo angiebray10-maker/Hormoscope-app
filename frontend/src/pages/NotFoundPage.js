@@ -23,9 +23,9 @@ export default function NotFoundPage() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-[#05050A] stars-bg flex flex-col items-center justify-center p-6 text-center">
+    <div className="min-h-screen bg-[#0B0B1E] stars-bg flex flex-col items-center justify-center p-6 text-center">
       <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#ff8fab] to-[#ffc2d1] flex items-center justify-center mb-6 gold-glow">
-        <Sparkles className="w-12 h-12 text-[#05050A]" />
+        <Sparkles className="w-12 h-12 text-[#0B0B1E]" />
       </div>
       
       <h1 className="text-6xl font-bold text-[#ff8fab] mb-4" >
@@ -36,11 +36,11 @@ export default function NotFoundPage() {
         Page Not Found
       </h2>
       
-      <p className="text-[#A0A0A0] mb-8 max-w-sm">
+      <p className="text-[#CFC8DC] mb-8 max-w-sm">
         Oops! This page seems to have wandered off during its luteal phase. Let's get you back home.
       </p>
 
-      <p className="text-[#505050] mb-6">
+      <p className="text-[#CFC8DC] mb-6">
         Redirecting in {countdown} seconds...
       </p>
 

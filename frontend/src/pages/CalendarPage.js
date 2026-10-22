@@ -189,7 +189,11 @@ export default function CalendarPage() {
   };
 
   // Check if date is in fertile/ovulation window
+  // Off for birth control / pregnancy / postpartum / menopause.
+  const fertilityOn = user?.fertility_predictions_enabled !== false;
+
   const isOvulationDay = (dateStr) => {
+    if (!fertilityOn) return false;
     const npd = getNextPeriodDate();
     if (!npd) return false;
     const nextPeriod = new Date(npd + 'T00:00:00');
@@ -200,13 +204,15 @@ export default function CalendarPage() {
 
     const fertileStart = new Date(ovulationDate);
     fertileStart.setDate(fertileStart.getDate() - 5);
+    // Fertile window = 5 days before ovulation + ovulation day (matches
+    // the Fertile Window card; previously one day longer on the grid).
     const fertileEnd = new Date(ovulationDate);
-    fertileEnd.setDate(fertileEnd.getDate() + 1);
 
     return checkDate >= fertileStart && checkDate <= fertileEnd;
   };
 
   const isPeakOvulation = (dateStr) => {
+    if (!fertilityOn) return false;
     const npd = getNextPeriodDate();
     if (!npd) return false;
     const nextPeriod = new Date(npd + 'T00:00:00');
@@ -400,7 +406,7 @@ export default function CalendarPage() {
           <h1 className="text-4xl text-[#F4D3DC] font-script">
             Calendar
           </h1>
-          <p className="text-[#9A8B91] text-xs mt-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap any calendar day to log your period, symptoms, or intimacy.</p>
+          <p className="text-[#CFC3CC] text-xs mt-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap any calendar day to log your period, symptoms, or intimacy.</p>
         </div>
         <button
           data-testid="reset-period-btn"
@@ -414,17 +420,17 @@ export default function CalendarPage() {
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <span className="flex items-center gap-1.5 text-[#9A8B91] text-xs">
+        <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs">
           <Droplet className="w-3 h-3 text-[#E85A6B]" fill="#E85A6B" /> Confirmed
         </span>
-        <span className="flex items-center gap-1.5 text-[#9A8B91] text-xs">
+        <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs">
           <span className="w-3.5 h-3.5 rounded bg-[#E85A6B]/10 border border-dashed border-[#E85A6B]/40" /> Expected
         </span>
-        <span className="flex items-center gap-1.5 text-[#9A8B91] text-xs">
+        <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs">
           <span className="w-3 h-3 rounded bg-[#5DBB8A]/30" /> Fertile (estimated)
         </span>
-        <span className="flex items-center gap-1.5 text-[#9A8B91] text-xs">
-          <Heart className="w-3 h-3" style={{ color: '#FF1493' }} fill="#FF1493" strokeWidth={2.5} /> Intimacy
+        <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs">
+          <Heart className="w-3 h-3" style={{ color: '#FF4F9A' }} fill="#FF4F9A" strokeWidth={2.5} /> Intimacy
         </span>
       </div>
 
@@ -437,7 +443,7 @@ export default function CalendarPage() {
             </div>
             <div className="flex-1">
               <p className="text-[#E85A6B] text-sm font-medium mb-2">{dashboard.cycle_info.days_late === 0 ? 'Period expected today' : `Period is ${dashboard.cycle_info.days_late} day${dashboard.cycle_info.days_late !== 1 ? 's' : ''} late`}</p>
-              <p className="text-[#9A8B91] text-xs leading-relaxed mb-3">
+              <p className="text-[#CFC3CC] text-xs leading-relaxed mb-3">
                 When your period starts, tap the <strong className="text-[#F4D3DC]">&ldquo;Reset Period&rdquo;</strong> button below to reset your cycle to Day 1.
               </p>
             </div>
@@ -471,7 +477,7 @@ export default function CalendarPage() {
         {/* Day Headers */}
         <div className="grid grid-cols-7 gap-1 mb-3">
           {DAYS.map(day => (
-            <div key={day} className="text-center text-[#9A8B91] text-xs tracking-wider py-2">
+            <div key={day} className="text-center text-[#CFC3CC] text-xs tracking-wider py-2">
               {day}
             </div>
           ))}
@@ -558,9 +564,9 @@ export default function CalendarPage() {
                 {isIntimacy && (
                   <Heart 
                     className="absolute bottom-1 right-1 w-2.5 h-2.5"
-                    style={{ color: '#FF1493' }}
+                    style={{ color: '#FF4F9A' }}
                     strokeWidth={2.5}
-                    fill="#FF1493"
+                    fill="#FF4F9A"
                   />
                 )}
                 
@@ -607,7 +613,7 @@ export default function CalendarPage() {
         )}
 
         {/* Fertile Window Card */}
-        {getNextPeriodDate() && (
+        {getNextPeriodDate() && fertilityOn && (
           <div className="bento-card p-4 hover-lift">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-8 h-8 rounded-xl bg-[#5DBB8A]/20 flex items-center justify-center">
@@ -657,7 +663,7 @@ export default function CalendarPage() {
             }`}>
               <div className="flex items-center gap-2">
                 <Droplet 
-                  className={`w-4 h-4 ${isPeriodDay(selectedDate) ? 'text-[#E85A6B]' : 'text-[#9A8B91]'}`} 
+                  className={`w-4 h-4 ${isPeriodDay(selectedDate) ? 'text-[#E85A6B]' : 'text-[#CFC3CC]'}`} 
                   fill={isPeriodDay(selectedDate) ? '#E85A6B' : 'transparent'} 
                 />
                 <span className="text-sm">Period Day</span>
@@ -692,7 +698,7 @@ export default function CalendarPage() {
             }`}>
               <div className="flex items-center gap-2">
                 <Heart 
-                  className={`w-4 h-4 ${isIntimacyDay(selectedDate) ? 'text-[#F4D3DC]' : 'text-[#9A8B91]'}`} 
+                  className={`w-4 h-4 ${isIntimacyDay(selectedDate) ? 'text-[#F4D3DC]' : 'text-[#CFC3CC]'}`} 
                   strokeWidth={2}
                 />
                 <span className="text-sm">Intimacy</span>
@@ -725,9 +731,9 @@ export default function CalendarPage() {
               const dayLogs = cycleLogs.filter(l => l.date === selectedDate && !l.is_period);
               return (
                 <div className="p-3 rounded-xl bg-white/5 border border-white/10" data-testid="day-logs">
-                  <p className="text-[#9A8B91] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Logged this day</p>
+                  <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Logged this day</p>
                   {dayLogs.length === 0 ? (
-                    <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing logged this day yet.</p>
+                    <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing logged this day yet.</p>
                   ) : (
                     <div className="space-y-2">
                       {dayLogs.map((log) => (
@@ -739,7 +745,7 @@ export default function CalendarPage() {
                             <p className="text-[#FDF8FA] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.symptoms.join(', ')}</p>
                           )}
                           {log.flow && (
-                            <p className="text-[#9A8B91] text-[11px] capitalize" style={{ fontFamily: 'Poppins, sans-serif' }}>Flow: {log.flow}</p>
+                            <p className="text-[#CFC3CC] text-[11px] capitalize" style={{ fontFamily: 'Poppins, sans-serif' }}>Flow: {log.flow}</p>
                           )}
                         </div>
                       ))}
@@ -773,7 +779,7 @@ export default function CalendarPage() {
           
           <div className="py-2">
             <div className="mb-4">
-              <label className="text-[#9A8B91] text-xs mb-2 block">When did your period start?</label>
+              <label className="text-[#CFC3CC] text-xs mb-2 block">When did your period start?</label>
               <DateSelect
                 testId="reset-date-input"
                 value={newPeriodDate}
@@ -784,7 +790,7 @@ export default function CalendarPage() {
             </div>
             
             <div className="mb-4">
-              <label className="text-[#9A8B91] text-xs mb-2 block">How long is your cycle? (days)</label>
+              <label className="text-[#CFC3CC] text-xs mb-2 block">How long is your cycle? (days)</label>
               <input
                 type="number"
                 inputMode="numeric"
@@ -800,7 +806,7 @@ export default function CalendarPage() {
             </div>
 
             <div className="mb-4">
-              <label className="text-[#9A8B91] text-xs mb-2 block">How many days does your period last?</label>
+              <label className="text-[#CFC3CC] text-xs mb-2 block">How many days does your period last?</label>
               <input
                 type="number"
                 inputMode="numeric"
@@ -813,7 +819,7 @@ export default function CalendarPage() {
                 style={{ fontSize: '16px' }}
                 data-testid="reset-period-length-input"
               />
-              <p className="text-[#9A8B91] text-[10px] mt-1.5">Defaults to 5. We&apos;ll auto-mark these days on your calendar.</p>
+              <p className="text-[#CFC3CC] text-[10px] mt-1.5">Defaults to 5. We&apos;ll auto-mark these days on your calendar.</p>
             </div>
             
             <div className="flex gap-2">
@@ -840,11 +846,11 @@ export default function CalendarPage() {
       <Dialog open={showPartnerInput} onOpenChange={setShowPartnerInput}>
         <DialogContent className="bg-[#1a1a2e] border border-white/10 text-white max-w-sm mx-auto fixed top-20 left-1/2 -translate-x-1/2" style={{ margin: 0 }}>
           <DialogHeader>
-            <DialogTitle className="text-lg text-[#FF1493]" style={{ fontFamily: "'Poiret One', cursive" }}>Partner(s)</DialogTitle>
+            <DialogTitle className="text-lg text-[#FF4F9A]" style={{ fontFamily: "'Poiret One', sans-serif" }}>Partner(s)</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
-              <label className="text-xs text-[#9A8B91] block mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              <label className="text-xs text-[#CFC3CC] block mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
                 Add partner name(s), separate with commas
               </label>
               <input
@@ -857,7 +863,7 @@ export default function CalendarPage() {
                 data-testid="partner-name-input"
                 autoFocus
               />
-              <p className="text-[10px] text-[#9A8B91] mt-1.5" style={{ fontFamily: 'Poppins, sans-serif' }}>Completely private to you.</p>
+              <p className="text-[10px] text-[#CFC3CC] mt-1.5" style={{ fontFamily: 'Poppins, sans-serif' }}>Completely private to you.</p>
             </div>
             <div className="flex gap-2">
               <button
@@ -871,7 +877,7 @@ export default function CalendarPage() {
                 onClick={handleSubmitIntimacy}
                 disabled={saving}
                 className="flex-1 py-3 rounded-full text-white text-sm font-medium disabled:opacity-50"
-                style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
+                style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
                 data-testid="submit-intimacy-btn"
               >
                 {saving ? 'Saving...' : 'Save'}

@@ -7,7 +7,7 @@ import { ChevronLeft } from 'lucide-react';
 // match what the app actually does today.
 export default function GuidePage() {
   return (
-    <div className="min-h-screen pb-32 lg:pl-80" style={{ background: '#0a0a1a' }} data-testid="guide-page">
+    <div className="min-h-screen pb-32 lg:pl-80" style={{ background: '#0B0B1E' }} data-testid="guide-page">
       <div className="w-full max-w-2xl mx-auto px-6 sm:px-10 lg:px-12 pt-6 sm:pt-10">
         <Link to="/profile" className="inline-flex items-center gap-2 text-[#a0a0b8] hover:text-white text-sm mb-8" data-testid="back-btn">
           <ChevronLeft className="w-4 h-4" />

@@ -196,9 +196,9 @@ export default function ChatPage() {
         
         <div className="overflow-y-auto h-[calc(100%-60px)] p-2">
           {loadingConvos ? (
-            <p className="text-[#6c6c8a] text-xs text-center py-4">Loading...</p>
+            <p className="text-[#B4B0C8] text-xs text-center py-4">Loading...</p>
           ) : conversations.length === 0 ? (
-            <p className="text-[#6c6c8a] text-xs text-center py-4">No conversations yet</p>
+            <p className="text-[#B4B0C8] text-xs text-center py-4">No conversations yet</p>
           ) : (
             conversations.map(conv => (
               <button
@@ -213,13 +213,13 @@ export default function ChatPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-xs truncate">{conv.preview || 'Conversation'}</p>
-                    <p className="text-[#6c6c8a] text-[10px] mt-1">
+                    <p className="text-[#B4B0C8] text-[10px] mt-1">
                       {new Date(conv.created_at).toLocaleDateString()}
                     </p>
                   </div>
                   <button
                     onClick={(e) => deleteConversation(conv.id, e)}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 text-[#6c6c8a] hover:text-red-400 transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 text-[#B4B0C8] hover:text-red-400 transition-all"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -247,7 +247,7 @@ export default function ChatPage() {
               className="w-9 h-9 rounded-full flex-shrink-0 object-cover"
             />
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg text-[#c9b8f0] truncate" style={{ fontFamily: "'Poiret One', cursive", fontWeight: 400 }}>HORMOscope</h2>
+              <h2 className="text-lg text-[#c9b8f0] truncate" style={{ fontFamily: "'Poiret One', sans-serif", fontWeight: 400 }}>HORMOscope</h2>
             </div>
           </div>
         </div>
@@ -352,7 +352,7 @@ export default function ChatPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Message..."
-              className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-sm text-white placeholder-[#6c6c8a] focus:outline-none focus:border-[#ff8fab]"
+              className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-sm text-white placeholder-[#B4B0C8] focus:outline-none focus:border-[#ff8fab]"
               disabled={loading}
             />
             

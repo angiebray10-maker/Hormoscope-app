@@ -8,10 +8,10 @@ module.exports = {
   theme: {
   	extend: {
 		fontFamily: {
-			'heading': ['"Poiret One"', 'cursive'],
+			'heading': ['"Poiret One"', 'sans-serif'],
 			'body': ['"Poppins"', 'sans-serif'],
-			'display': ['"Poiret One"', 'cursive'],
-			'script': ['"Poiret One"', 'cursive'],
+			'display': ['"Poiret One"', 'sans-serif'],
+			'script': ['"Poiret One"', 'sans-serif'],
 			'sans': ['"Poppins"', 'sans-serif'],
 		},
   		borderRadius: {

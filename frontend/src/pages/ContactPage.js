@@ -5,7 +5,7 @@ import { ChevronLeft, Mail, MessageCircle, Sparkles } from 'lucide-react';
 export default function ContactPage() {
   return (
     <div className="min-h-screen pb-32 lg:pb-8 lg:pl-72 p-6">
-      <Link to="/profile" className="inline-flex items-center gap-2 text-[#9A8B91] hover:text-[#FDF8FA] mb-8">
+      <Link to="/profile" className="inline-flex items-center gap-2 text-[#CFC3CC] hover:text-[#FDF8FA] mb-8">
         <ChevronLeft className="w-5 h-5" />
         Back
       </Link>
@@ -40,7 +40,7 @@ export default function ContactPage() {
           <h2 className="text-lg font-medium text-[#FDF8FA] mb-4">
             Get In Touch
           </h2>
-          <p className="text-[#9A8B91] mb-4 text-sm">
+          <p className="text-[#CFC3CC] mb-4 text-sm">
             Have questions, found a bug, or want to suggest a feature? Send me a message!
           </p>
           <a 
@@ -60,7 +60,7 @@ export default function ContactPage() {
           <h2 className="text-lg font-medium text-[#FDF8FA] mb-4">
             Share Your Thoughts
           </h2>
-          <p className="text-[#9A8B91] mb-4 text-sm">
+          <p className="text-[#CFC3CC] mb-4 text-sm">
             Love something? Hate something? I want to hear it all. Your feedback shapes the future of HORMOscope.
           </p>
           <a 
@@ -76,19 +76,19 @@ export default function ContactPage() {
         <div className="bento-card p-5">
           <h2 className="text-sm font-medium text-[#FDF8FA] mb-4">Quick Links</h2>
           <div className="space-y-3 text-sm">
-            <Link to="/" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
+            <Link to="/" className="block text-[#CFC3CC] hover:text-[#F4D3DC] transition-colors">
               → Home Dashboard
             </Link>
-            <Link to="/calendar" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
+            <Link to="/calendar" className="block text-[#CFC3CC] hover:text-[#F4D3DC] transition-colors">
               → Cycle Calendar
             </Link>
-            <Link to="/journal" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
+            <Link to="/journal" className="block text-[#CFC3CC] hover:text-[#F4D3DC] transition-colors">
               → Journal Companion
             </Link>
-            <Link to="/privacy" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
+            <Link to="/privacy" className="block text-[#CFC3CC] hover:text-[#F4D3DC] transition-colors">
               → Privacy Policy
             </Link>
-            <Link to="/terms" className="block text-[#9A8B91] hover:text-[#F4D3DC] transition-colors">
+            <Link to="/terms" className="block text-[#CFC3CC] hover:text-[#F4D3DC] transition-colors">
               → Terms of Service
             </Link>
           </div>

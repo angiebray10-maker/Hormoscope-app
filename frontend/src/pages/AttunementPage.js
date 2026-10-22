@@ -7,11 +7,11 @@ import axios from 'axios';
 import logger from '../utils/logger';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const GOLD = '#D4A853';
+const GOLD = '#C9B8F0';
 const PINK = '#f4a7b9';
 
 const poppins = { fontFamily: 'Poppins, sans-serif' };
-const script = { fontFamily: "'Poiret One', cursive" };
+const script = { fontFamily: "'Poiret One', sans-serif" };
 
 // Attunement Mode home (Angelita, Oct 16-17): its own tab, pictures of both
 // kinds of couples, the two invite cards, and one simple share link for
@@ -66,12 +66,12 @@ export default function AttunementPage() {
     <>
       {inviteCode && (
         <div className="rounded-2xl p-4 mb-4 text-center" style={{ border: '1px solid rgba(244,167,185,0.35)', background: 'rgba(244,167,185,0.06)' }}>
-          <p className="text-[#9A8B91] text-xs mb-2" style={poppins}>
+          <p className="text-[#CFC3CC] text-xs mb-2" style={poppins}>
             Share this code with your person. They make their own HORMOscope account, open the Attunement tab, and enter it to link with you.
           </p>
-          <button onClick={copyCode} className="w-full py-3 rounded-xl text-center" style={{ background: 'rgba(255,20,147,0.08)', border: '1px dashed rgba(255,20,147,0.4)' }}>
+          <button onClick={copyCode} className="w-full py-3 rounded-xl text-center" style={{ background: 'rgba(255,79,154,0.08)', border: '1px dashed rgba(255,79,154,0.4)' }}>
             <span className="text-white text-xl font-bold tracking-[0.3em]" style={poppins}>{inviteCode}</span>
-            <span className="flex items-center justify-center gap-1 text-[#9A8B91] text-[10px] mt-1" style={poppins}>
+            <span className="flex items-center justify-center gap-1 text-[#CFC3CC] text-[10px] mt-1" style={poppins}>
               {copied ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Tap to copy</>}
             </span>
           </button>
@@ -84,7 +84,7 @@ export default function AttunementPage() {
   );
 
   return (
-    <div className="relative min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-testid="attunement-page">
+    <div className="relative min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="attunement-page">
       {/* Couples wallpaper (Angelita, Oct 20, 2026: swapped on her
           order): the two women cover the upper part of the page, and the
           man-and-woman couple sits lower, appearing as she scrolls down.
@@ -108,8 +108,8 @@ export default function AttunementPage() {
       <div className="relative max-w-md mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-full bg-[#FF1493]/15 flex items-center justify-center mx-auto mb-4">
-            <Heart className="w-6 h-6 text-[#FF1493]" fill="#FF1493" />
+          <div className="w-14 h-14 rounded-full bg-[#FF4F9A]/15 flex items-center justify-center mx-auto mb-4">
+            <Heart className="w-6 h-6 text-[#FF4F9A]" fill="#FF4F9A" />
           </div>
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ ...poppins, color: PINK }}>Attunement Mode</p>
           <h1 className="text-3xl text-white mb-3" style={script}>Your people, in tune with you</h1>
@@ -125,10 +125,10 @@ export default function AttunementPage() {
             <p className="text-white text-base mb-1" style={poppins}>
               You are in tune with <span className="font-semibold" style={{ color: PINK }}>{status.partner_name}</span>
             </p>
-            <p className="text-[#9A8B91] text-xs mb-4" style={poppins}>
+            <p className="text-[#CFC3CC] text-xs mb-4" style={poppins}>
               They can see your cycle calendar and leave you little notes. Your journal always stays private.
             </p>
-            <Link to="/partner-hub" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ ...poppins, background: '#FF1493' }}>
+            <Link to="/partner-hub" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ ...poppins, background: '#FF4F9A' }}>
               Open your shared space
             </Link>
           </div>
@@ -145,12 +145,12 @@ export default function AttunementPage() {
                   onClick={() => handleInvite('woman')}
                   disabled={generating}
                   className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
-                  style={{ ...poppins, background: '#FF1493' }}
+                  style={{ ...poppins, background: '#FF4F9A' }}
                   data-testid="invite-her-btn"
                 >
                   {generating ? 'Making your link…' : 'Invite her'}
                 </button>
-                <p className="text-[#6c6c8a] text-[11px] mt-3 leading-relaxed" style={poppins}>
+                <p className="text-[#B4B0C8] text-[11px] mt-3 leading-relaxed" style={poppins}>
                   Today the link shares your cycle view with her. Full two-cycle syncing, where the app follows both of your cycles together, is on its way.
                 </p>
               </div>
@@ -167,7 +167,7 @@ export default function AttunementPage() {
                   onClick={() => handleInvite('man')}
                   disabled={generating}
                   className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
-                  style={{ ...poppins, background: '#FF1493' }}
+                  style={{ ...poppins, background: '#FF4F9A' }}
                   data-testid="invite-him-btn"
                 >
                   {generating ? 'Making your link…' : 'Invite him'}
@@ -175,7 +175,7 @@ export default function AttunementPage() {
               </div>
             </div>
 
-            <p className="text-center text-[#9A8B91] text-xs mb-8" style={poppins}>
+            <p className="text-center text-[#CFC3CC] text-xs mb-8" style={poppins}>
               Already have an invite code from someone?{' '}
               <Link to="/partner-hub" className="underline" style={{ color: PINK }}>Enter it here</Link>
             </p>
@@ -198,19 +198,19 @@ export default function AttunementPage() {
             onClick={() => handleInvite()}
             disabled={generating}
             className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40 mb-3"
-            style={{ ...poppins, background: '#FF1493' }}
+            style={{ ...poppins, background: '#FF4F9A' }}
             data-testid="share-cycle-btn"
           >
             {generating ? 'Making your link…' : 'Share my cycle'}
           </button>
-          <p className="text-[#6c6c8a] text-[11px] leading-relaxed" style={poppins}>
+          <p className="text-[#B4B0C8] text-[11px] leading-relaxed" style={poppins}>
             Right now HORMOscope links one person at a time, so choose the person you want closest to your cycle.
           </p>
         </div>
 
         {inviteBlock}
 
-        <p className="text-center text-[#6c6c8a] text-[10px] leading-relaxed" style={poppins}>
+        <p className="text-center text-[#B4B0C8] text-[10px] leading-relaxed" style={poppins}>
           Your journal and private entries are never shared. Your people only see what you chose to share.
         </p>
       </div>

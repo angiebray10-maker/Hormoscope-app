@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Heart, Sun, Brain, Shield, Loader2 } from 'lucide-react';
+import { PHASE_COLORS as SHARED_PHASE_COLORS } from '../lib/phases';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const PHASE_COLORS = {
-  menstrual: '#ff6b6b',
-  follicular: '#74b9ff',
-  ovulatory: '#55efc4',
-  luteal: '#a29bfe',
-  late: '#ff6b6b',
-  unknown: '#74b9ff',
-};
+const PHASE_COLORS = SHARED_PHASE_COLORS;
 
 const PHASE_NAMES = {
   menstrual: 'Menstrual Phase',
@@ -47,7 +41,7 @@ export default function PartnerViewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a1a' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0B0B1E' }}>
         <Loader2 className="w-8 h-8 text-[#c9b8f0] animate-spin" />
       </div>
     );
@@ -55,11 +49,11 @@ export default function PartnerViewPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#0a0a1a' }}>
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#0B0B1E' }}>
         <div className="text-center">
           <Heart className="w-12 h-12 text-[#f4a7b9] mx-auto mb-4" />
-          <h1 className="text-2xl text-white mb-2" style={{ fontFamily: "'Poiret One', cursive" }}>Link Not Found</h1>
-          <p className="text-[#9A8B91] text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>{error}</p>
+          <h1 className="text-2xl text-white mb-2" style={{ fontFamily: "'Poiret One', sans-serif" }}>Link Not Found</h1>
+          <p className="text-[#CFC3CC] text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>{error}</p>
         </div>
       </div>
     );
@@ -69,7 +63,7 @@ export default function PartnerViewPage() {
   const tips = data.partner_tips;
 
   return (
-    <div className="min-h-screen px-5 py-8 pb-16" style={{ background: '#0a0a1a' }} data-testid="partner-view">
+    <div className="min-h-screen px-5 py-8 pb-16" style={{ background: '#0B0B1E' }} data-testid="partner-view">
       <div className="max-w-md mx-auto">
 
         {/* Header */}
@@ -77,10 +71,10 @@ export default function PartnerViewPage() {
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>
             Attunement Mode
           </p>
-          <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', cursive" }}>
+          <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>
             {data.name}'s Cycle
           </h1>
-          <p className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Updated in real time
           </p>
         </div>
@@ -91,7 +85,7 @@ export default function PartnerViewPage() {
             <span className="text-white/70 text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif' }}>Day</span>
             <span className="text-5xl font-bold text-white">{data.cycle_day}</span>
           </div>
-          <h2 className="mt-4 text-xl" style={{ fontFamily: "'Poiret One', cursive", color: phaseColor }}>
+          <h2 className="mt-4 text-xl" style={{ fontFamily: "'Poiret One', sans-serif", color: phaseColor }}>
             {PHASE_NAMES[data.phase]}
           </h2>
         </div>
@@ -106,7 +100,7 @@ export default function PartnerViewPage() {
           <div className="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03]">
             <div className="flex items-center gap-2 mb-2">
               <Sun className="w-4 h-4 text-[#f4a7b9]" />
-              <span className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Energy</span>
+              <span className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Energy</span>
             </div>
             <p className="text-white text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>{data.energy}</p>
             <div className="h-1.5 rounded-full bg-white/[0.06] mt-2 overflow-hidden">
@@ -116,7 +110,7 @@ export default function PartnerViewPage() {
           <div className="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03]">
             <div className="flex items-center gap-2 mb-2">
               <Brain className="w-4 h-4 text-[#c9b8f0]" />
-              <span className="text-[#9A8B91] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Mood</span>
+              <span className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Mood</span>
             </div>
             <p className="text-white text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>{data.mood}</p>
             <div className="h-1.5 rounded-full bg-white/[0.06] mt-2 overflow-hidden">
@@ -153,12 +147,12 @@ export default function PartnerViewPage() {
 
         {/* Footer */}
         <div className="text-center mt-8">
-          <p className="text-[#6c6c8a] text-[10px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <p className="text-[#B4B0C8] text-[10px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Powered by HORMOscope. Based on typical cycle patterns. Not medical advice.
           </p>
           <div className="flex items-center justify-center gap-1.5 mt-2">
-            <Shield className="w-3 h-3 text-[#6c6c8a]" />
-            <span className="text-[#6c6c8a] text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Her data stays private. You only see what she chose to share.</span>
+            <Shield className="w-3 h-3 text-[#B4B0C8]" />
+            <span className="text-[#B4B0C8] text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Her data stays private. You only see what she chose to share.</span>
           </div>
         </div>
       </div>

@@ -7,7 +7,7 @@ export default function FoundersNotePage() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen pb-32 lg:pl-80" style={{ background: '#0a0a1a' }} data-testid="founders-note-page">
+    <div className="min-h-screen pb-32 lg:pl-80" style={{ background: '#0B0B1E' }} data-testid="founders-note-page">
       <div className="w-full max-w-2xl mx-auto px-6 sm:px-10 lg:px-12 pt-6 sm:pt-10">
         <Link to="/profile" className="inline-flex items-center gap-2 text-[#a0a0b8] hover:text-white text-sm mb-8" data-testid="back-btn">
           <ChevronLeft className="w-4 h-4" />
@@ -49,7 +49,7 @@ export default function FoundersNotePage() {
             <img 
               src="/images/founder.jpg"
               alt="Angelita Braaten"
-              className="w-14 h-14 rounded-full object-cover border-2 border-[#D4A853]/40 shadow-[0_0_20px_rgba(212,168,83,0.25)]"
+              className="w-14 h-14 rounded-full object-cover border-2 border-[#C9B8F0]/40 shadow-[0_0_20px_rgba(201,184,240,0.25)]"
               data-testid="founder-photo"
             />
             <div>

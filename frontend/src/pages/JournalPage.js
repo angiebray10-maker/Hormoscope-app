@@ -7,7 +7,7 @@ import logger from '../utils/logger';
 import { purchaseCompanion, restoreCompanion } from '../utils/revenueCat';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const GOLD = '#D4A853';
+const GOLD = '#C9B8F0';
 const JOURNAL_PREVIEW_IMG = '/pro-screenshots/journal.png';
 // Classy, easy-to-read serif for the journal itself (Angelita, Oct 17:
 // no more cursive). System serif stack, so it renders the same offline
@@ -86,11 +86,11 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="rounded-xl p-2.5 w-56" style={{ background: 'rgba(20,15,30,0.97)', border: '1px solid rgba(255,20,147,0.2)', backdropFilter: 'blur(20px)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+    <div className="rounded-xl p-2.5 w-56" style={{ background: 'rgba(20,15,30,0.97)', border: '1px solid rgba(255,79,154,0.2)', backdropFilter: 'blur(20px)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
       <div className="flex items-center justify-between mb-1.5">
-        <button onClick={() => setCurrentMonth(new Date(y, m-1))} className="p-0.5 text-white/40"><ChevronLeft className="w-3 h-3" /></button>
-        <span className="text-[9px] text-white/60" style={{ fontFamily: 'Poppins, sans-serif' }}>{currentMonth.toLocaleDateString('en-US',{month:'short',year:'numeric'})}</span>
-        <button onClick={() => setCurrentMonth(new Date(y, m+1))} className="p-0.5 text-white/40"><ChevronRight className="w-3 h-3" /></button>
+        <button onClick={() => setCurrentMonth(new Date(y, m-1))} className="p-0.5 text-white/70"><ChevronLeft className="w-3 h-3" /></button>
+        <span className="text-[9px] text-white/80" style={{ fontFamily: 'Poppins, sans-serif' }}>{currentMonth.toLocaleDateString('en-US',{month:'short',year:'numeric'})}</span>
+        <button onClick={() => setCurrentMonth(new Date(y, m+1))} className="p-0.5 text-white/70"><ChevronRight className="w-3 h-3" /></button>
       </div>
       <div className="grid grid-cols-7 gap-px">
         {['S','M','T','W','T','F','S'].map((d, i) => <span key={`dow-${i}-${d}`} className="text-[7px] text-center text-white/25" style={{fontFamily:'Poppins,sans-serif'}}>{d}</span>)}
@@ -102,9 +102,9 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
           return (
             <button key={day} onClick={() => { onSelectDate(ds); onClose(); }}
               className="relative w-6 h-6 flex items-center justify-center rounded text-[8px]"
-              style={{ background: sel?'#FF1493':isPeriod(day)?'rgba(232,90,107,0.25)':pk?'rgba(93,187,138,0.4)':ov?'rgba(93,187,138,0.22)':td?'rgba(255,255,255,0.08)':'transparent', color: sel?'#fff':ov?'#7ED3A6':td?'#fff':'#9A8B91', fontFamily:'Poppins,sans-serif' }}>
+              style={{ background: sel?'#FF4F9A':isPeriod(day)?'rgba(232,90,107,0.25)':pk?'rgba(93,187,138,0.4)':ov?'rgba(93,187,138,0.22)':td?'rgba(255,255,255,0.08)':'transparent', color: sel?'#fff':ov?'#7ED3A6':td?'#fff':'#CFC3CC', fontFamily:'Poppins,sans-serif' }}>
               {day}
-              {isIntimacy(day) && <Heart className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5" style={{color:'#FF1493'}} fill="#FF1493" />}
+              {isIntimacy(day) && <Heart className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5" style={{color:'#FF4F9A'}} fill="#FF4F9A" />}
             </button>
           );
         })}
@@ -586,13 +586,13 @@ export default function JournalPage() {
   const fmtTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
   if (loading && !loadTimedOut && !loadError) return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }}>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }}>
       <div className="max-w-2xl mx-auto px-5 pt-6">
         <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Yours only</p>
-        <h1 className="text-3xl text-white mb-10" style={{ fontFamily: "'Poiret One', cursive" }}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
+        <h1 className="text-3xl text-white mb-10" style={{ fontFamily: "'Poiret One', sans-serif" }}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
         <div className="flex flex-col items-center pt-10">
           <div className="cycle-orb orb-follicular w-12 h-12 mb-4" />
-          <p className="text-white/60 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening your journal...</p>
+          <p className="text-white/80 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening your journal...</p>
           <p className="text-white/30 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Your words and your companion live here.</p>
         </div>
       </div>
@@ -602,11 +602,11 @@ export default function JournalPage() {
   if (loadTimedOut || loadError) return (
     <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
       <p className="text-white/80 text-sm mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Couldn&apos;t load your journal.</p>
-      <p className="text-white/40 text-xs mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>The server might be waking up. Try again in a moment.</p>
+      <p className="text-white/70 text-xs mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>The server might be waking up. Try again in a moment.</p>
       <button
         onClick={handleRetry}
         className="px-6 py-3 rounded-full text-white text-sm font-medium"
-        style={{ background: '#FF1493', fontFamily: 'Poppins, sans-serif' }}
+        style={{ background: '#FF4F9A', fontFamily: 'Poppins, sans-serif' }}
       >
         Try Again
       </button>
@@ -627,7 +627,7 @@ export default function JournalPage() {
     && (companionLocked || !!companion.needs_subscription || companion.free_remaining === 0);
 
   return (
-    <div className="min-h-screen pb-40 lg:ml-64" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-testid="journal-page">
+    <div className="min-h-screen pb-40 lg:ml-64" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="journal-page">
       {/* Decorative flowers */}
       <div className="absolute top-0 left-0 w-full h-64 pointer-events-none overflow-hidden opacity-20">
         <div className="absolute top-4 left-4 text-2xl" style={{ color: '#f4a7b9' }}>✿</div>
@@ -642,10 +642,10 @@ export default function JournalPage() {
         <div className="flex items-start justify-between mb-1">
           <div>
             <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Yours only</p>
-            <h1 className="text-3xl text-white" style={{ fontFamily: "'Poiret One', cursive" }}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
+            <h1 className="text-3xl text-white" style={{ fontFamily: "'Poiret One', sans-serif" }}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={openVault} className="flex items-center gap-1.5 h-8 px-3 rounded-full" style={{ border: `1px solid rgba(212,168,83,0.4)`, background: 'rgba(212,168,83,0.08)' }} data-testid="journal-vault-btn" aria-label="Open your vault">
+            <button onClick={openVault} className="flex items-center gap-1.5 h-8 px-3 rounded-full" style={{ border: `1px solid rgba(201,184,240,0.4)`, background: 'rgba(201,184,240,0.08)' }} data-testid="journal-vault-btn" aria-label="Open your vault">
               <Lock className="w-3.5 h-3.5" style={{ color: GOLD }} />
               <span className="text-[10px] whitespace-nowrap" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>{firstName ? `${firstName}'s Vault` : 'Your Vault'}</span>
             </button>
@@ -655,8 +655,8 @@ export default function JournalPage() {
               </button>
             )}
             {!writing && (
-              <button onClick={handleNewEntryClick} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(255,20,147,0.3)', background: 'rgba(255,20,147,0.1)' }} data-testid="new-entry-btn">
-                <Plus className="w-4 h-4" style={{ color: '#FF1493' }} />
+              <button onClick={handleNewEntryClick} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(255,79,154,0.3)', background: 'rgba(255,79,154,0.1)' }} data-testid="new-entry-btn">
+                <Plus className="w-4 h-4" style={{ color: '#FF4F9A' }} />
               </button>
             )}
             <button onClick={() => setShowCal(!showCal)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(201,184,240,0.3)', background: showCal ? 'rgba(201,184,240,0.15)' : 'rgba(201,184,240,0.05)' }} data-testid="toggle-calendar-btn">
@@ -671,9 +671,9 @@ export default function JournalPage() {
         </button>
 
         <div className="flex items-center justify-center gap-3 mt-1 mb-5" aria-hidden="true">
-          <span style={{ height: '1px', width: '52px', background: 'linear-gradient(90deg, transparent, rgba(212,168,83,0.5))' }} />
-          <span style={{ color: 'rgba(212,168,83,0.65)', fontSize: '11px' }}>✿</span>
-          <span style={{ height: '1px', width: '52px', background: 'linear-gradient(90deg, rgba(212,168,83,0.5), transparent)' }} />
+          <span style={{ height: '1px', width: '52px', background: 'linear-gradient(90deg, transparent, rgba(201,184,240,0.5))' }} />
+          <span style={{ color: 'rgba(201,184,240,0.65)', fontSize: '11px' }}>✿</span>
+          <span style={{ height: '1px', width: '52px', background: 'linear-gradient(90deg, rgba(201,184,240,0.5), transparent)' }} />
         </div>
 
         {/* Companion settings: her name for it, and the off switch.
@@ -681,15 +681,15 @@ export default function JournalPage() {
             companion is off, so she can always bring it back. */}
         {companionSettingsOpen && !companionUnavailable && (
           <div className="rounded-xl p-4 mb-4" style={{ border: '1px solid rgba(244,167,185,0.3)', background: 'rgba(244,167,185,0.05)' }} data-testid="companion-settings">
-            <p className="text-sm text-white mb-1" style={{ fontFamily: "'Poiret One', cursive", fontSize: '17px' }}>Your journal companion</p>
+            <p className="text-sm text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '17px' }}>Your journal companion</p>
             {companion ? (
               <>
-                <p className="text-xs leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }}>
+                <p className="text-xs leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }}>
                   Your journal can talk back to you, in a companion who knows your cycle and keeps what you share
                   inside these pages only. Name your companion anything you like, or turn it off and this book is
                   just you and your own words.
                 </p>
-                <p className="text-[10px] tracking-widest uppercase mb-1.5" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>Companion&apos;s name</p>
+                <p className="text-[10px] tracking-widest uppercase mb-1.5" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>Companion&apos;s name</p>
                 <div className="flex gap-2 mb-4">
                   <input
                     type="text" value={companionNameDraft} onChange={(e) => setCompanionNameDraft(e.target.value)}
@@ -700,7 +700,7 @@ export default function JournalPage() {
                   />
                   <button onClick={handleRenameCompanion} disabled={companionSaving || !companionNameDraft.trim()}
                     className="px-4 py-2.5 rounded-full text-white text-xs font-medium disabled:opacity-40"
-                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
+                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
                     data-testid="companion-name-save">
                     {companionSaving ? 'Saving...' : 'Save name'}
                   </button>
@@ -715,7 +715,7 @@ export default function JournalPage() {
                       fontFamily: 'Poppins, sans-serif',
                       color: companion.enabled ? '#f4a7b9' : '#fff',
                       border: companion.enabled ? '1px solid rgba(244,167,185,0.4)' : 'none',
-                      background: companion.enabled ? 'transparent' : '#FF1493'
+                      background: companion.enabled ? 'transparent' : '#FF4F9A'
                     }}
                     data-testid="companion-toggle">
                     {companion.enabled ? 'Turn off' : 'Turn on'}
@@ -726,7 +726,7 @@ export default function JournalPage() {
                 )}
               </>
             ) : (
-              <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.45)' }}>
+              <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }}>
                 Your companion settings could not be reached just now. The server may be waking up, close this and try again in a moment.
               </p>
             )}
@@ -743,7 +743,7 @@ export default function JournalPage() {
 
         {/* Writing Area */}
         {writing && (
-          <div className="rounded-2xl mb-5 overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.2)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,20,147,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35)' }} data-testid="journal-editor">
+          <div className="rounded-2xl mb-5 overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.2)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35)' }} data-testid="journal-editor">
             {/* No ruled-line background: it started at the top of the box
                 while the text starts lower, so the words never sat on the
                 lines. Clean, even line spacing instead (28px), which
@@ -753,7 +753,7 @@ export default function JournalPage() {
                 type="text" value={currentTitle} onChange={(e) => setCurrentTitle(e.target.value)}
                 placeholder="Title..."
                 className="w-full bg-transparent border-none text-white text-sm mb-3 placeholder-white/20 outline-none"
-                style={{ fontFamily: "'Poiret One', cursive", fontSize: '18px', borderBottom: '1px solid rgba(244,167,185,0.14)', paddingBottom: '8px' }}
+                style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '18px', borderBottom: '1px solid rgba(244,167,185,0.14)', paddingBottom: '8px' }}
                 data-testid="journal-title-input"
               />
               <textarea
@@ -777,18 +777,18 @@ export default function JournalPage() {
                 className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
                 style={{
                   border: isIntimate ? `1px solid ${GOLD}` : '1px solid rgba(255,255,255,0.12)',
-                  background: isIntimate ? 'rgba(212,168,83,0.12)' : 'transparent'
+                  background: isIntimate ? 'rgba(201,184,240,0.12)' : 'transparent'
                 }}
                 data-testid="intimate-toggle">
                 <Lock className="w-4 h-4" style={{ color: isIntimate ? GOLD : 'rgba(255,255,255,0.35)' }} />
               </button>
               <button onClick={() => { setWriting(false); setCurrentEntry(''); setCurrentTitle(''); setIsIntimate(false); setEditingId(null); }}
-                className="flex-1 py-2 rounded-full text-white/50 text-xs" style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.08)' }}>
+                className="flex-1 py-2 rounded-full text-white/75 text-xs" style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.08)' }}>
                 Cancel
               </button>
               <button onClick={handleSave} disabled={saving || !currentEntry.trim()}
                 className="flex-1 py-2 rounded-full text-white text-xs font-medium disabled:opacity-40"
-                style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
+                style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
                 data-testid="save-entry-btn">
                 {saving ? 'Saving...' : (editingId ? 'Save changes' : 'Save')}
               </button>
@@ -802,7 +802,7 @@ export default function JournalPage() {
         )}
         {entries.length === 0 && !writing ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, rgba(255,20,147,0.14) 0%, rgba(255,20,147,0.03) 70%)', border: '1px solid rgba(244,167,185,0.18)' }}>
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, rgba(255,79,154,0.14) 0%, rgba(255,79,154,0.03) 70%)', border: '1px solid rgba(244,167,185,0.18)' }}>
               <p className="text-2xl" style={{ color: 'rgba(244,167,185,0.55)' }}>✿</p>
             </div>
             <p className="text-white/45 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing written yet today</p>
@@ -815,27 +815,27 @@ export default function JournalPage() {
               return (
                 <>
                   <div className="flex items-end justify-between mb-2 px-1">
-                    <p style={{ fontFamily: "'Poiret One', cursive", fontSize: '17px', color: '#F4D3DC', borderBottom: '1px solid rgba(212,168,83,0.35)', paddingBottom: '3px' }}>{fmtDayLong(page.date)}</p>
-                    <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>
+                    <p style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '17px', color: '#F4D3DC', borderBottom: '1px solid rgba(201,184,240,0.35)', paddingBottom: '3px' }}>{fmtDayLong(page.date)}</p>
+                    <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>
                       Page {Math.min(pageIndex, pages.length - 1) + 1} of {pages.length}
                     </p>
                   </div>
                   <div className="rounded-2xl overflow-hidden"
-                    style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: '3px solid rgba(255,20,147,0.5)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,20,147,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
+                    style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: '3px solid rgba(255,79,154,0.5)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
                     {page.entries.map((entry, i) => (
                       <div key={entry.id} className="p-4"
                         style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}}
                         data-testid={`journal-entry-${entry.id}`}>
                         <div className="flex items-start justify-between mb-1">
                           <div>
-                            <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>{entry.title}</h3>
+                            <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', sans-serif" }}>{entry.title}</h3>
                             <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtTime(entry.created_at)}</p>
                           </div>
                           <div className="flex items-center gap-1">
                             <button onClick={() => handleEditEntry(entry)}
                               title="Edit this entry"
                               className="p-1" data-testid={`edit-entry-${entry.id}`}>
-                              <Pencil className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.35)' }} />
+                              <Pencil className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.78)' }} />
                             </button>
                             <button onClick={() => handleToggleIntimate(entry)}
                               title={entry.is_intimate ? 'Intimate — her eyes only' : 'Mark as intimate'}
@@ -870,7 +870,7 @@ export default function JournalPage() {
                       onClick={() => setPageIndex(Math.max(pageIndex - 1, 0))}
                       disabled={pageIndex <= 0}
                       className="flex items-center gap-1 px-4 py-2 rounded-full text-xs disabled:opacity-30"
-                      style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,20,147,0.3)', color: '#f4a7b9', background: 'rgba(255,20,147,0.06)' }}
+                      style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,79,154,0.3)', color: '#f4a7b9', background: 'rgba(255,79,154,0.06)' }}
                       data-testid="journal-newer-page-btn">
                       Newer day <ChevronRight className="w-4 h-4" />
                     </button>
@@ -894,17 +894,17 @@ export default function JournalPage() {
             <div data-testid="companion-hero-image">
               <img src="/images/journal-companion-life-stages.jpg" alt="Journal Companion: a woman's life, from baby to elder, with the HORMOscope wordmark"
                 className="w-full block" style={{ height: 'auto', objectFit: 'contain' }} />
-              <p className="text-center text-xs pt-2 pb-1" style={{ fontFamily: "'Poiret One', cursive", color: GOLD }}>Your Journey&apos;s Companion.</p>
+              <p className="text-center text-xs pt-2 pb-1" style={{ fontFamily: "'Poiret One', sans-serif", color: GOLD }}>Your Journey&apos;s Companion.</p>
             </div>
             <div className="px-4 pt-4 pb-1">
               <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Journal Companion</p>
-              <p className="text-[11px] mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.5)' }}>Your Journey&apos;s Companion.</p>
+              <p className="text-[11px] mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }}>Your Journey&apos;s Companion.</p>
               <div className="flex items-center gap-2">
-                <Heart className="w-4 h-4" style={{ color: '#FF1493' }} fill="#FF1493" />
-                <h2 className="text-white text-base" style={{ fontFamily: "'Poiret One', cursive", fontSize: '18px' }}>{companion.name} is here with you</h2>
+                <Heart className="w-4 h-4" style={{ color: '#FF4F9A' }} fill="#FF4F9A" />
+                <h2 className="text-white text-base" style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '18px' }}>{companion.name} is here with you</h2>
               </div>
             </div>
-            <p className="px-4 pb-3 text-[11px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.45)' }}>
+            <p className="px-4 pb-3 text-[11px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }}>
               Write to {companion.name} here. {companion.name} knows where you are in your cycle and what today has
               held, and answers you inside these pages only. Your partner never sees this. To write a reply, your message and your cycle context are sent to our AI provider (Anthropic); they are not used to train AI models and are never sold.
             </p>
@@ -912,13 +912,13 @@ export default function JournalPage() {
               <div className="px-4 pb-2">
                 {companionExchanges.map((ex) => (
                   <div key={ex.id} className="mb-4">
-                    <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>
+                    <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>
                       You{ex.created_at ? ` · ${fmtTime(ex.created_at)}` : ''}
                     </p>
                     <p className="text-white/85 whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px' }}>{ex.user_message}</p>
                     <div className="rounded-lg px-3 py-2.5 mt-2" style={{ background: 'rgba(244,167,185,0.08)', border: '1px solid rgba(244,167,185,0.15)' }}>
                       <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>{ex.companion_name || companion.name}</p>
-                      <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: "'Times New Roman', Times, serif", fontStyle: 'italic', fontSize: '16px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
+                      <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: "'Poppins', sans-serif", fontStyle: 'italic', fontSize: '16px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
                     </div>
                   </div>
                 ))}
@@ -935,20 +935,20 @@ export default function JournalPage() {
             )}
             {showOffer && companionNeedsSub && (
               <div className="px-4 pb-4" data-testid="companion-offer">
-                <div className="rounded-xl p-4 text-center" style={{ border: '1px solid rgba(212,168,83,0.4)', background: 'rgba(212,168,83,0.06)' }}>
-                  <p className="text-white text-base mb-1" style={{ fontFamily: "'Poiret One', cursive", fontSize: '19px' }}>Journal Companion</p>
+                <div className="rounded-xl p-4 text-center" style={{ border: '1px solid rgba(201,184,240,0.4)', background: 'rgba(201,184,240,0.06)' }}>
+                  <p className="text-white text-base mb-1" style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '19px' }}>Journal Companion</p>
                   <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>Your Journey&apos;s Companion.</p>
                   <p className="text-xs leading-relaxed mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
                     To keep writing together, with {companion.name} knowing your cycle and meeting you on
                     the page each day, continue with Journal Companion.
                   </p>
-                  <p className="text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }} data-testid="companion-offer-price">
+                  <p className="text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }} data-testid="companion-offer-price">
                     {companion.price_monthly || '$9.99'}/month after a {companion.trial_days || 7}-day free trial, or {companion.price_yearly || '$59.99'}/year, through Google Play. Cancel anytime. Your 3 free messages also come back tomorrow.
                   </p>
-                  <button onClick={handleSubscribe} disabled={!!subBusy} className="block w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }} data-testid="companion-subscribe-btn">
+                  <button onClick={handleSubscribe} disabled={!!subBusy} className="block w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }} data-testid="companion-subscribe-btn">
                     {subBusy === 'buy' ? 'Opening Google Play...' : 'Subscribe'}
                   </button>
-                  <button onClick={handleRestore} disabled={!!subBusy} className="block w-full mt-2 py-2 text-center text-xs disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }} data-testid="companion-restore-btn">
+                  <button onClick={handleRestore} disabled={!!subBusy} className="block w-full mt-2 py-2 text-center text-xs disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }} data-testid="companion-restore-btn">
                     {subBusy === 'restore' ? 'Restoring...' : 'Restore Purchase'}
                   </button>
                   {subMsg && (
@@ -971,7 +971,7 @@ export default function JournalPage() {
                   />
                   <button onClick={handleSendToCompanion} disabled={companionBusy || !companionInput.trim()}
                     className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40"
-                    style={{ background: '#FF1493' }}
+                    style={{ background: '#FF4F9A' }}
                     data-testid="companion-send" aria-label={`Send to ${companion.name}`}>
                     <Send className="w-4 h-4 text-white" />
                   </button>
@@ -988,11 +988,11 @@ export default function JournalPage() {
           Full-screen like the phase cards, above the bottom nav, and
           data-no-swipe keeps the tab-swipe handler out while it is open. */}
       {vaultOpen && (
-        <div className="fixed inset-0 z-[80] flex flex-col" style={{ background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1a 30%, #0a0a1a 100%)' }} data-no-swipe="true" data-testid="journal-vault">
+        <div className="fixed inset-0 z-[80] flex flex-col" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-no-swipe="true" data-testid="journal-vault">
           <div className="flex items-center justify-between px-5 py-4 max-w-2xl mx-auto w-full flex-shrink-0">
             <div className="flex items-center gap-2">
               <Lock className="w-5 h-5" style={{ color: GOLD }} />
-              <h2 className="text-white text-xl" style={{ fontFamily: "'Poiret One', cursive" }}>{firstName ? `${firstName}'s Vault` : 'Your Vault'}</h2>
+              <h2 className="text-white text-xl" style={{ fontFamily: "'Poiret One', sans-serif" }}>{firstName ? `${firstName}'s Vault` : 'Your Vault'}</h2>
             </div>
             <button onClick={closeVault} aria-label="Close vault" className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white active:opacity-70">
               <X className="w-5 h-5" />
@@ -1009,8 +1009,8 @@ export default function JournalPage() {
                 <div data-testid="vault-unlocked">
                   {vaultDays.length === 0 ? (
                     <div className="text-center py-16">
-                      <p className="text-3xl mb-3" style={{ color: 'rgba(212,168,83,0.25)' }}>✿</p>
-                      <p className="text-white/40 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing sealed yet.</p>
+                      <p className="text-3xl mb-3" style={{ color: 'rgba(201,184,240,0.25)' }}>✿</p>
+                      <p className="text-white/70 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing sealed yet.</p>
                       <p className="text-white/25 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>When today ends, it will be waiting here for you tomorrow.</p>
                     </div>
                   ) : (
@@ -1021,14 +1021,14 @@ export default function JournalPage() {
                           <>
                             <div className="flex items-end justify-between mb-2 px-1">
                               <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: '#F4D3DC' }}>{fmtDayLong(day.date)}</p>
-                              <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>
+                              <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>
                                 Sealed day {Math.min(vaultPage, vaultDays.length - 1) + 1} of {vaultDays.length}
                               </p>
                             </div>
-                            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: `3px solid ${GOLD}`, background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,20,147,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
+                            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: `3px solid ${GOLD}`, background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
                               {day.entries.map((entry, i) => (
                                 <div key={entry.id} className="p-4" style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`vault-entry-${entry.id}`}>
-                                  <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', cursive" }}>{entry.title}</h3>
+                                  <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', sans-serif" }}>{entry.title}</h3>
                                   <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtTime(entry.created_at)}</p>
                                   {entry.is_intimate && (
                                     <p className="text-[10px] tracking-widest uppercase mt-1" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>
@@ -1040,7 +1040,7 @@ export default function JournalPage() {
                               ))}
                               {day.logs.length > 0 && (
                                 <div className="p-4" style={day.entries.length > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}}>
-                                  <p className="text-[#9A8B91] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Logged this day</p>
+                                  <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Logged this day</p>
                                   <div className="space-y-2">
                                     {day.logs.map((log) => (
                                       <div key={log.id}>
@@ -1051,7 +1051,7 @@ export default function JournalPage() {
                                           <p className="text-[#FDF8FA] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.symptoms.join(', ')}</p>
                                         )}
                                         {log.flow && (
-                                          <p className="text-[#9A8B91] text-[11px] capitalize" style={{ fontFamily: 'Poppins, sans-serif' }}>Flow: {log.flow}</p>
+                                          <p className="text-[#CFC3CC] text-[11px] capitalize" style={{ fontFamily: 'Poppins, sans-serif' }}>Flow: {log.flow}</p>
                                         )}
                                       </div>
                                     ))}
@@ -1060,18 +1060,18 @@ export default function JournalPage() {
                               )}
                               {day.companion?.length > 0 && (
                                 <div className="p-4" style={(day.entries.length > 0 || day.logs.length > 0) ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`vault-companion-${day.date}`}>
-                                  <p className="text-[#9A8B91] text-[10px] tracking-widest uppercase mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                                  <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
                                     With {day.companion[0].companion_name || 'your companion'}
                                   </p>
                                   {day.companion.map((ex) => (
                                     <div key={ex.id} className="mb-4">
-                                      <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>
+                                      <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>
                                         You{ex.created_at ? ` · ${fmtTime(ex.created_at)}` : ''}
                                       </p>
                                       <p className="text-white/85 whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px' }}>{ex.user_message}</p>
                                       <div className="rounded-lg px-3 py-2.5 mt-2" style={{ background: 'rgba(244,167,185,0.08)', border: '1px solid rgba(244,167,185,0.15)' }}>
                                         <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>{ex.companion_name}</p>
-                                        <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: "'Times New Roman', Times, serif", fontStyle: 'italic', fontSize: '16px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
+                                        <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: "'Poppins', sans-serif", fontStyle: 'italic', fontSize: '16px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
                                       </div>
                                     </div>
                                   ))}
@@ -1091,7 +1091,7 @@ export default function JournalPage() {
                                 onClick={() => setVaultPage(Math.max(vaultPage - 1, 0))}
                                 disabled={vaultPage <= 0}
                                 className="flex items-center gap-1 px-4 py-2 rounded-full text-xs disabled:opacity-30"
-                                style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,20,147,0.3)', color: '#f4a7b9', background: 'rgba(255,20,147,0.06)' }}
+                                style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,79,154,0.3)', color: '#f4a7b9', background: 'rgba(255,79,154,0.06)' }}
                                 data-testid="vault-newer-btn">
                                 Newer day <ChevronRight className="w-4 h-4" />
                               </button>
@@ -1105,7 +1105,7 @@ export default function JournalPage() {
                   {/* Change the vault password, from inside the vault */}
                   <div className="mt-8 pt-5" style={{ borderTop: '1px solid rgba(201,184,240,0.12)' }}>
                     {!showChangePw ? (
-                      <button onClick={() => setShowChangePw(true)} className="text-xs underline" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }} data-testid="vault-change-toggle">
+                      <button onClick={() => setShowChangePw(true)} className="text-xs underline" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }} data-testid="vault-change-toggle">
                         Change vault password
                       </button>
                     ) : (
@@ -1127,12 +1127,12 @@ export default function JournalPage() {
                         )}
                         <div className="flex gap-2">
                           <button onClick={() => { setShowChangePw(false); setChangeMsg(''); setChangeCur(''); setChangeNew(''); }}
-                            className="flex-1 py-2.5 rounded-full text-white/50 text-xs" style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            className="flex-1 py-2.5 rounded-full text-white/75 text-xs" style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.08)' }}>
                             Cancel
                           </button>
                           <button onClick={handleChangeVaultPassword} disabled={vaultBusy || !changeCur || !changeNew}
                             className="flex-1 py-2.5 rounded-full text-white text-xs font-medium disabled:opacity-40"
-                            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
+                            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
                             data-testid="vault-change-btn">
                             {vaultBusy ? 'Saving...' : 'Save new password'}
                           </button>
@@ -1145,7 +1145,7 @@ export default function JournalPage() {
                 vaultError ? (
                   <p className="text-xs text-center py-10" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="vault-error">{vaultError}</p>
                 ) : (
-                  <p className="text-white/40 text-sm text-center py-10" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening your vault...</p>
+                  <p className="text-white/70 text-sm text-center py-10" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening your vault...</p>
                 )
               ) : vaultHasPw ? (
                 <div data-testid="vault-unlock-form">
@@ -1164,7 +1164,7 @@ export default function JournalPage() {
                   )}
                   <button onClick={() => unlockVault(vaultPw)} disabled={vaultBusy || !vaultPw}
                     className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
-                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
+                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
                     data-testid="vault-unlock-btn">
                     {vaultBusy ? 'Opening...' : 'Open my vault'}
                   </button>
@@ -1193,7 +1193,7 @@ export default function JournalPage() {
                   )}
                   <button onClick={handleSetVaultPassword} disabled={vaultBusy || !vaultNew1 || !vaultNew2}
                     className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
-                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }}
+                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
                     data-testid="vault-set-btn">
                     {vaultBusy ? 'Setting...' : 'Set my vault password'}
                   </button>

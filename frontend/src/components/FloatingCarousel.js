@@ -4,14 +4,13 @@ import axios from 'axios';
 import logger from '../utils/logger';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const CYCLE_SECONDS = 26;
 
 const CATEGORIES = [
   { id: 'mood', label: 'Mood', Icon: Heart, color: '#f4a7b9' },
   { id: 'energy', label: 'Energy', Icon: Sun, color: '#c9b8f0' },
   { id: 'symptoms', label: 'Symptoms', Icon: ShieldAlert, color: '#ff6b6b' },
   { id: 'cravings', label: 'Cravings', Icon: Cookie, color: '#ff8fab' },
-  { id: 'sleep', label: 'Sleep', Icon: BedDouble, color: '#a29bfe' },
+  { id: 'sleep', label: 'Sleep', Icon: BedDouble, color: '#C9B8F0' },
 ];
 
 const MOOD_OPTIONS = [
@@ -28,7 +27,13 @@ const MOOD_OPTIONS = [
 // hard ones are all still here. Multi-select. Saved through the same
 // quick-log path as `emotion:<name>` symptom tags, so the payload shape
 // stays compatible with /cycle-logs.
+// Eight common feelings show first; the rest sit behind "More feelings".
+const CORE_EMOTIONS = ['Happy', 'Calm', 'Loved', 'Confident', 'Anxious', 'Sad', 'Irritable', 'Tired'];
+
 const EMOTION_OPTIONS = [
+  { emoji: '😰', label: 'Anxious' },
+  { emoji: '😤', label: 'Irritable' },
+  { emoji: '😴', label: 'Tired' },
   { emoji: '😊', label: 'Happy' },
   { emoji: '😁', label: 'Joyful' },
   { emoji: '😌', label: 'Calm' },
@@ -62,6 +67,7 @@ const EMOTION_OPTIONS = [
 const SYMPTOM_OPTIONS = [
   'cramps', 'headache', 'bloating', 'fatigue', 'nausea',
   'backache', 'tender breasts', 'acne', 'dizziness', 'spotting',
+  'PMDD flare',
 ];
 
 const CRAVING_OPTIONS = [
@@ -80,13 +86,13 @@ const SLEEP_QUALITY = ['restless', 'okay', 'deep'];
 
 const todayISO = () => new Date().toISOString().split('T')[0];
 
-const colorOf = (id) => (CATEGORIES.find((c) => c.id === id) || {}).color || '#FF1493';
+const colorOf = (id) => (CATEGORIES.find((c) => c.id === id) || {}).color || '#FF4F9A';
 
 function SectionTitle({ Icon, color, children }) {
   return (
     <div className="flex items-center gap-2 mb-3 mt-6">
       <Icon className="w-4 h-4" style={{ color }} />
-      <p className="text-[#9A8B91] text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif' }}>
         {children}
       </p>
     </div>
@@ -103,6 +109,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
   // No mood is pre-picked (Angelita, Oct 20, 2026): the old default of
   // 3 (Okay) meant an emotion-only log also recorded a mood she never
   // chose. Null until she taps a face, and the payload follows suit.
+  const [showAllFeelings, setShowAllFeelings] = useState(false);
   const [mood, setMood] = useState(null);
   const [emotions, setEmotions] = useState([]);
   const [energy, setEnergy] = useState(3);
@@ -266,7 +273,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
     >
       <div
         className="w-full max-w-sm rounded-3xl animate-in flex flex-col max-h-[88vh]"
-        style={{ background: 'linear-gradient(180deg, #241226 0%, #160b1a 100%)', border: '1px solid rgba(255,20,147,0.25)' }}
+        style={{ background: 'linear-gradient(180deg, #241226 0%, #160b1a 100%)', border: '1px solid rgba(255,79,154,0.25)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 pt-6">
@@ -275,11 +282,11 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
               <Heart className="w-5 h-5" style={{ color: moodColor }} />
               <h3 className="text-white text-lg font-script">How do you feel?</h3>
             </div>
-            <button onClick={onClose} aria-label="Close" className="text-[#9A8B91] hover:text-white">
+            <button onClick={onClose} aria-label="Close" className="text-[#CFC3CC] hover:text-white">
               <X className="w-5 h-5" />
             </button>
           </div>
-          <p className="text-[#9A8B91] text-xs mb-5" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <p className="text-[#CFC3CC] text-xs mb-5" style={{ fontFamily: 'Poppins, sans-serif' }}>
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -300,22 +307,22 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
                 aria-label={m.label}
               >
                 <span className="text-3xl">{m.emoji}</span>
-                <span className="text-[10px]" style={{ fontFamily: 'Poppins, sans-serif', color: mood === m.value ? '#fff' : '#9A8B91' }}>{m.label}</span>
+                <span className="text-[10px]" style={{ fontFamily: 'Poppins, sans-serif', color: mood === m.value ? '#fff' : '#CFC3CC' }}>{m.label}</span>
               </button>
             ))}
           </div>
-          <p className="text-[#9A8B91] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
             And what you are really feeling
           </p>
-          <div className="flex flex-wrap gap-1.5 mb-1">
-            {EMOTION_OPTIONS.map((e, idx) => {
+          <div className="flex flex-wrap gap-2 mb-1">
+            {EMOTION_OPTIONS.filter((e) => showAllFeelings || CORE_EMOTIONS.includes(e.label) || emotions.includes(e.label)).map((e, idx) => {
               const active = emotions.includes(e.label);
               return (
                 <button
                   key={e.label}
                   onClick={() => handleEmotionToggle(e.label)}
-                  className={`emotion-chip rounded-full ${mode === 'emotions' ? 'px-3.5 py-2 text-xs' : 'px-2.5 py-1.5 text-[11px]'}`}
-                  style={{ ...chip(active, moodColor), animationDelay: `${(idx % 7) * 0.35}s`, boxShadow: active ? `0 0 16px ${moodColor}66` : '0 0 8px rgba(244,167,185,0.12)' }}
+                  className="emotion-chip rounded-full px-3.5 py-2 text-sm"
+                  style={{ ...chip(active, moodColor) }}
                   aria-label={e.label}
                   aria-pressed={active}
                 >
@@ -324,6 +331,9 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
               );
             })}
           </div>
+          <button type="button" onClick={() => setShowAllFeelings(!showAllFeelings)} className="text-sm underline mt-1 mb-2" style={{ color: '#C9B8F0', fontFamily: 'Poppins, sans-serif' }} data-testid="more-feelings-btn">
+            {showAllFeelings ? 'Fewer feelings' : 'More feelings'}
+          </button>
 
 {mode !== 'emotions' && (
             <>
@@ -368,7 +378,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
 
           <SectionTitle Icon={Sun} color={colorOf('energy')}>Energy</SectionTitle>
           <div>
-            <div className="flex justify-between text-xs mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>
+            <div className="flex justify-between text-xs mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>
               <span>Drained</span>
               <span className="text-white text-base font-semibold">{energy}/5</span>
               <span>Buzzing</span>
@@ -384,7 +394,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
 
           <SectionTitle Icon={BedDouble} color={colorOf('sleep')}>Sleep</SectionTitle>
           <div>
-            <div className="flex justify-between text-xs mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>
+            <div className="flex justify-between text-xs mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>
               <span>Hours slept</span>
               <span className="text-white text-base font-semibold">{sleepHours}h</span>
             </div>
@@ -392,7 +402,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
               type="range" min="0" max="12" step="0.5" value={sleepHours}
               onChange={(e) => { setSleepHours(parseFloat(e.target.value)); setLastKind('sleep'); }}
               onPointerUp={(e) => saveNow('sleep', { sleepHours: parseFloat(e.target.value) })}
-              className="w-full accent-[#a29bfe] mb-4"
+              className="w-full accent-[#C9B8F0] mb-4"
               aria-label="Hours slept"
             />
             <div className="flex gap-2">
@@ -425,7 +435,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
               is the proof, and a failure shows here instead of vanishing. */}
           <div className="h-5 mb-2 flex items-center justify-center" aria-live="polite">
             {saveState === 'saving' && (
-              <span className="text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#9A8B91' }}>Saving to today…</span>
+              <span className="text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>Saving to today…</span>
             )}
             {saveState === 'saved' && (
               <span className="text-[11px] flex items-center gap-1 animate-in" style={{ fontFamily: 'Poppins, sans-serif', color: '#55efc4' }}>
@@ -443,7 +453,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
             onClick={handleDone}
             disabled={saveState === 'saving'}
             className="w-full py-3 rounded-full text-white text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-40"
-            style={{ background: '#FF1493', fontFamily: 'Poppins, sans-serif' }}
+            style={{ background: '#FF4F9A', fontFamily: 'Poppins, sans-serif' }}
           >
             {saveState === 'saving' ? 'Saving…' : 'Done'}
           </button>
@@ -454,81 +464,41 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
 }
 
 export default function FloatingCarousel({ token }) {
+  // Quick log is a static row of five large buttons (launch fixes): no
+  // orbit, no motion, nothing to chase with a thumb.
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState('full'); // 'full' | 'emotions'
   const [justLogged, setJustLogged] = useState(false);
-  // The icons orbit constantly, which makes them moving targets that are
-  // hard to hit on a phone (Angelita: "when you push the icons, nothing
-  // happens"). Pressing on the track freezes the orbit so she can tap
-  // the icon she means.
-  const [paused, setPaused] = useState(false);
   const pillTimer = useRef(null);
-
-  const perItem = CYCLE_SECONDS / CATEGORIES.length;
 
   return (
     <div className="mb-6" data-testid="floating-carousel">
-      <p className="text-[#6c6c8a] text-[10px] tracking-widest uppercase mb-1 text-center">
-        Quick Log
+      <p className="text-white text-sm mb-3 text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        Log today
       </p>
-      <p className="text-[#9A8B91] text-xs mb-3 text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
-        Tap an icon to log today
-      </p>
-
-      {/* No framing box: the icons sit directly on the page background
-          (Angelita's fix list, Oct 16). The track is only a positioning area. */}
-      <div
-        className="hs-carousel-track relative overflow-hidden"
-        style={{ height: 132 }}
-        onPointerDown={() => setPaused(true)}
-        onPointerUp={() => setPaused(false)}
-        onPointerCancel={() => setPaused(false)}
-        onPointerLeave={() => setPaused(false)}
-      >
-        {CATEGORIES.map((cat, i) => {
+      <div className="grid grid-cols-5 gap-2" data-testid="quick-log-row">
+        {CATEGORIES.map((cat) => {
           const { Icon } = cat;
           return (
-            <div
+            <button
               key={cat.id}
-              className="hs-orbit-item"
-              style={{ animationDelay: `${-i * perItem}s`, animationPlayState: paused ? 'paused' : 'running' }}
+              data-testid={`quick-log-${cat.id}`}
+              className="flex flex-col items-center gap-1.5 py-3 rounded-2xl border border-white/10 active:scale-95 transition-transform"
+              style={{ background: 'rgba(255,255,255,0.05)', minHeight: 76 }}
+              onClick={() => { setSheetMode(cat.id === 'mood' ? 'emotions' : 'full'); setSheetOpen(true); }}
+              aria-label={`Log ${cat.label}`}
             >
-              <button
-                className="hs-orbit-icon flex flex-col items-center gap-1 rounded-full"
-                style={{ animationDelay: `${-i * perItem}s`, pointerEvents: 'auto', animationPlayState: paused ? 'paused' : 'running' }}
-                onClick={() => { setSheetMode(cat.id === 'mood' ? 'emotions' : 'full'); setSheetOpen(true); }}
-                aria-label={`Log ${cat.label}`}
-              >
-                <span
-                  className="w-14 h-14 rounded-full flex items-center justify-center"
-                  style={{
-                    background: `radial-gradient(circle at 35% 35%, ${cat.color}55, ${cat.color}18)`,
-                    border: `1.5px solid ${cat.color}88`,
-                    boxShadow: `0 0 22px ${cat.color}44`,
-                  }}
-                >
-                  <Icon className="w-6 h-6" style={{ color: '#fff' }} />
-                </span>
-                <span
-                  className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                  style={{ fontFamily: 'Poppins, sans-serif', color: '#fff', background: 'rgba(10,5,15,0.55)' }}
-                >
-                  {cat.label}
-                </span>
-              </button>
-            </div>
+              <span className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: `${cat.color}33`, border: `1.5px solid ${cat.color}` }}>
+                <Icon className="w-5 h-5" style={{ color: '#fff' }} />
+              </span>
+              <span className="text-[11px] font-medium text-white" style={{ fontFamily: 'Poppins, sans-serif' }}>{cat.label}</span>
+            </button>
           );
         })}
-
-        {justLogged && (
-          <div
-            className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[11px] animate-in"
-            style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(85,239,196,0.15)', color: '#55efc4', border: '1px solid rgba(85,239,196,0.4)', zIndex: 20 }}
-          >
-            ✓ Saved to today
-          </div>
-        )}
       </div>
+      {justLogged && (
+        <p className="text-center text-sm mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#7FD9A8' }} role="status">✓ Saved to today</p>
+      )}
 
       {sheetOpen && (
         <QuickLogSheet
