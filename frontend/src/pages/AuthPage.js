@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, ChevronDown, Shield, Check, ArrowRight, Star, Heart, Users, Award, Zap, Calendar, MessageCircle } from 'lucide-react';
+import { Eye, EyeOff, ChevronDown, Shield, Check, ArrowRight, Heart, Users, Award, Zap, Calendar, MessageCircle } from 'lucide-react';
 
 const BRAND_FONT = "'Poiret One', cursive";
 const HEADING_FONT = "'Poiret One', cursive";
@@ -17,12 +17,7 @@ const SCENARIO_BG = '/images/scenario-bg.jpeg';
 const SCIENCE_BG = '/images/science-bg.jpeg';
 const RELATIONSHIP_BG = '/images/relationship-bg.jpeg';
 const TRANSFORM_BG = '/images/transform-bg.jpeg';
-const TESTIMONIAL_BG = '/images/testimonial-bg.jpeg';
 
-const COUPLE_IMG = '/images/couple.jpg';
-const REVIEWER_1_IMG = 'https://images.unsplash.com/photo-1548544507-7de0e7a931d6?w=200&h=200&fit=crop&crop=face';
-const REVIEWER_2_IMG = 'https://images.unsplash.com/photo-1768651925930-1680767d92df?w=200&h=200&fit=crop&crop=face';
-const REVIEWER_3_IMG = 'https://images.unsplash.com/photo-1765648684671-db09402b2d48?w=200&h=200&fit=crop&crop=face';
 
 const BrandName = ({ className = '', style = {} }) => (
   <span className={className} style={{ fontFamily: BRAND_FONT, fontWeight: 400, whiteSpace: 'nowrap', color: PURPLE_LIGHT, ...style }}>HORMOscope</span>
@@ -36,11 +31,12 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isAdult, setIsAdult] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const { login, signup } = useAuth();
   const navigate = useNavigate();
   const scienceRef = useRef(null);
   const focusRef = useRef(null);
-  const testimonialsRef = useRef(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const openSignup = () => { setIsLogin(false); setShowAuthModal(true); setError(''); setMobileMenuOpen(false); };
@@ -50,23 +46,22 @@ export default function AuthPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!isLogin) {
+      if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+      if (!isAdult) { setError('You must be 18 or older to use HORMOscope.'); return; }
+      if (!acceptedTerms) { setError('Please agree to the Terms, Privacy Policy and health-data processing to continue.'); return; }
+    }
     setLoading(true);
     try {
-      const user = isLogin ? await login(email, password) : await signup(email, password);
+      const user = isLogin ? await login(email, password) : await signup(email, password, { is_adult: isAdult, accepted_terms: acceptedTerms });
       navigate(user.onboarding_complete ? '/' : '/onboarding');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Something went wrong');
+      setError(typeof err.response?.data?.detail === 'string' ? err.response.data.detail : (err.response ? 'Something went wrong. Please try again.' : 'Could not reach HORMOscope. Check your connection and try again.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const testimonials = [
-    { name: 'Jessica & Marcus', quote: "I love the calendar tab where you can put a heart on the days you have been intimate and it also shows you in green the days you are most fertile (ovulation) and when your next period is coming. It's been so easy now to know when to plan for our date nights and I know when to buy some new lingerie! It's so cool how on point and accurate it is, my god. Everyone should download this app. It's just amazing. Well done. Thank you so much.", stars: 5, img: COUPLE_IMG },
-    { name: 'Mia T.', quote: "Honestly I downloaded this not expecting much but I'm kind of obsessed now? It told me I'd have low energy on Thursday and I literally couldn't get off the couch. Now I plan my busy days around my high energy phases and it's made such a difference.", stars: 5, img: REVIEWER_1_IMG },
-    { name: 'Daniella R.', quote: "My partner kept asking me why I was so moody and I never had an answer. Now I can literally show him what phase I'm in and he actually gets it. Our arguments have gone way down. This app gave us a whole new way to communicate.", stars: 5, img: REVIEWER_2_IMG },
-    { name: 'Priya K.', quote: "I used to have no idea why some weeks I felt unstoppable and other weeks I could barely function. Now I check the app every morning and plan my whole week around it. This app actually gives useful advice too, not just generic stuff. This app gets it.", stars: 5, img: REVIEWER_3_IMG }
-  ];
 
   return (
     <div className="min-h-screen" style={{ background: '#0a0a1a' }}>
@@ -81,7 +76,6 @@ export default function AuthPage() {
           <div className="hidden sm:flex items-center gap-6">
             <button onClick={() => scrollTo(focusRef)} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>How It Works</button>
             <button onClick={() => scrollTo(scienceRef)} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>The Science</button>
-            <button onClick={() => scrollTo(testimonialsRef)} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>Stories</button>
             <button onClick={openLogin} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>Sign In</button>
             <button onClick={openSignup} className="px-5 py-1.5 rounded-full text-white text-sm font-medium transition-all hover:shadow-lg" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)' }} data-testid="nav-signup-btn">Get Started</button>
           </div>
@@ -96,7 +90,6 @@ export default function AuthPage() {
           <div className="sm:hidden px-5 pb-4 space-y-3 border-t border-white/5 pt-3">
             <button onClick={() => scrollTo(focusRef)} className="block text-sm" style={{ color: PINK_MUTED }}>How It Works</button>
             <button onClick={() => scrollTo(scienceRef)} className="block text-sm" style={{ color: PINK_MUTED }}>The Science</button>
-            <button onClick={() => scrollTo(testimonialsRef)} className="block text-sm" style={{ color: PINK_MUTED }}>Stories</button>
             <button onClick={openLogin} className="block text-sm" style={{ color: PINK_MUTED }}>Sign In</button>
           </div>
         )}
@@ -288,37 +281,6 @@ export default function AuthPage() {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
-      <section ref={testimonialsRef} className="py-20 px-6 relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(${TESTIMONIAL_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-          <div className="absolute inset-0" style={{ background: 'rgba(10,10,26,0.85)' }} />
-        </div>
-        <div className="max-w-3xl mx-auto relative z-10">
-          <div className="text-center mb-14">
-            <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>Real stories</p>
-            <h2 className="text-3xl sm:text-4xl text-white" style={{ fontFamily: HEADING_FONT }} data-testid="testimonials-heading">
-              Women who <span style={{ color: PURPLE_LIGHT }}>finally get it.</span>
-            </h2>
-          </div>
-          <div className="space-y-6">
-            {testimonials.map((t) => (
-              <div key={t.name} className="p-6 rounded-2xl border border-white/10 bg-black/30 backdrop-blur-md" data-testid={`testimonial-${t.name}`}>
-                <div className="flex gap-0.5 mb-3">
-                  {Array.from({ length: t.stars }).map((_, j) => (
-                    <Star key={`${t.name}-star-${j}`} className="w-3.5 h-3.5" style={{ fill: PURPLE_LIGHT, color: PURPLE_LIGHT }} />
-                  ))}
-                </div>
-                <p className="text-sm sm:text-base leading-relaxed mb-4 italic" style={{ color: PINK_SOFT, fontFamily: HEADING_FONT }}>&ldquo;{t.quote}&rdquo;</p>
-                <div className="flex items-center gap-3">
-                  <img src={t.img} alt={t.name} className="w-11 h-11 rounded-full object-cover border-2" style={{ borderColor: 'rgba(123,79,166,0.4)' }} />
-                  <p className="text-white text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>{t.name}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* FINAL CTA */}
       <section className="py-20 px-6 text-center relative overflow-hidden">
         <div className="absolute inset-0" style={{ backgroundImage: `url(/images/img-0546-alt.jpeg)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
@@ -368,12 +330,25 @@ export default function AuthPage() {
               <div>
                 <label className="text-xs tracking-wider uppercase block mb-2" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>Password</label>
                 <div className="relative">
-                  <input data-testid="auth-password-input" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isLogin ? 'Your password' : 'Create a password'} className="w-full rounded-xl px-4 py-3 text-sm text-white focus:outline-none pr-12 transition-colors" style={{ background: 'rgba(123,79,166,0.08)', border: '1px solid rgba(123,79,166,0.2)', fontFamily: 'Poppins, sans-serif' }} required />
+                  <input data-testid="auth-password-input" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isLogin ? 'Your password' : 'Create a password (8+ characters)'} className="w-full rounded-xl px-4 py-3 text-sm text-white focus:outline-none pr-12 transition-colors" style={{ background: 'rgba(123,79,166,0.08)', border: '1px solid rgba(123,79,166,0.2)', fontFamily: 'Poppins, sans-serif' }} required />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 hover:text-white transition-colors" style={{ color: PINK_MUTED }}>
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
+              {!isLogin && (
+                <div className="space-y-3 text-left" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                  <p className="text-xs" style={{ color: PINK_MUTED }}>At least 8 characters.</p>
+                  <label className="flex items-start gap-3 text-sm text-white/85 cursor-pointer">
+                    <input data-testid="auth-adult-checkbox" type="checkbox" checked={isAdult} onChange={(e) => setIsAdult(e.target.checked)} className="mt-1 w-4 h-4 accent-[#FF4F9A]" />
+                    <span>I am 18 or older.</span>
+                  </label>
+                  <label className="flex items-start gap-3 text-sm text-white/85 cursor-pointer">
+                    <input data-testid="auth-consent-checkbox" type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-1 w-4 h-4 accent-[#FF4F9A]" />
+                    <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" className="underline" style={{ color: PINK }}>Terms</a> and <a href="/privacy" target="_blank" rel="noreferrer" className="underline" style={{ color: PINK }}>Privacy Policy</a>, and I consent to HORMOscope processing my cycle and health data to run the app.</span>
+                  </label>
+                </div>
+              )}
               <button data-testid="auth-submit-btn" type="submit" disabled={loading} className="w-full py-3 rounded-full text-white font-medium text-sm tracking-wide transition-all duration-300" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)', fontFamily: 'Poppins, sans-serif' }}>
                 {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
               </button>

@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (email, password) => {
     let res;
     try {
-      res = await axios.post(`${API}/auth/login`, { email, password }, { timeout: 90000 });
+      res = await axios.post(`${API}/auth/login`, { email, password, ...consent }, { timeout: 90000 });
     } catch (firstErr) {
       if (firstErr.response) throw firstErr;
       res = await axios.post(`${API}/auth/login`, { email, password }, { timeout: 90000 });
@@ -60,13 +60,13 @@ export const AuthProvider = ({ children }) => {
     return res.data.user;
   }, []);
 
-  const signup = useCallback(async (email, password) => {
+  const signup = useCallback(async (email, password, consent = {}) => {
     let res;
     try {
-      res = await axios.post(`${API}/auth/signup`, { email, password }, { timeout: 90000 });
+      res = await axios.post(`${API}/auth/signup`, { email, password, ...consent }, { timeout: 90000 });
     } catch (firstErr) {
       if (firstErr.response) throw firstErr;
-      res = await axios.post(`${API}/auth/signup`, { email, password }, { timeout: 90000 });
+      res = await axios.post(`${API}/auth/signup`, { email, password, ...consent }, { timeout: 90000 });
     }
     localStorage.setItem('token', res.data.access_token);
     setToken(res.data.access_token);

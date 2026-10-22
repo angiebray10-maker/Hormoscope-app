@@ -99,10 +99,16 @@ logger = logging.getLogger(__name__)
 
 # ==================== MODELS ====================
 
+PASSWORD_MIN_LENGTH = 8
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
     name: Optional[str] = None
+    # Required at sign-up: the person confirms she is 18+ and agrees to the
+    # Terms, Privacy Policy and the processing of her cycle/health data.
+    is_adult: bool = False
+    accepted_terms: bool = False
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -1325,6 +1331,12 @@ async def list_all_users(current_user: dict = Depends(get_admin_user)):
 
 @api_router.post("/auth/signup", response_model=TokenResponse)
 async def signup(user_data: UserCreate):
+    if len(user_data.password or "") < PASSWORD_MIN_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Password must be at least {PASSWORD_MIN_LENGTH} characters.")
+    if not user_data.is_adult:
+        raise HTTPException(status_code=400, detail="You must be 18 or older to use HORMOscope.")
+    if not user_data.accepted_terms:
+        raise HTTPException(status_code=400, detail="Please agree to the Terms, Privacy Policy and health-data processing to continue.")
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -1343,6 +1355,11 @@ async def signup(user_data: UserCreate):
         "is_premium": False,
         "onboarding_complete": False,
         "notification_preferences": {"period_reminder": True, "daily_tips": True},
+        "consent": {
+            "is_adult": True,
+            "accepted_terms_privacy_health_data": True,
+            "accepted_at": datetime.now(timezone.utc).isoformat(),
+        },
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
