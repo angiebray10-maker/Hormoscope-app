@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles } from 'lucide-react';
+import { X, Flower2 } from 'lucide-react';
 
 const sweetMessages = [
-  "You're doing amazing, beautiful ✨",
-  "Listen to your body today ✨",
-  "You are worthy of love and rest ✨",
-  "Your cycle is your superpower ✨",
-  "Be gentle with yourself today ✨",
-  "You're stronger than you know ✨",
-  "Trust your body's wisdom ✨",
-  "Today is a fresh start ✨",
-  "You deserve all the good things ✨",
-  "Your feelings are valid ✨"
+  "You're doing amazing, beautiful",
+  "Listen to your body today",
+  "You are worthy of love and rest",
+  "Your cycle is your superpower",
+  "Be gentle with yourself today",
+  "You're stronger than you know",
+  "Trust your body's wisdom",
+  "Today is a fresh start",
+  "You deserve all the good things",
+  "Your feelings are valid"
 ];
 
 export default function DailyReminder({ cycleDay, phase, userName }) {
@@ -59,7 +59,7 @@ export default function DailyReminder({ cycleDay, phase, userName }) {
         {/* Logo */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#F4D3DC] to-[#E8A4B8] mb-4 shadow-[0_0_40px_rgba(244,211,220,0.3)]">
-            <Sparkles className="w-8 h-8 text-[#12090E]" />
+            <Flower2 className="w-8 h-8 text-[#12090E]" />
           </div>
           <h1 className="text-2xl" style={{ fontFamily: "'Poiret One', sans-serif", fontWeight: 400, color: '#c9b8f0' }}>HORMOscope</h1>
         </div>
@@ -84,7 +84,7 @@ export default function DailyReminder({ cycleDay, phase, userName }) {
         {/* Greeting */}
         {userName && (
           <p className="text-center text-[#CFC3CC] text-sm">
-            Have a beautiful day, {userName} ✨
+            Have a beautiful day, {userName}
           </p>
         )}
 

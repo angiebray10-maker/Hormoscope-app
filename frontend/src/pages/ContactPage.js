@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, Mail, MessageCircle, Sparkles } from 'lucide-react';
+import { ChevronLeft, Mail, MessageCircle, Flower2 } from 'lucide-react';
 
 export default function ContactPage() {
   return (
@@ -23,7 +23,7 @@ export default function ContactPage() {
       <div className="glass-card-glow p-6 mb-6 border border-[#F4D3DC]/30">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 rounded-xl bg-[#F4D3DC]/20 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-5 h-5 text-[#F4D3DC]" />
+            <Flower2 className="w-5 h-5 text-[#F4D3DC]" />
           </div>
           <div>
             <h2 className="text-[#F4D3DC] font-medium mb-2">We&apos;re in Beta!</h2>

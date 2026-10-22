@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { BookOpen, Utensils, Dumbbell, Heart, Sparkles, Loader2 } from 'lucide-react';
+import { BookOpen, Utensils, Dumbbell, Heart, Flower2, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -15,7 +15,7 @@ const PHASE_ACCENTS = {
 };
 
 const SECTION_ICONS = {
-  body_insight: { icon: Sparkles, label: 'Your Body Right Now' },
+  body_insight: { icon: Flower2, label: 'Your Body Right Now' },
   mood_forecast: { icon: Heart, label: 'Mood Forecast' },
   food: { icon: Utensils, label: 'Eat This Today' },
   movement: { icon: Dumbbell, label: 'Movement' },
@@ -82,7 +82,7 @@ export default function DailyRead() {
       {/* Body insight — always visible */}
       <div className="px-3 py-2">
         <div className="flex items-center gap-1.5 mb-1">
-          <Sparkles className="w-3 h-3" style={{ color: '#C9B8F0' }} />
+          <Flower2 className="w-3 h-3" style={{ color: '#C9B8F0' }} />
           <span className="text-white/70 text-[9px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif' }}>Your Body Right Now</span>
         </div>
         <p className="text-[#d4d4e0] text-[11px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>

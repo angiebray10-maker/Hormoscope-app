@@ -215,7 +215,7 @@ export default function HomePage() {
         <div className={`card p-4 mb-6 border ${paymentBanner === 'success' ? 'border-[#C9B8F0]/40 bg-[#C9B8F0]/10' : paymentBanner === 'failed' ? 'border-[#ff6b6b]/30 bg-[#ff6b6b]/5' : 'border-white/20 bg-white/5'}`} data-testid={`payment-banner-${paymentBanner}`}>
           <p className="text-sm text-white">
             {paymentBanner === 'pending' && 'Confirming your payment…'}
-            {paymentBanner === 'success' && '✨ Your subscription is active. Welcome in.'}
+            {paymentBanner === 'success' && 'Your subscription is active. Welcome in.'}
             {paymentBanner === 'failed' && 'We couldn\'t confirm your payment yet. If you completed checkout, refresh in a minute and your access will activate automatically.'}
           </p>
         </div>

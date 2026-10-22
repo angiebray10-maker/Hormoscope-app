@@ -57,7 +57,7 @@ const EMOTION_OPTIONS = [
   { emoji: '🤢', label: 'Sick' },
   { emoji: '😨', label: 'Scared' },
   { emoji: '🥱', label: 'Bored' },
-  { emoji: '😵‍💫', label: 'Dumbfounded' },
+  { emoji: '😵', label: 'Dumbfounded' },
   { emoji: '😏', label: 'Horny' },
   { emoji: '😘', label: 'Flirtatious' },
   { emoji: '😒', label: 'Jealous' },

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Calendar as CalendarIcon, Heart, Droplet, ChevronLeft, ChevronRight, Plus, X, RotateCcw, Baby, Sparkles, HelpCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Heart, Droplet, ChevronLeft, ChevronRight, Plus, X, RotateCcw, Baby, CircleDot, HelpCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import DateSelect from '../components/DateSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -572,7 +572,7 @@ export default function CalendarPage() {
                 
                 {/* Peak ovulation indicator */}
                 {isPeak && !showConfirmedPeriod && (
-                  <Sparkles className="w-2.5 h-2.5 text-[#5DBB8A] absolute top-1 left-1" />
+                  <CircleDot className="w-2.5 h-2.5 text-[#5DBB8A] absolute top-1 left-1" />
                 )}
               </button>
             );

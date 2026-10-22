@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { User, LogOut, ChevronRight, Shield, FileText, Sparkles, Mail, Camera, Loader2, Heart, BookOpen, Trash2 } from 'lucide-react';
+import { User, LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Camera, Loader2, Heart, BookOpen, Trash2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -421,7 +421,7 @@ export default function ProfilePage() {
           className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <Sparkles className="w-5 h-5 text-[#E8A4B8]" />
+            <Flower2 className="w-5 h-5 text-[#E8A4B8]" />
             <span className="text-[#FDF8FA]">Founder&apos;s Note</span>
           </div>
           <ChevronRight className="w-5 h-5 text-[#CFC3CC]" />
