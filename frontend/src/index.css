@@ -654,3 +654,17 @@ html:not(.hs-motion) .pulsating-orb { display: none !important; }
 .legal-doc, .legal-doc p, .legal-doc li, .legal-doc h1, .legal-doc h2, .legal-doc h3 {
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
 }
+
+/* Signature phase orb (founder notes round 2). Slow and calm, never
+   blocks taps. Off for reduced motion or Profile > "Pulsing orb" off. */
+@keyframes hsOrbBreath {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+.hs-orb-pulse { animation: hsOrbBreath 7s ease-in-out infinite; will-change: transform, opacity; }
+html.hs-orb-off .hs-orb-pulse { animation: none !important; }
+.hs-ambient-orb {
+  position: fixed; top: -120px; right: -140px; width: 420px; height: 420px;
+  border-radius: 9999px; pointer-events: none; z-index: 0; filter: blur(8px);
+}
+@media (prefers-reduced-motion: reduce) { .hs-orb-pulse { animation: none !important; } }

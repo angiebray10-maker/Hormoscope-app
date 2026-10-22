@@ -9,6 +9,7 @@ import axios from 'axios';
 import logger from '../utils/logger';
 import { subscribeToPush } from '../utils/pushNotifications';
 import { BRAND, HEADING_FONT, BODY_FONT } from '../lib/phases';
+import { BACKDROPS, BACKDROP_OVERLAY } from '../lib/backdrops';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -16,13 +17,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // name -> last period -> cycle -> partner -> reminders.
 // Birthday moved to Profile (optional). "I don't remember" is stored as
 // unknown; we never invent a date.
-const STEP_BG = {
-  1: '/images/backdrop-couple-1.webp',
-  2: '/images/backdrop-couple-2.webp',
-  3: '/images/backdrop-couple-3.webp',
-  4: '/images/backdrop-couple-1.webp',
-  5: '/images/backdrop-couple-2.webp',
-};
+const STEP_BG = { 1: BACKDROPS[0], 2: BACKDROPS[1], 3: BACKDROPS[2], 4: BACKDROPS[0], 5: BACKDROPS[1] };
 
 const SITUATIONS = [
   { id: 'regular', label: 'I get a period', hint: 'Set my usual length below' },
@@ -117,7 +112,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden" style={{ background: BRAND.bg, fontFamily: BODY_FONT }}>
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true" data-testid="onboarding-bg">
         <img key={step} src={STEP_BG[step]} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0" style={{ background: 'rgba(11,11,30,0.84)' }} />
+        <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
       </div>
       <div className="w-full max-w-md relative">
         <div className="flex items-center justify-center gap-2 mb-8" aria-label={`Step ${step} of ${totalSteps}`}>

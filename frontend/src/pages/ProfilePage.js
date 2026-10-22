@@ -153,6 +153,7 @@ function MyDetailsSection({ user, token, updateUser }) {
   const [conditions, setConditions] = useState(user?.conditions || []);
   const [vis, setVis] = useState(user?.partner_visibility || {});
   const [motion, setMotion] = useState(localStorage.getItem('hormoscope-motion') === 'on');
+  const [orb, setOrb] = useState(localStorage.getItem('hormoscope-orb') !== 'off');
   const [msg, setMsg] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -208,6 +209,10 @@ function MyDetailsSection({ user, token, updateUser }) {
       <label className={row}>
         <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={motion} onChange={(e) => toggleMotion(e.target.checked)} data-testid="motion-toggle" />
         Gentle motion and glow effects
+      </label>
+      <label className={row}>
+        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={orb} onChange={(e) => { const on = e.target.checked; setOrb(on); localStorage.setItem('hormoscope-orb', on ? 'on' : 'off'); document.documentElement.classList.toggle('hs-orb-off', !on); }} data-testid="orb-toggle" />
+        Slow pulsing phase orb
       </label>
       <button onClick={save} disabled={saving} className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ background: '#FF4F9A' }} data-testid="save-details-btn">
         {saving ? 'Saving…' : 'Save my details'}

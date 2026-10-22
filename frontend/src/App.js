@@ -5,6 +5,7 @@ import { PremiumProvider } from './context/PremiumContext';
 import { BottomNav } from './components/BottomNav';
 import { Toaster } from './components/ui/sonner';
 import InstallPrompt from './components/InstallPrompt';
+import AmbientOrb from './components/PhaseOrb';
 
 // Pages
 import AuthPage from './pages/AuthPage';
@@ -67,7 +68,8 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen noise-overlay">
-      <div className="pb-24 lg:pb-0">
+      <AmbientOrb />
+      <div className="pb-24 lg:pb-0 relative z-[1]">
       <Routes>
         {/* Public routes */}
         <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />

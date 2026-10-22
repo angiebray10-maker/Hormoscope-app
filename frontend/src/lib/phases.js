@@ -32,3 +32,20 @@ export const phaseColor = (phase) => PHASE_COLORS[phase] || PHASE_COLORS.unknown
 
 export const HEADING_FONT = "'Poiret One', sans-serif";
 export const BODY_FONT = "'Poppins', sans-serif";
+
+// Client-side phase from the user record, same day thresholds as the
+// server (backend calculate_cycle_info). Used only for decoration.
+export const phaseFromUser = (user) => {
+  if (!user?.last_period_date) return 'unknown';
+  const L = user.cycle_length || 28;
+  const start = new Date(user.last_period_date + 'T00:00:00');
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const diff = Math.floor((today - start) / 86400000);
+  if (diff < 0) return 'unknown';
+  if (diff >= L) return 'late';
+  const day = diff + 1;
+  if (day <= 5) return 'menstrual';
+  if (day <= 12) return 'follicular';
+  if (day <= 19) return 'ovulatory';
+  return 'luteal';
+};

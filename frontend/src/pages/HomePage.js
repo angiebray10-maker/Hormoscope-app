@@ -238,11 +238,13 @@ export default function HomePage() {
 
       {/* Cycle Orb */}
       <div className="flex flex-col items-center mb-8">
-        <div className={`cycle-orb ${config.orb}`} style={{ boxShadow: `0 0 36px ${config.color}66` }} data-testid="day-circle">
+        <div className="hs-orb-pulse rounded-full" style={{ boxShadow: `0 0 48px ${config.color}77, 0 0 96px ${config.color}33` }}>
+        <div className={`cycle-orb ${config.orb}`} data-testid="day-circle">
           <span className="text-[#1B1030] text-xs tracking-widest uppercase font-semibold">
             {phase === 'unknown' ? 'CYCLE DAY' : periodIsLate ? 'CYCLE DAY' : 'YOU ARE ON DAY'}
           </span>
           <span className="text-7xl font-bold text-[#1B1030]">{phase === 'unknown' ? '–' : (cycle.cycle_day || '?')}</span>
+        </div>
         </div>
         <h2 className="mt-5 text-2xl font-script" style={{ color: config.color }}>
           {config.name}

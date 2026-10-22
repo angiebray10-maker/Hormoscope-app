@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { BACKDROPS, BACKDROP_OVERLAY } from '../lib/backdrops';
 import SecurityNotice from '../components/SecurityNotice';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -13,11 +14,11 @@ const PINK_SOFT = '#e8dce0';
 const PINK_MUTED = '#a0a0b8';
 
 const NEW_LOGO = '/images/logo.png';
-const HERO_BG = '/images/backdrop-couple-1.webp';
-const SCENARIO_BG = '/images/backdrop-couple-2.webp';
-const SCIENCE_BG = '/images/backdrop-couple-2.webp';
-const RELATIONSHIP_BG = '/images/backdrop-couple-3.webp';
-const TRANSFORM_BG = '/images/backdrop-couple-3.webp';
+const HERO_BG = BACKDROPS[0];
+const SCENARIO_BG = BACKDROPS[1];
+const SCIENCE_BG = BACKDROPS[1];
+const RELATIONSHIP_BG = BACKDROPS[2];
+const TRANSFORM_BG = BACKDROPS[2];
 
 
 const BrandName = ({ className = '', style = {} }) => (
@@ -99,7 +100,7 @@ export default function AuthPage() {
       {/* HERO */}
       <section className="relative min-h-screen flex items-center pt-16">
         <div className="absolute inset-0" style={{ backgroundImage: `url(${HERO_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(11,11,30,0.85) 0%, rgba(11,11,30,0.8) 40%, rgba(11,11,30,0.88) 100%)' }} />
+          <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
         <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,79,154,0.5) 0%, rgba(255,79,154,0) 70%)' }} />
         <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(201,184,240,0.5) 0%, rgba(201,184,240,0) 70%)', animationDelay: '1.6s' }} />
@@ -187,7 +188,7 @@ export default function AuthPage() {
       {/* THE SCIENCE — Demystify How It Works */}
       <section ref={scienceRef} className="py-20 px-6 relative overflow-hidden official-doc">
         <div className="absolute inset-0" style={{ backgroundImage: `url(${SCIENCE_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-          <div className="absolute inset-0" style={{ background: 'rgba(11,11,30,0.84)' }} />
+          <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
         <div className="max-w-2xl mx-auto relative z-10">
           <div className="text-center mb-14">
@@ -233,7 +234,7 @@ export default function AuthPage() {
       {/* TRANSFORMATION */}
       <section className="py-20 px-6 relative overflow-hidden">
         <div className="absolute inset-0" style={{ backgroundImage: `url(${TRANSFORM_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-          <div className="absolute inset-0" style={{ background: 'rgba(11,11,30,0.84)' }} />
+          <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
         <div className="max-w-2xl mx-auto relative z-10">
           <div className="text-center mb-14">
@@ -265,8 +266,8 @@ export default function AuthPage() {
 
       {/* CTA */}
       <section className="py-16 px-6 relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(/images/backdrop-couple-1.webp)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-          <div className="absolute inset-0" style={{ background: 'rgba(11,11,30,0.84)' }} />
+        <div className="absolute inset-0" style={{ backgroundImage: `url(${BACKDROPS[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+          <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
         <div className="max-w-md mx-auto relative z-10 text-center">
           <p className="text-sm tracking-[0.3em] uppercase mb-3" style={{ fontFamily: "'Poiret One', sans-serif", color: '#C9B8F0' }}>Begin</p>
@@ -284,8 +285,8 @@ export default function AuthPage() {
 
       {/* FINAL CTA */}
       <section className="py-20 px-6 text-center relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(/images/backdrop-couple-2.webp)`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-          <div className="absolute inset-0" style={{ background: 'rgba(11,11,30,0.84)' }} />
+        <div className="absolute inset-0" style={{ backgroundImage: `url(${BACKDROPS[1]})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+          <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
         <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,79,154,0.5) 0%, rgba(255,79,154,0) 70%)' }} />
         <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(201,184,240,0.5) 0%, rgba(201,184,240,0) 70%)', animationDelay: '1.6s' }} />
