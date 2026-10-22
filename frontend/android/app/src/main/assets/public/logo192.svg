@@ -1,12 +1,10 @@
 <svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
-  <rect width="192" height="192" fill="#05050A"/>
-  <circle cx="96" cy="96" r="70" fill="url(#gold)"/>
-  <circle cx="96" cy="96" r="50" fill="#05050A"/>
-  <circle cx="75" cy="85" r="25" fill="url(#gold)" opacity="0.8"/>
   <defs>
-    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#D4AF37"/>
-      <stop offset="100%" style="stop-color:#F7E7CE"/>
-    </linearGradient>
+    <radialGradient id="orb" cx="40%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#FFC0DA"/>
+      <stop offset="100%" stop-color="#FF4F9A"/>
+    </radialGradient>
   </defs>
+  <rect width="192" height="192" fill="#0B0B1E"/>
+  <circle cx="96" cy="96" r="64" fill="url(#orb)"/>
 </svg>
