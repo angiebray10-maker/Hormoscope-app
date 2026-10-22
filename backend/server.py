@@ -3171,6 +3171,86 @@ async def get_partner_status(current_user: dict = Depends(get_current_user)):
         "linked_since": rel.get("created_at")
     }
 
+def _phase_for_cycle_day(cycle_day: int) -> str:
+    """Same day thresholds as calculate_cycle_info, for projecting ahead."""
+    if cycle_day <= 5:
+        return "menstrual"
+    if cycle_day <= 12:
+        return "follicular"
+    if cycle_day <= 19:
+        return "ovulatory"
+    return "luteal"
+
+
+def _sync_person(u: dict, is_self: bool, days: int = 28):
+    """One person's side of two-cycle sync. Her own side is always full;
+    the other person's side only includes what she chose to share."""
+    vis = {**DEFAULT_PARTNER_VISIBILITY, **(u.get("partner_visibility") or {})}
+    out = {"name": u.get("name") or "Partner", "is_self": is_self}
+    lp = u.get("last_period_date")
+    status = u.get("cycle_status", "regular")
+    if not is_self and not vis.get("phase"):
+        out["shared"] = False
+        return out, None
+    out["shared"] = True
+    if not lp or status in ("pregnant", "postpartum", "menopause"):
+        out["tracking"] = False
+        return out, None
+    L = int(u.get("cycle_length") or 28)
+    info = calculate_cycle_info(lp, L)
+    out.update({"tracking": True, "cycle_day": info.get("cycle_day"), "phase": info.get("phase"),
+                "cycle_length": L})
+    if is_self or vis.get("period_dates"):
+        out["next_period_date"] = info.get("next_period_date")
+    start = date.fromisoformat(str(lp)[:10])
+    today = date.today()
+    timeline = []
+    for i in range(days):
+        d = today + timedelta(days=i)
+        cd = ((d - start).days % L) + 1
+        timeline.append({"date": d.isoformat(), "cycle_day": cd, "phase": _phase_for_cycle_day(cd)})
+    return out, timeline
+
+
+@api_router.get("/partner/sync")
+async def get_partner_sync(current_user: dict = Depends(get_current_user)):
+    """Two-cycle syncing: both linked people see each other's phase and day
+    side by side for the next 4 weeks, with overlap highlights (same phase
+    on the same day, and days you are both on your period). Respects each
+    person's partner visibility settings. Never includes journals or
+    intimacy logs."""
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        raise HTTPException(status_code=403, detail="No linked partner account.")
+    owner_id, partner_id = _partner_pair(rel)
+    other_id = partner_id if current_user["id"] == owner_id else owner_id
+    other = await db.users.find_one({"id": other_id}, {"_id": 0, "password": 0, "email": 0})
+    if not other:
+        raise HTTPException(status_code=404, detail="Partner account not found")
+    me, my_tl = _sync_person(current_user, True)
+    them, their_tl = _sync_person(other, False)
+    days = []
+    if my_tl and their_tl:
+        for a, b in zip(my_tl, their_tl):
+            days.append({
+                "date": a["date"],
+                "me": {"cycle_day": a["cycle_day"], "phase": a["phase"]},
+                "them": {"cycle_day": b["cycle_day"], "phase": b["phase"]},
+                "same_phase": a["phase"] == b["phase"],
+                "both_period": a["phase"] == "menstrual" and b["phase"] == "menstrual",
+            })
+    elif my_tl:
+        days = [{"date": a["date"], "me": {"cycle_day": a["cycle_day"], "phase": a["phase"]}, "them": None,
+                 "same_phase": False, "both_period": False} for a in my_tl]
+    return {
+        "me": me,
+        "them": them,
+        "days": days,
+        "overlap_days": sum(1 for d in days if d["same_phase"]),
+        "both_period_days": sum(1 for d in days if d["both_period"]),
+    }
+
+
 @api_router.post("/partner/unlink")
 async def unlink_partner(current_user: dict = Depends(get_current_user)):
     result = await db.partner_relationships.delete_many({

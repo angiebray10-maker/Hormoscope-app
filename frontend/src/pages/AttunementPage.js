@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { Heart, Loader2, Share2, Copy, Check } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
+import CycleSync from '../components/CycleSync';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#C9B8F0';
@@ -121,6 +122,8 @@ export default function AttunementPage() {
         {status === null ? (
           <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-[#f4a7b9] animate-spin" /></div>
         ) : status.is_linked ? (
+          <>
+          <CycleSync token={token} />
           <div className="card p-5 mb-6 text-center">
             <p className="text-white text-base mb-1" style={poppins}>
               You are in tune with <span className="font-semibold" style={{ color: PINK }}>{status.partner_name}</span>
@@ -132,6 +135,7 @@ export default function AttunementPage() {
               Open your shared space
             </Link>
           </div>
+          </>
         ) : (
           <>
             {/* Choice 1: partner is a woman */}
@@ -151,7 +155,7 @@ export default function AttunementPage() {
                   {generating ? 'Making your link…' : 'Invite her'}
                 </button>
                 <p className="text-[#B4B0C8] text-[11px] mt-3 leading-relaxed" style={poppins}>
-                  Today the link shares your cycle view with her. Full two-cycle syncing, where the app follows both of your cycles together, is on its way.
+                  Once she joins and you link up, you'll both see each other's phase and day side by side, with the days you're in sync highlighted. You each choose what the other can see.
                 </p>
               </div>
             </div>

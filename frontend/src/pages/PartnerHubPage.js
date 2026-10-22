@@ -6,6 +6,7 @@ import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2 }
 import axios from 'axios';
 import { PHASE_COLORS as SHARED_PHASE_COLORS } from '../lib/phases';
 import logger from '../utils/logger';
+import CycleSync from '../components/CycleSync';
 
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -315,6 +316,9 @@ export default function PartnerHubPage() {
             </p>
           )}
         </div>
+
+        {/* Two-cycle sync: shows both cycles when both share their phase */}
+        {status.role === 'partner' && <CycleSync token={token} />}
 
         {/* Tabs — Notes sits here quietly, discovered naturally */}
         <div className="flex gap-2 mb-6">
