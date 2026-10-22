@@ -153,6 +153,7 @@ class UserResponse(BaseModel):
     cycle_status: str = "regular"
     fertility_predictions_enabled: bool = True
     partner_visibility: Dict[str, bool] = {}
+    conditions: List[str] = []
     created_at: Optional[str] = None
 
 class TokenResponse(BaseModel):
@@ -198,6 +199,7 @@ class ProfileUpdate(BaseModel):
     partner_visibility: Optional[Dict[str, bool]] = None
     notifications_enabled: Optional[bool] = None
     notification_time: Optional[str] = None
+    conditions: Optional[List[str]] = None  # e.g. PMDD, PCOS, endometriosis
 
 class PeriodReset(BaseModel):
     new_period_date: str  # ISO format date
@@ -774,6 +776,7 @@ def build_user_response(user: dict) -> UserResponse:
         cycle_status=user.get("cycle_status", "regular"),
         fertility_predictions_enabled=user.get("cycle_status", "regular") not in NO_FERTILITY_STATUSES,
         partner_visibility={**DEFAULT_PARTNER_VISIBILITY, **(user.get("partner_visibility") or {})},
+        conditions=user.get("conditions") or [],
         created_at=user.get("created_at")
     )
 
@@ -1885,6 +1888,9 @@ async def update_profile(data: ProfileUpdate, current_user: dict = Depends(get_c
         update_data["notifications_enabled"] = data.notifications_enabled
     if data.notification_time is not None:
         update_data["notification_time"] = data.notification_time
+    if data.conditions is not None:
+        allowed = {"PMDD", "PCOS", "Endometriosis", "Irregular cycles"}
+        update_data["conditions"] = [c for c in data.conditions if c in allowed]
 
     if update_data:
         await db.users.update_one({"id": current_user["id"]}, {"$set": update_data})

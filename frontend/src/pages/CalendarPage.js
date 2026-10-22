@@ -406,7 +406,7 @@ export default function CalendarPage() {
           <h1 className="text-4xl text-[#F4D3DC] font-script">
             Calendar
           </h1>
-          <p className="text-[#CFC3CC] text-xs mt-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap any calendar day to log your period, symptoms, or intimacy.</p>
+          <p className="text-[#CFC3CC] text-xs mt-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap any day, past or present, to add or remove a period day, log symptoms (including PMDD), or intimacy. Irregular cycle? Just log each period as it comes and predictions follow.</p>
         </div>
         <button
           data-testid="reset-period-btn"

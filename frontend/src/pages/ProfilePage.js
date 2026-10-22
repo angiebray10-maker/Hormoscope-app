@@ -7,6 +7,7 @@ import { User, LogOut, ChevronRight, Shield, FileText, Sparkles, Mail, Camera, L
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
+import DateSelect from '../components/DateSelect';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const APP_URL = process.env.REACT_APP_BACKEND_URL?.replace('/api', '') || window.location.origin;
@@ -92,7 +93,7 @@ function AttunedSection({ token }) {
       ) : inviteCode ? (
         <div>
           <p className="text-[#CFC3CC] text-xs mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Share this code with your partner. He creates his own HORMOscope account, opens Partner Hub, and enters it.
+            Share this code with your partner. They create their own HORMOscope account, open Partner Hub, and enter it.
           </p>
           <button onClick={copyCode}
             className="w-full py-3 rounded-xl text-center mb-2"
@@ -102,22 +103,116 @@ function AttunedSection({ token }) {
               {copied ? 'Copied!' : 'Tap to copy'}
             </span>
           </button>
-          <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            He sees your cycle calendar only — never your journal.
+          {navigator.share && (
+            <button onClick={() => navigator.share({ title: 'Join me on HORMOscope', text: `Join me on HORMOscope. Create your account, open Partner Hub and enter my code: ${inviteCode}` }).catch(() => {})}
+              className="w-full py-2.5 rounded-full text-white text-sm font-medium mb-2" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }} data-testid="share-invite-btn">
+              Share code
+            </button>
+          )}
+          <p className="text-[#E6E0EE] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            They only see what you allow under "What your partner can see" below. Never your journal or intimacy log.
           </p>
         </div>
       ) : (
         <div>
           <p className="text-[#CFC3CC] text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Link his account to yours so he can follow your cycle — ovulation days, fertile window, and when to expect your period.
+            Link your partner's account to yours so they can follow your cycle. If she tracks too, you'll see both cycles side by side.
           </p>
           <button onClick={handleInvite} disabled={generating}
             className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50"
             style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}>
-            {generating ? 'Creating invite...' : 'Invite Your Partner'}
+            {generating ? 'Creating your code...' : 'Create & share invite code'}
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+
+const VIS_OPTIONS = [
+  { id: 'phase', label: 'My phase and cycle day' },
+  { id: 'mood_energy', label: 'My mood and energy' },
+  { id: 'period_dates', label: 'When my next period is due' },
+  { id: 'fertile_window', label: 'My fertile window' },
+  { id: 'wishlist', label: 'My wishlist' },
+];
+const SITUATION_OPTIONS = [
+  { id: 'regular', label: 'I get a period' },
+  { id: 'unsure', label: 'Not sure of my cycle length' },
+  { id: 'hormonal_birth_control', label: 'Hormonal birth control' },
+  { id: 'pregnant', label: 'Pregnant' },
+  { id: 'postpartum', label: 'Postpartum / breastfeeding' },
+  { id: 'menopause', label: 'Perimenopause or menopause' },
+];
+const CONDITION_OPTIONS = ['PMDD', 'PCOS', 'Endometriosis', 'Irregular cycles'];
+
+function MyDetailsSection({ user, token, updateUser }) {
+  const [birthday, setBirthday] = useState(user?.birthday || '');
+  const [situation, setSituation] = useState(user?.cycle_status || 'regular');
+  const [conditions, setConditions] = useState(user?.conditions || []);
+  const [vis, setVis] = useState(user?.partner_visibility || {});
+  const [motion, setMotion] = useState(localStorage.getItem('hormoscope-motion') === 'on');
+  const [msg, setMsg] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true); setMsg('');
+    try {
+      const res = await axios.put(`${API}/profile`, { birthday: birthday || '', cycle_status: situation, conditions, partner_visibility: vis }, { headers: { Authorization: `Bearer ${token}` } });
+      updateUser(res.data);
+      setMsg('Saved.');
+    } catch (err) {
+      setMsg(typeof err.response?.data?.detail === 'string' ? err.response.data.detail : "Couldn't save. Please try again.");
+    } finally { setSaving(false); }
+  };
+  const toggleMotion = (on) => {
+    setMotion(on);
+    localStorage.setItem('hormoscope-motion', on ? 'on' : 'off');
+    document.documentElement.classList.toggle('hs-motion', on);
+  };
+  const row = 'flex items-center gap-3 py-1.5 text-sm text-[#F7F4FA] cursor-pointer';
+
+  return (
+    <div className="glass-card p-5 mb-6 space-y-5" data-testid="my-details" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      <div>
+        <p className="text-white text-base mb-2">Birthday <span className="text-[#E6E0EE] text-xs">(optional)</span></p>
+        <DateSelect testId="profile-birthday" value={birthday} onChange={setBirthday} minYear={1930} maxYear={new Date().getFullYear() - 18} />
+      </div>
+      <div>
+        <p className="text-white text-base mb-2">My cycle right now</p>
+        <select value={situation} onChange={(e) => setSituation(e.target.value)} className="w-full rounded-xl px-3 py-2.5 bg-white/5 border border-white/15 text-white" data-testid="profile-situation">
+          {SITUATION_OPTIONS.map((o) => <option key={o.id} value={o.id} className="bg-[#15152B]">{o.label}</option>)}
+        </select>
+        {!['regular', 'unsure'].includes(situation) && <p className="text-[#E6E0EE] text-xs mt-1">Fertility predictions are turned off.</p>}
+      </div>
+      <div>
+        <p className="text-white text-base mb-1">Conditions I live with</p>
+        {CONDITION_OPTIONS.map((c) => (
+          <label key={c} className={row}>
+            <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={conditions.includes(c)} onChange={(e) => setConditions(e.target.checked ? [...conditions, c] : conditions.filter((x) => x !== c))} data-testid={`condition-${c}`} />
+            {c}
+          </label>
+        ))}
+      </div>
+      <div>
+        <p className="text-white text-base mb-1">What your partner can see</p>
+        {VIS_OPTIONS.map((v) => (
+          <label key={v.id} className={row}>
+            <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={!!vis[v.id]} onChange={(e) => setVis({ ...vis, [v.id]: e.target.checked })} />
+            {v.label}
+          </label>
+        ))}
+        <p className="text-[#E6E0EE] text-xs mt-1">Your journal and intimacy log are never shared.</p>
+      </div>
+      <label className={row}>
+        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={motion} onChange={(e) => toggleMotion(e.target.checked)} data-testid="motion-toggle" />
+        Gentle motion and glow effects
+      </label>
+      <button onClick={save} disabled={saving} className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ background: '#FF4F9A' }} data-testid="save-details-btn">
+        {saving ? 'Saving…' : 'Save my details'}
+      </button>
+      {msg && <p className="text-sm text-center text-[#E6E0EE]" role="status">{msg}</p>}
     </div>
   );
 }
@@ -379,6 +474,7 @@ export default function ProfilePage() {
 
       {/* Attunement Mode */}
       <AttunedSection token={token} />
+      <MyDetailsSection user={user} token={token} updateUser={updateUser} />
 
       {/* Logout */}
       <button
