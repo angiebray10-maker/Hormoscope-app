@@ -1,6 +1,6 @@
 
 
-@import url('https://fonts.googleapis.com/css2?family=Poiret+One&family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poiret+One&family=Poppins:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -647,4 +647,10 @@ html:not(.hs-motion) .hs-orbit-icon {
 html:not(.hs-motion) .pulsating-orb { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
+}
+
+/* Professional face for security, privacy and legal text only. */
+.security-notice, .security-notice p, .security-notice li,
+.legal-doc, .legal-doc p, .legal-doc li, .legal-doc h1, .legal-doc h2, .legal-doc h3 {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
 }

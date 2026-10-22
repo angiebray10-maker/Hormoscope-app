@@ -1,4 +1,5 @@
 import React from 'react';
+import SecurityNotice from '../components/SecurityNotice';
 import { Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 
@@ -6,7 +7,7 @@ const LOGO_URL = "/logo192.png";
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-[#0B0B1E] p-6 pb-24 official-doc" style={{ fontFamily: "'Poppins', sans-serif" }}>
+    <div className="min-h-screen bg-[#0B0B1E] p-6 pb-24 official-doc legal-doc">
       <Link to="/profile" className="inline-flex items-center gap-2 text-[#b8b8d1] hover:text-white mb-8">
         <ChevronLeft className="w-5 h-5" />
         Back
@@ -20,6 +21,8 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
       </div>
+
+      <SecurityNotice className="mb-6" />
 
       <div className="glass-card p-6 space-y-6 text-[#CFC8DC]">
         <section>

@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
+import SecurityNotice from '../components/SecurityNotice';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, ChevronDown, Shield, Check, ArrowRight, Heart, Users, Award, Zap, Calendar, MessageCircle } from 'lucide-react';
+import { Eye, EyeOff, ChevronDown, Shield, Check, ArrowRight, Heart, Users, Calendar, MessageCircle } from 'lucide-react';
 
 const BRAND_FONT = "'Poiret One', sans-serif";
 const HEADING_FONT = "'Poiret One', sans-serif";
@@ -105,12 +106,14 @@ export default function AuthPage() {
         <div className="pulsating-orb" style={{ width: 110, height: 110, top: '46%', right: '12%', background: 'radial-gradient(circle, rgba(201,184,240,0.45) 0%, rgba(201,184,240,0) 70%)', animationDelay: '3.1s' }} />
 
         <div className="relative z-10 w-full max-w-xl mx-auto px-6 py-20 text-center sm:text-left">
-          <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT }} data-testid="hero-eyebrow">Science, Not Stars</p>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white leading-tight mb-5" style={{ fontFamily: HEADING_FONT }} data-testid="hero-title">
-            Not your horoscope. <span style={{ color: PURPLE_LIGHT }}>Your hormones.</span>
+          <h1 className="text-5xl sm:text-6xl text-white leading-tight mb-3" style={{ fontFamily: HEADING_FONT }} data-testid="hero-title">
+            Science, not stars
           </h1>
-          <p className="text-sm sm:text-base leading-relaxed mb-8 max-w-md" style={{ color: PINK_SOFT, fontFamily: HEADING_FONT }}>
-            Daily personalized hormonal readings rooted in science — not astrology. See exactly what your body is doing today, which of the 4 phases you&apos;re in, and how it&apos;s shaping your mood, energy and focus.
+          <p className="text-base sm:text-lg mb-5" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }} data-testid="hero-tagline">
+            Not your horoscope. Your hormones.
+          </p>
+          <p className="text-sm sm:text-base leading-relaxed mb-8 max-w-md" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
+            A daily read based on your menstrual cycle: which phase you&apos;re in and how it may shape your mood, energy and focus. Share it with your partner, or sync cycles with your girlfriend. Free.
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-3 mb-4">
             <button onClick={openSignup} data-testid="hero-cta-btn" className="w-full sm:w-auto px-8 py-3.5 rounded-full text-white font-medium text-sm tracking-wide transition-all duration-300" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)' }}>
@@ -121,7 +124,7 @@ export default function AuthPage() {
             </button>
           </div>
           <p className="text-xs flex items-center justify-center sm:justify-start gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-            <Shield className="w-3.5 h-3.5" /> Private &amp; secure.
+            <Shield className="w-3.5 h-3.5" /> HTTPS, hashed passwords, never sold.
           </p>
         </div>
         <button onClick={() => scrollTo(focusRef)} className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce" style={{ color: PINK_MUTED }}>
@@ -133,10 +136,8 @@ export default function AuthPage() {
       <section className="py-5 px-6" style={{ borderTop: '1px solid rgba(123,79,166,0.1)', borderBottom: '1px solid rgba(123,79,166,0.1)' }}>
         <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-center gap-6 sm:gap-10">
           {[
-            { icon: <Zap className="w-4 h-4" />, text: 'Daily mood forecasts' },
             { icon: <Shield className="w-4 h-4" />, text: 'Rooted in biology' },
-            { icon: <Users className="w-4 h-4" />, text: 'For all women' },
-            { icon: <Award className="w-4 h-4" />, text: 'Science, not stars' }
+            { icon: <Users className="w-4 h-4" />, text: 'Built for couples, including same-sex couples' }
           ].map((badge) => (
             <div key={badge.text} className="flex items-center gap-2 text-xs" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid={`authority-badge-${badge.text}`}>
               <span style={{ color: PURPLE_LIGHT }}>{badge.icon}</span>
@@ -146,40 +147,40 @@ export default function AuthPage() {
         </div>
       </section>
 
-      {/* WHAT IT IS FOR — the Journal and Attuned Partner Mode, and
-          the privacy promise (Angelita, Oct 21, 2026). The example
-          sections (Day 24 scenarios, relationship translator) are gone
-          on her order; the front door concentrates on these two. */}
+      {/* WHAT IT IS FOR: Attuned Partner Mode, free app, Journal Companion,
+          security notice (founder notes round 2, Oct 22, 2026). No reviews. */}
       <section ref={focusRef} className="py-20 px-6 relative overflow-hidden">
-        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,79,154,0.5) 0%, rgba(255,79,154,0) 70%)' }} />
-        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(201,184,240,0.5) 0%, rgba(201,184,240,0) 70%)', animationDelay: '1.6s' }} />
-        <div className="pulsating-orb" style={{ width: 110, height: 110, top: '46%', right: '12%', background: 'radial-gradient(circle, rgba(201,184,240,0.45) 0%, rgba(201,184,240,0) 70%)', animationDelay: '3.1s' }} />
-        <div className="max-w-2xl mx-auto relative z-10">
-          <div className="text-center mb-12">
-            <p className="text-xs font-medium tracking-widest uppercase mb-4" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>What HORMOscope is for</p>
-            <h2 className="text-3xl sm:text-4xl text-white mb-4" style={{ fontFamily: HEADING_FONT }}>Your journal. Your partner. Your cycle.</h2>
+        <div className="max-w-2xl mx-auto relative z-10 space-y-5">
+          <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,79,154,0.07)', border: '1px solid rgba(255,79,154,0.35)' }} data-testid="focus-attuned">
+            <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: '#FF4F9A', fontFamily: 'Poppins, sans-serif' }}>Free · Attuned Partner Mode</p>
+            <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>Stay in tune with the one you love</h2>
+            <ul className="space-y-2 text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
+              <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />Sync cycles with your girlfriend: both your phases side by side, with the days you&apos;re in sync highlighted.</li>
+              <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />Or invite your boyfriend so he knows what each phase may feel like and how to show up.</li>
+              <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />You choose exactly what they see. Your journal and intimacy log are never shared.</li>
+            </ul>
           </div>
-          <div className="space-y-4 mb-4">
-            <div className="p-6 rounded-2xl official-doc" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(201,184,240,0.25)' }} data-testid="focus-journal">
-              <h3 className="text-white text-lg mb-2" style={{ fontFamily: "'Poiret One', sans-serif" }}>The Journal</h3>
-              <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: "'Poppins', sans-serif" }}>
-                A real book, one page for every day, written by you and kept for you. Inside it lives your companion, who knows your cycle and your words, and talks with you about what the day truly felt like.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl official-doc" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,79,154,0.25)' }} data-testid="focus-attuned">
-              <h3 className="text-white text-lg mb-2" style={{ fontFamily: "'Poiret One', sans-serif" }}>Attuned Partner Mode</h3>
-              <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: "'Poppins', sans-serif" }}>
-                Link with your partner and sync your cycles. Each of you can see where the other is in her cycle, so the hard days never blindside either of you. HORMOscope is built for same sex couples from the ground up, not adapted as an afterthought.
-              </p>
-            </div>
-          </div>
-          <div className="p-6 rounded-2xl text-center official-doc" style={{ background: 'rgba(201,184,240,0.06)', border: '1px solid rgba(201,184,240,0.35)' }} data-testid="focus-privacy">
-            <p className="text-xs font-medium tracking-widest uppercase mb-3" style={{ color: '#C9B8F0', fontFamily: 'Poppins, sans-serif' }}>Our number one promise</p>
-            <h3 className="text-white text-xl mb-3" style={{ fontFamily: HEADING_FONT }}>Your privacy comes first. Always.</h3>
-            <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: "'Poppins', sans-serif" }}>
-              Your journal, your cycle, and your conversations travel over secure, encrypted connections and are never sold. Other users and your partner only ever see what you choose to share. Companion messages are processed by our AI provider to write replies, and nothing else.
+
+          <div className="p-6 rounded-2xl" style={{ background: 'rgba(201,184,240,0.06)', border: '1px solid rgba(201,184,240,0.35)' }} data-testid="focus-free">
+            <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>No paywall maze</p>
+            <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>The whole app is free</h2>
+            <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
+              Cycle tracking, calendar, daily read, mood logging, phase guides and Attuned Partner Mode cost nothing. The only paid feature is the AI Journal Companion, because every reply costs us to run.
             </p>
           </div>
+
+          <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.15)' }} data-testid="focus-journal">
+            <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>Journal Companion</p>
+            <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>A journal that writes back</h2>
+            <p className="text-sm leading-relaxed mb-3" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
+              Write about your day and your AI companion answers, knowing where you are in your cycle. The more cycles you write, the more it learns your patterns.
+            </p>
+            <p className="text-sm text-white" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="landing-companion-price">
+              3 free messages every day. Unlimited: $9.99/month after a 7-day free trial, or $59.99/year. Cancel anytime.
+            </p>
+          </div>
+
+          <SecurityNotice />
         </div>
       </section>
 
@@ -301,7 +302,7 @@ export default function AuthPage() {
             Get Started
           </button>
           <p className="text-xs mt-4 flex items-center justify-center gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-            <Shield className="w-3.5 h-3.5" /> Private &amp; secure.
+            <Shield className="w-3.5 h-3.5" /> HTTPS, hashed passwords, never sold.
           </p>
         </div>
       </section>
@@ -349,6 +350,7 @@ export default function AuthPage() {
                   </label>
                 </div>
               )}
+              {!isLogin && <SecurityNotice compact />}
               <button data-testid="auth-submit-btn" type="submit" disabled={loading} className="w-full py-3 rounded-full text-white font-medium text-sm tracking-wide transition-all duration-300" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)', fontFamily: 'Poppins, sans-serif' }}>
                 {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
               </button>
