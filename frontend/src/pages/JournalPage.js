@@ -906,7 +906,7 @@ export default function JournalPage() {
             </div>
             <p className="px-4 pb-3 text-[11px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.45)' }}>
               Write to {companion.name} here. {companion.name} knows where you are in your cycle and what today has
-              held, and answers you inside these pages only. Nothing here is ever shared with anyone.
+              held, and answers you inside these pages only. Your partner never sees this. To write a reply, your message and your cycle context are sent to our AI provider (Anthropic); they are not used to train AI models and are never sold.
             </p>
             {companionExchanges.length > 0 && (
               <div className="px-4 pb-2">

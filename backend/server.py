@@ -114,11 +114,23 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+# Cycle situations that make fertile-window / ovulation predictions
+# meaningless, so they are switched off for these users.
+CYCLE_STATUSES = {"regular", "unsure", "hormonal_birth_control", "pregnant", "postpartum", "menopause"}
+NO_FERTILITY_STATUSES = {"hormonal_birth_control", "pregnant", "postpartum", "menopause"}
+PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_window", "wishlist")
+DEFAULT_PARTNER_VISIBILITY = {"phase": True, "mood_energy": True, "period_dates": True, "fertile_window": False, "wishlist": True}
+
+
 class UserOnboarding(BaseModel):
     name: str
-    birthday: str  # ISO format date YYYY-MM-DD
+    birthday: Optional[str] = None  # optional now; set from Profile
     cycle_length: int = 28
-    last_period_date: str  # ISO format date
+    # None = she doesn't remember. We never invent a date.
+    last_period_date: Optional[str] = None
+    cycle_status: str = "regular"
+    partner_choice: Optional[str] = None  # invite_partner | sync_girlfriend | later
+    partner_visibility: Optional[Dict[str, bool]] = None
     notifications_enabled: bool = True
     notification_time: str = "09:00"
 
@@ -138,6 +150,9 @@ class UserResponse(BaseModel):
     notifications_enabled: bool = True
     notification_time: str = "09:00"
     notification_preferences: Dict[str, bool] = {}
+    cycle_status: str = "regular"
+    fertility_predictions_enabled: bool = True
+    partner_visibility: Dict[str, bool] = {}
     created_at: Optional[str] = None
 
 class TokenResponse(BaseModel):
@@ -178,6 +193,11 @@ class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     notification_preferences: Optional[Dict[str, bool]] = None
     profile_photo: Optional[str] = None
+    birthday: Optional[str] = None  # "" clears it
+    cycle_status: Optional[str] = None
+    partner_visibility: Optional[Dict[str, bool]] = None
+    notifications_enabled: Optional[bool] = None
+    notification_time: Optional[str] = None
 
 class PeriodReset(BaseModel):
     new_period_date: str  # ISO format date
@@ -751,6 +771,9 @@ def build_user_response(user: dict) -> UserResponse:
         notifications_enabled=user.get("notifications_enabled", True),
         notification_time=user.get("notification_time", "09:00"),
         notification_preferences=user.get("notification_preferences", {}),
+        cycle_status=user.get("cycle_status", "regular"),
+        fertility_predictions_enabled=user.get("cycle_status", "regular") not in NO_FERTILITY_STATUSES,
+        partner_visibility={**DEFAULT_PARTNER_VISIBILITY, **(user.get("partner_visibility") or {})},
         created_at=user.get("created_at")
     )
 
@@ -1758,25 +1781,45 @@ async def revenuecat_webhook(request: Request):
 
 @api_router.post("/onboarding", response_model=UserResponse)
 async def complete_onboarding(data: UserOnboarding, current_user: dict = Depends(get_current_user)):
-    # Validate last_period_date is sane (not in the future, not > 1 year ago)
-    try:
-        lp_date = datetime.strptime(data.last_period_date, "%Y-%m-%d").date()
+    if not (data.name or "").strip():
+        raise HTTPException(status_code=400, detail="Please tell us your name.")
+    if data.cycle_status not in CYCLE_STATUSES:
+        raise HTTPException(status_code=400, detail="Unknown cycle situation.")
+    if not 21 <= int(data.cycle_length) <= 40:
+        raise HTTPException(status_code=400, detail="Cycle length must be between 21 and 40 days.")
+    # Validate last_period_date is sane (not in the future, not > 1 year ago).
+    # It may be empty: "I don't remember" is an honest answer.
+    if data.last_period_date:
+        try:
+            lp_date = datetime.strptime(data.last_period_date, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
         today_d = date.today()
         if lp_date > today_d:
             raise HTTPException(status_code=400, detail="Last period date cannot be in the future.")
         if (today_d - lp_date).days > 365:
             raise HTTPException(status_code=400, detail="Last period date must be within the past year. Please choose a recent date.")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+    if data.birthday:
+        try:
+            datetime.strptime(data.birthday, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid birthday. Use YYYY-MM-DD.")
+    visibility = dict(DEFAULT_PARTNER_VISIBILITY)
+    for k, v in (data.partner_visibility or {}).items():
+        if k in PARTNER_VISIBILITY_KEYS:
+            visibility[k] = bool(v)
     period_length = current_user.get("period_length") or 5
     await db.users.update_one(
         {"id": current_user["id"]},
         {"$set": {
-            "name": data.name,
-            "birthday": data.birthday,
-            "cycle_length": data.cycle_length,
+            "name": data.name.strip(),
+            "birthday": data.birthday or current_user.get("birthday"),
+            "cycle_length": int(data.cycle_length),
             "period_length": period_length,
-            "last_period_date": data.last_period_date,
+            "last_period_date": data.last_period_date or None,
+            "cycle_status": data.cycle_status,
+            "partner_choice": data.partner_choice,
+            "partner_visibility": visibility,
             "notifications_enabled": data.notifications_enabled,
             "notification_time": data.notification_time,
             "onboarding_complete": True
@@ -1821,7 +1864,28 @@ async def update_profile(data: ProfileUpdate, current_user: dict = Depends(get_c
         update_data["notification_preferences"] = data.notification_preferences
     if data.profile_photo is not None:
         update_data["profile_photo"] = data.profile_photo
-    
+    if data.birthday is not None:
+        if data.birthday:
+            try:
+                datetime.strptime(data.birthday, "%Y-%m-%d")
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid birthday. Use YYYY-MM-DD.")
+        update_data["birthday"] = data.birthday or None
+    if data.cycle_status is not None:
+        if data.cycle_status not in CYCLE_STATUSES:
+            raise HTTPException(status_code=400, detail="Unknown cycle situation.")
+        update_data["cycle_status"] = data.cycle_status
+    if data.partner_visibility is not None:
+        vis = {**DEFAULT_PARTNER_VISIBILITY, **(current_user.get("partner_visibility") or {})}
+        for k, v in data.partner_visibility.items():
+            if k in PARTNER_VISIBILITY_KEYS:
+                vis[k] = bool(v)
+        update_data["partner_visibility"] = vis
+    if data.notifications_enabled is not None:
+        update_data["notifications_enabled"] = data.notifications_enabled
+    if data.notification_time is not None:
+        update_data["notification_time"] = data.notification_time
+
     if update_data:
         await db.users.update_one({"id": current_user["id"]}, {"$set": update_data})
     
@@ -2964,18 +3028,28 @@ async def get_partner_view(link_code: str):
     
     tips = _partner_tips_for_phase(phase)
     
-    return {
-        "name": user.get("name", "Her"),
-        "cycle_day": cycle_info.get("cycle_day", 1),
-        "cycle_length": cycle_length,
-        "phase": phase,
-        "phase_info": cycle_info.get("phase_info", ""),
-        "energy": rhythm.get("energy", {}).get("level", "Unknown"),
-        "energy_score": rhythm.get("energy", {}).get("score", 50),
-        "mood": rhythm.get("mood", {}).get("level", "Unknown"),
-        "mood_score": rhythm.get("mood", {}).get("score", 50),
-        "partner_tips": tips
-    }
+    # Only what she chose to share (Profile > partner visibility).
+    vis = {**DEFAULT_PARTNER_VISIBILITY, **(user.get("partner_visibility") or {})}
+    out = {"name": user.get("name", "Her"), "visibility": vis}
+    if vis.get("phase"):
+        out.update({
+            "cycle_day": cycle_info.get("cycle_day", 1),
+            "cycle_length": cycle_length,
+            "phase": phase,
+            "phase_info": cycle_info.get("phase_info", ""),
+            "partner_tips": tips,
+        })
+    if vis.get("mood_energy"):
+        out.update({
+            "energy": rhythm.get("energy", {}).get("level", "Unknown"),
+            "energy_score": rhythm.get("energy", {}).get("score", 50),
+            "mood": rhythm.get("mood", {}).get("level", "Unknown"),
+            "mood_score": rhythm.get("mood", {}).get("score", 50),
+        })
+    if vis.get("period_dates"):
+        out["next_period_date"] = cycle_info.get("next_period_date")
+        out["days_until_period"] = cycle_info.get("days_until_period")
+    return out
 
 @api_router.get("/partner/my-link")
 async def get_my_partner_link(current_user: dict = Depends(get_current_user)):
@@ -3108,12 +3182,15 @@ async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
 
     npd = cycle_info.get("next_period_date")
     ovulation_date = fertile_start = fertile_end = None
-    if npd:
+    _vis = {**DEFAULT_PARTNER_VISIBILITY, **(owner.get("partner_visibility") or {})}
+    _share_fertile = _vis.get("fertile_window") and owner.get("cycle_status", "regular") not in NO_FERTILITY_STATUSES
+    if npd and _share_fertile:
         np = date.fromisoformat(npd)
         ov = np - timedelta(days=14)
         ovulation_date = ov.isoformat()
+        # Fertile window = the 5 days before ovulation plus ovulation day.
         fertile_start = (ov - timedelta(days=5)).isoformat()
-        fertile_end = (ov + timedelta(days=1)).isoformat()
+        fertile_end = ov.isoformat()
 
     marked_days = []
     if last_period:

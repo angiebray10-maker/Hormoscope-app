@@ -177,7 +177,7 @@ export default function AuthPage() {
             <p className="text-xs font-medium tracking-widest uppercase mb-3" style={{ color: '#D4A853', fontFamily: 'Poppins, sans-serif' }}>Our number one promise</p>
             <h3 className="text-white text-xl mb-3" style={{ fontFamily: HEADING_FONT }}>Your privacy comes first. Always.</h3>
             <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: PINK_SOFT, fontFamily: "'Times New Roman', Times, serif" }}>
-              Your journal, your cycle, and your conversations are encrypted when they travel and when they rest, protected by security we keep updated ahead of the standard, and never sold or shared with anyone. Not other users. Not your partner. Nobody. Protecting your data is the first job of this app, before everything else.
+              Your journal, your cycle, and your conversations travel over secure, encrypted connections and are never sold. Other users and your partner only ever see what you choose to share. Companion messages are processed by our AI provider to write replies, and nothing else.
             </p>
           </div>
         </div>
