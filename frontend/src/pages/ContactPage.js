@@ -83,7 +83,7 @@ export default function ContactPage() {
               → Cycle Calendar
             </Link>
             <Link to="/journal" className="block text-[#CFC3CC] hover:text-[#F4D3DC] transition-colors">
-              → Journal Companion
+              → Journal
             </Link>
             <Link to="/privacy" className="block text-[#CFC3CC] hover:text-[#F4D3DC] transition-colors">
               → Privacy Policy

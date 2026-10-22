@@ -114,7 +114,7 @@ export default function AuthPage() {
             Not your horoscope. Your hormones.
           </p>
           <p className="text-sm sm:text-base leading-relaxed mb-8 max-w-md" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
-            A daily read based on your menstrual cycle: which phase you&apos;re in and how it may shape your mood, energy and focus. Share it with your partner, or sync cycles with your girlfriend. Free.
+            A daily read based on your menstrual cycle: which phase you&apos;re in and how it may shape your mood, energy and focus. Share it with your partner, or sync cycles with your girlfriend.
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-3 mb-4">
             <button onClick={openSignup} data-testid="hero-cta-btn" className="w-full sm:w-auto px-8 py-3.5 rounded-full text-white font-medium text-sm tracking-wide transition-all duration-300" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)' }}>
@@ -148,12 +148,12 @@ export default function AuthPage() {
         </div>
       </section>
 
-      {/* WHAT IT IS FOR: Attuned Partner Mode, free app, Journal Companion,
-          security notice (founder notes round 2, Oct 22, 2026). No reviews. */}
+      {/* WHAT IT IS FOR: Attuned Partner Mode, your cycle day by day,
+          the private Journal book, security notice. No reviews. */}
       <section ref={focusRef} className="py-20 px-6 relative overflow-hidden">
         <div className="max-w-2xl mx-auto relative z-10 space-y-5">
           <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,79,154,0.07)', border: '1px solid rgba(255,79,154,0.35)' }} data-testid="focus-attuned">
-            <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: '#FF4F9A', fontFamily: 'Poppins, sans-serif' }}>Free · Attuned Partner Mode</p>
+            <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: '#FF4F9A', fontFamily: 'Poppins, sans-serif' }}>Attuned Partner Mode</p>
             <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>Stay in tune with the one you love</h2>
             <ul className="space-y-2 text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
               <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />Sync cycles with your girlfriend: both your phases side by side, with the days you&apos;re in sync highlighted.</li>
@@ -162,22 +162,19 @@ export default function AuthPage() {
             </ul>
           </div>
 
-          <div className="p-6 rounded-2xl" style={{ background: 'rgba(201,184,240,0.06)', border: '1px solid rgba(201,184,240,0.35)' }} data-testid="focus-free">
-            <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>No paywall maze</p>
-            <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>The whole app is free</h2>
+          <div className="p-6 rounded-2xl" style={{ background: 'rgba(201,184,240,0.06)', border: '1px solid rgba(201,184,240,0.35)' }} data-testid="focus-cycle">
+            <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>Day by day</p>
+            <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>Your cycle, day by day</h2>
             <p className="text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
-              Cycle tracking, calendar, daily read, mood logging, phase guides and Attuned Partner Mode cost nothing. The only paid feature is the AI Journal Companion, because every reply costs us to run.
+              Track your cycle on the calendar, read your daily read, log mood and symptoms, and follow phase guides made for where you are in your cycle today.
             </p>
           </div>
 
           <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.15)' }} data-testid="focus-journal">
-            <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>Journal Companion</p>
-            <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>A journal that writes back</h2>
+            <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>Journal</p>
+            <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>A journal that is yours alone</h2>
             <p className="text-sm leading-relaxed mb-3" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
-              Write about your day and your Journal Companion answers, knowing where you are in your cycle. The more cycles you write, the more it learns your patterns.
-            </p>
-            <p className="text-sm text-white" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="landing-companion-price">
-              3 free messages every day. Unlimited: $9.99/month after a 7-day free trial, or $59.99/year. Cancel anytime.
+              Write about your day in a private book, one day per page. Your entries save to that day, so you can look back, compare days, and see your patterns over time. Your journal is never shared, not even with a partner.
             </p>
           </div>
 
@@ -277,7 +274,7 @@ export default function AuthPage() {
           <p className="text-xs sm:text-sm leading-relaxed mb-7" style={{ fontFamily: HEADING_FONT, color: PINK_SOFT }}>
             Track your cycle, mood, and intimacy, with daily readings and a private journal written around your body.
           </p>
-          <button onClick={openSignup} data-testid="start-free-cta" className="px-8 py-3.5 rounded-full text-white text-base transition-all" style={{ fontFamily: "'Poiret One', sans-serif", letterSpacing: '0.05em', background: 'linear-gradient(135deg, #C9B8F0, #B7A3EA)', boxShadow: '0 0 25px rgba(201,184,240,0.3)' }}>
+          <button onClick={openSignup} data-testid="start-cta" className="px-8 py-3.5 rounded-full text-white text-base transition-all" style={{ fontFamily: "'Poiret One', sans-serif", letterSpacing: '0.05em', background: 'linear-gradient(135deg, #C9B8F0, #B7A3EA)', boxShadow: '0 0 25px rgba(201,184,240,0.3)' }}>
             Get Started
           </button>
         </div>

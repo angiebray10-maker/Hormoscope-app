@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { usePremium } from '../context/PremiumContext';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Calendar, X, Lock, Settings2, Send, Pencil } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Calendar, X, Lock, Pencil } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
-import { purchaseCompanion, restoreCompanion } from '../utils/revenueCat';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#C9B8F0';
@@ -115,7 +113,6 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
 
 export default function JournalPage() {
   const { token, user } = useAuth();
-  const { loading: rcLoading, refreshCompanion } = usePremium();
   const [entries, setEntries] = useState([]);
   const [writing, setWriting] = useState(false);
   const [currentEntry, setCurrentEntry] = useState('');
@@ -158,34 +155,6 @@ export default function JournalPage() {
   const [changeNew, setChangeNew] = useState('');
   const [changeMsg, setChangeMsg] = useState('');
 
-  // ---- Her Journal Companion (Angelita, Oct 17) ----
-  // The journal can talk back, in a companion she names herself and
-  // can turn off completely. Settings come from GET /journal/companion;
-  // today's exchanges ride along with GET /journal, and past days'
-  // exchanges seal into the vault with the day. When the companion is
-  // off, none of it renders at all: just her and her private journal.
-  const [companion, setCompanion] = useState(null); // { enabled, name } | null = not asked yet
-  const [companionExchanges, setCompanionExchanges] = useState([]);
-  const [companionInput, setCompanionInput] = useState('');
-  const [companionBusy, setCompanionBusy] = useState(false);
-  const [companionError, setCompanionError] = useState('');
-  const [companionLocked, setCompanionLocked] = useState(false);
-  const [subBusy, setSubBusy] = useState(''); // '' | 'buy' | 'restore'
-  const [editingId, setEditingId] = useState(null); // entry being edited, if any
-  const [showOffer, setShowOffer] = useState(false); // subscription invitation, only after she tries to send past her free messages
-  const [subMsg, setSubMsg] = useState('');
-  const [companionSettingsOpen, setCompanionSettingsOpen] = useState(false);
-  const [companionNameDraft, setCompanionNameDraft] = useState('');
-  const [companionSaving, setCompanionSaving] = useState(false);
-  const [companionMsg, setCompanionMsg] = useState('');
-  // Two backend generations, one page (Oct 17): the live backend still
-  // answers GET /journal with a plain array of ALL entries and has no
-  // companion endpoints at all; the new one returns an object and knows
-  // the companion. If the companion settings cannot be reached at all,
-  // the companion is simply unavailable for this session: no card, no
-  // settings button, no error text, and never a crash.
-  const [companionUnavailable, setCompanionUnavailable] = useState(false);
-
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   /* eslint-disable */
@@ -208,193 +177,28 @@ export default function JournalPage() {
     fetchEntries();
   };
 
-  // The Journal and the Journal Vault are free for everyone.
+  // The Journal and the Journal Vault are hers alone.
 
   // Normalize-or-default for GET /journal, both backend generations:
   // the old one returns a plain array of ALL her entries (the book then
-  // pages every day, newest first, exactly as it used to, and there are
-  // no companion exchanges); the new one returns an object whose
-  // entries are today's page plus today's companion exchanges. Anything
-  // else, or any field that is not an array, becomes an empty list, so
-  // no undefined ever reaches state.
+  // pages every day, newest first, exactly as it used to); the new one
+  // returns an object whose entries are today's page. Anything else,
+  // or any field that is not an array, becomes an empty list, so no
+  // undefined ever reaches state.
   const normalizeJournalPayload = (data) => {
-    if (Array.isArray(data)) return { entries: data, companionExchanges: [] };
-    return {
-      entries: Array.isArray(data?.entries) ? data.entries : [],
-      companionExchanges: Array.isArray(data?.companion_exchanges) ? data.companion_exchanges : [],
-    };
+    if (Array.isArray(data)) return data;
+    return Array.isArray(data?.entries) ? data.entries : [];
   };
 
   const fetchEntries = async () => {
     setLoadError(false);
     try {
       const res = await axios.get(`${API}/journal`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      const { entries: nextEntries, companionExchanges: nextExchanges } = normalizeJournalPayload(res.data);
-      setEntries(nextEntries);
-      setCompanionExchanges(nextExchanges);
+      setEntries(normalizeJournalPayload(res.data));
     } catch (err) {
       logger.error('Failed to fetch journal entries:', err);
       setLoadError(true);
     } finally { setLoading(false); }
-  };
-
-  const fetchCompanion = async () => {
-    try {
-      const res = await axios.get(`${API}/journal/companion`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      if (res.data && typeof res.data === 'object' && !Array.isArray(res.data)) {
-        setCompanion(res.data);
-        setCompanionNameDraft(res.data?.name || '');
-      } else {
-        // A reply we cannot read as settings is no settings at all.
-        setCompanionUnavailable(true);
-      }
-    } catch (err) {
-      // The journal itself still works without the companion settings.
-      // On the old backend this endpoint does not exist yet (404), so
-      // any failure at all means the companion is unavailable for this
-      // session: it renders nothing, offers no settings, and shows no
-      // error. The journal carries on exactly as it was.
-      logger.error('Failed to fetch companion settings:', err);
-      setCompanionUnavailable(true);
-      setCompanionSettingsOpen(false);
-    }
-  };
-
-  /* eslint-disable */
-  useEffect(() => { if (token) fetchCompanion(); }, [token]);
-  /* eslint-enable */
-
-  const handleSendToCompanion = async () => {
-    const text = companionInput.trim();
-    if (!text || companionBusy) return;
-    // Angelita, Oct 20, 2026 (final correction): after her 3 free
-    // messages, the conversation and the message box stay exactly as
-    // they are. Only when she attempts to send another message does the
-    // subscription invitation appear inside the conversation, and her
-    // drafted words stay in the box, untouched.
-    const allowanceUsed = !!companion && !companion.has_access
-      && (companionLocked || !!companion.needs_subscription || companion.free_remaining === 0);
-    if (allowanceUsed) { setShowOffer(true); return; }
-    setCompanionBusy(true);
-    setCompanionError('');
-    setCompanionLocked(false);
-    try {
-      const res = await axios.post(`${API}/journal/companion/reply`, { message: text },
-        { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 });
-      if (res.data?.exchange) setCompanionExchanges(prev => [...prev, res.data.exchange]);
-      // Keep the free allowance state in step with the server. When her
-      // last free reply lands, nothing on screen changes: the whole
-      // conversation stays readable and the message box stays hers. The
-      // invitation appears only if she tries to send once more.
-      if (typeof res.data?.free_remaining === 'number') {
-        setCompanion(prev => prev ? {
-          ...prev,
-          free_used: res.data.free_used,
-          free_remaining: res.data.free_remaining,
-          needs_subscription: !!res.data.needs_subscription,
-          has_access: !!res.data.has_access,
-          subscribed: !!res.data.subscribed,
-        } : prev);
-        if (res.data.needs_subscription) setCompanionLocked(true);
-      }
-      setCompanionInput('');
-    } catch (err) {
-      // Plain words, her words stay in the box: the companion being
-      // unavailable (503) reads as resting, never as a broken journal.
-      const detail = err?.response?.data?.detail;
-      setCompanionError(typeof detail === 'string' ? detail : 'Your companion could not answer just now. Give it a moment and try again.');
-      // The gate's 403 now means her free messages are used: show the
-      // subscription offer, not an error she has to decode.
-      if (err?.response?.status === 403 && typeof detail === 'string' && detail.includes('free companion messages are used')) {
-        setCompanionLocked(true);
-        setShowOffer(true);
-        setCompanion(prev => prev ? { ...prev, free_remaining: 0, needs_subscription: true } : prev);
-        setCompanionError('');
-      }
-    } finally { setCompanionBusy(false); }
-  };
-
-  // Subscribing happens right here in the Journal (Angelita, Oct 20,
-  // 2026): there is no separate sales page anywhere in the app. The
-  // purchase runs through Google Play via RevenueCat; when it lands,
-  // the companion state refreshes and the message box comes back with
-  // every exchange above it untouched.
-  const refreshAfterPurchase = async () => {
-    await fetchCompanion();
-    try { if (refreshCompanion) await refreshCompanion(); } catch (e) { /* state refresh is best-effort */ }
-  };
-
-  const handleSubscribe = async () => {
-    if (subBusy) return;
-    setSubBusy('buy');
-    setSubMsg('');
-    try {
-      const res = await purchaseCompanion(user?.id);
-      if (res?.status === 'active') {
-        await refreshAfterPurchase();
-        setSubMsg('You are subscribed. Keep writing, everything you shared stays right here.');
-      } else if (res?.status === 'pending') {
-        setSubMsg('Google Play is finishing your purchase. If it does not complete in a moment, tap Restore Purchase.');
-      } else if (res?.status === 'cancelled') {
-        setSubMsg('No charge was made.');
-      } else {
-        setSubMsg(res?.message || 'The subscription is not available right now.');
-      }
-    } catch (err) {
-      setSubMsg('Something went wrong starting the purchase. Nothing was charged.');
-    } finally { setSubBusy(''); }
-  };
-
-  const handleRestore = async () => {
-    if (subBusy) return;
-    setSubBusy('restore');
-    setSubMsg('');
-    try {
-      const res = await restoreCompanion();
-      if (res?.status === 'active') {
-        await refreshAfterPurchase();
-        setSubMsg('Your subscription is restored. Welcome back.');
-      } else if (res?.status === 'none') {
-        setSubMsg('No subscription was found for this account.');
-      } else {
-        setSubMsg(res?.message || 'Restore could not be completed.');
-      }
-    } catch (err) {
-      setSubMsg('Restore could not be completed. Nothing was changed.');
-    } finally { setSubBusy(''); }
-  };
-
-  const handleToggleCompanion = async () => {
-    if (!companion || companionSaving) return;
-    setCompanionSaving(true);
-    setCompanionMsg('');
-    try {
-      const res = await axios.put(`${API}/journal/companion`, { enabled: !companion.enabled },
-        { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setCompanion(res.data);
-      setCompanionMsg(res.data?.enabled ? 'Your companion is here with you again.' : 'Your companion is off. This page is just yours now.');
-    } catch (err) {
-      const detail = err?.response?.data?.detail;
-      setCompanionMsg(typeof detail === 'string' ? detail : 'That did not save. Try again in a moment.');
-    } finally { setCompanionSaving(false); }
-  };
-
-  const handleRenameCompanion = async () => {
-    if (!companion || companionSaving) return;
-    const name = companionNameDraft.trim();
-    if (!name) { setCompanionMsg('Give your companion a name first.'); return; }
-    setCompanionSaving(true);
-    setCompanionMsg('');
-    try {
-      const res = await axios.put(`${API}/journal/companion`, { name },
-        { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setCompanion(res.data);
-      setCompanionNameDraft(res.data?.name || name);
-      setCompanionMsg(`Saved. Say hello to ${res.data?.name || name}.`);
-    } catch (err) {
-      const detail = err?.response?.data?.detail;
-      setCompanionMsg(typeof detail === 'string' ? detail : 'That name did not save. Try again in a moment.');
-    } finally { setCompanionSaving(false); }
   };
 
   // Group entries into book pages: one page per day, newest day first.
@@ -593,7 +397,7 @@ export default function JournalPage() {
         <div className="flex flex-col items-center pt-10">
           <div className="cycle-orb orb-follicular w-12 h-12 mb-4" />
           <p className="text-white/80 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening your journal...</p>
-          <p className="text-white/30 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Your words and your companion live here.</p>
+          <p className="text-white/30 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Your words live here.</p>
         </div>
       </div>
     </div>
@@ -616,15 +420,6 @@ export default function JournalPage() {
   const handleNewEntryClick = () => {
     setWriting(true);
   };
-
-  // Subscription state for the companion (server is the source of truth):
-  // she may write while she has access (subscribed, test list, public) or
-  // while free messages remain. Once the free messages are used, NOTHING
-  // on the page changes: her exchanges and her message box stay put. The
-  // subscription invitation appears inside the conversation only when
-  // she attempts to send one more message (showOffer).
-  const companionNeedsSub = !!companion && !companion.has_access
-    && (companionLocked || !!companion.needs_subscription || companion.free_remaining === 0);
 
   return (
     <div className="min-h-screen pb-40 lg:ml-64" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="journal-page">
@@ -649,11 +444,6 @@ export default function JournalPage() {
               <Lock className="w-3.5 h-3.5" style={{ color: GOLD }} />
               <span className="text-[10px] whitespace-nowrap" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>{firstName ? `${firstName}'s Vault` : 'Your Vault'}</span>
             </button>
-            {!companionUnavailable && (
-              <button onClick={() => setCompanionSettingsOpen(!companionSettingsOpen)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(244,167,185,0.3)', background: companionSettingsOpen ? 'rgba(244,167,185,0.15)' : 'rgba(244,167,185,0.05)' }} data-testid="companion-settings-btn" aria-label="Journal Companion settings" title="Journal Companion">
-                <Settings2 className="w-4 h-4" style={{ color: '#f4a7b9' }} />
-              </button>
-            )}
             {!writing && (
               <button onClick={handleNewEntryClick} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(255,79,154,0.3)', background: 'rgba(255,79,154,0.1)' }} data-testid="new-entry-btn">
                 <Plus className="w-4 h-4" style={{ color: '#FF4F9A' }} />
@@ -675,64 +465,6 @@ export default function JournalPage() {
           <span style={{ color: 'rgba(201,184,240,0.65)', fontSize: '11px' }}>✿</span>
           <span style={{ height: '1px', width: '52px', background: 'linear-gradient(90deg, rgba(201,184,240,0.5), transparent)' }} />
         </div>
-
-        {/* Companion settings: her name for it, and the off switch.
-            This little panel is the only trace that stays when the
-            companion is off, so she can always bring it back. */}
-        {companionSettingsOpen && !companionUnavailable && (
-          <div className="rounded-xl p-4 mb-4" style={{ border: '1px solid rgba(244,167,185,0.3)', background: 'rgba(244,167,185,0.05)' }} data-testid="companion-settings">
-            <p className="text-sm text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '17px' }}>Journal Companion</p>
-            {companion ? (
-              <>
-                <p className="text-xs leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }}>
-                  Your journal can talk back to you, in a companion who knows your cycle and keeps what you share
-                  inside these pages only. Name your companion anything you like, or turn it off and this book is
-                  just you and your own words.
-                </p>
-                <p className="text-[10px] tracking-widest uppercase mb-1.5" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>Companion&apos;s name</p>
-                <div className="flex gap-2 mb-4">
-                  <input
-                    type="text" value={companionNameDraft} onChange={(e) => setCompanionNameDraft(e.target.value)}
-                    maxLength={30} placeholder="Name your companion"
-                    className="flex-1 min-w-0 rounded-xl px-3 py-2.5 text-sm outline-none placeholder-white/25 text-white"
-                    style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(244,167,185,0.25)' }}
-                    data-testid="companion-name-input"
-                  />
-                  <button onClick={handleRenameCompanion} disabled={companionSaving || !companionNameDraft.trim()}
-                    className="px-4 py-2.5 rounded-full text-white text-xs font-medium disabled:opacity-40"
-                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
-                    data-testid="companion-name-save">
-                    {companionSaving ? 'Saving...' : 'Save name'}
-                  </button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
-                    {companion.enabled ? `${companion.name} is here with you` : 'Companion is off'}
-                  </p>
-                  <button onClick={handleToggleCompanion} disabled={companionSaving}
-                    className="px-4 py-2 rounded-full text-xs disabled:opacity-40"
-                    style={{
-                      fontFamily: 'Poppins, sans-serif',
-                      color: companion.enabled ? '#f4a7b9' : '#fff',
-                      border: companion.enabled ? '1px solid rgba(244,167,185,0.4)' : 'none',
-                      background: companion.enabled ? 'transparent' : '#FF4F9A'
-                    }}
-                    data-testid="companion-toggle">
-                    {companion.enabled ? 'Turn off' : 'Turn on'}
-                  </button>
-                </div>
-                {companionMsg && (
-                  <p className="text-xs mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }} data-testid="companion-settings-msg">{companionMsg}</p>
-                )}
-              </>
-            ) : (
-              <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }}>
-                Your companion settings could not be reached just now. The server may be waking up, close this and try again in a moment.
-              </p>
-            )}
-          </div>
-        )}
-
 
         {/* Mini Calendar Dropdown */}
         {showCal && (
@@ -881,107 +613,6 @@ export default function JournalPage() {
           </div>
         ) : null}
 
-        {/* Her companion, inside today's page of the book. Renders
-            only when the companion is on: off means no trace at all,
-            just her and her private journal. Replies wear the book's
-            serif and a soft pink tint, with the companion's name as
-            the speaker, so the page still reads like her book. */}
-        {companion?.enabled && (
-          <div className="rounded-2xl overflow-hidden mt-6" style={{ border: '1px solid rgba(244,167,185,0.25)', borderLeft: '3px solid #f4a7b9', background: 'linear-gradient(180deg, rgba(244,167,185,0.06) 0%, rgba(244,167,185,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35)' }} data-testid="journal-companion">
-            {/* Her approved Journal Companion picture (Angelita, Oct 20,
-                2026): shown whole at its natural shape, never cropped, so
-                every silhouette and the wordmark stay fully visible. */}
-            <div data-testid="companion-hero-image">
-              <img src="/images/journal-companion-life-stages.jpg" alt="Journal Companion: a woman's life, from baby to elder, with the HORMOscope wordmark"
-                className="w-full block" style={{ height: 'auto', objectFit: 'contain' }} />
-              <p className="text-center text-xs pt-2 pb-1" style={{ fontFamily: "'Poiret One', sans-serif", color: GOLD }}>Journal Companion</p>
-            </div>
-            <div className="px-4 pt-4 pb-1">
-              <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Journal Companion</p>
-              <p className="text-[11px] mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }}>Journal Companion</p>
-              <div className="flex items-center gap-2">
-                <Heart className="w-4 h-4" style={{ color: '#FF4F9A' }} fill="#FF4F9A" />
-                <h2 className="text-white text-base" style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '18px' }}>{companion.name} is here with you</h2>
-              </div>
-            </div>
-            <p className="px-4 pb-3 text-[11px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }}>
-              Write to {companion.name} here. {companion.name} knows where you are in your cycle and what today has
-              held, and answers you inside these pages only. Your partner never sees this. To write a reply, your message and your cycle context are sent to our AI provider (Anthropic); they are not used to train AI models and are never sold.
-            </p>
-            {companionExchanges.length > 0 && (
-              <div className="px-4 pb-2">
-                {companionExchanges.map((ex) => (
-                  <div key={ex.id} className="mb-4">
-                    <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>
-                      You{ex.created_at ? ` · ${fmtTime(ex.created_at)}` : ''}
-                    </p>
-                    <p className="text-white/85 whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px' }}>{ex.user_message}</p>
-                    <div className="rounded-lg px-3 py-2.5 mt-2" style={{ background: 'rgba(244,167,185,0.08)', border: '1px solid rgba(244,167,185,0.15)' }}>
-                      <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>{ex.companion_name || companion.name}</p>
-                      <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: "'Poppins', sans-serif", fontStyle: 'italic', fontSize: '16px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {!companion.has_access && (
-              <p className="px-4 pb-2 text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: '#E6E0EE' }} data-testid="companion-pricing">
-                <strong className="text-white">{typeof companion.free_remaining === 'number' ? companion.free_remaining : 3} of {companion.free_limit || 3} free messages left today.</strong>{' '}
-                Unlimited: {companion.price_monthly || '$9.99'}/month after a {companion.trial_days || 7}-day free trial, or {companion.price_yearly || '$59.99'}/year.
-              </p>
-            )}
-            {companionError && (
-              <p className="px-4 pb-2 text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="companion-error">{companionError}</p>
-            )}
-            {showOffer && companionNeedsSub && (
-              <div className="px-4 pb-4" data-testid="companion-offer">
-                <div className="rounded-xl p-4 text-center" style={{ border: '1px solid rgba(201,184,240,0.4)', background: 'rgba(201,184,240,0.06)' }}>
-                  <p className="text-white text-base mb-1" style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '19px' }}>Journal Companion</p>
-                  <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>Journal Companion</p>
-                  <p className="text-xs leading-relaxed mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
-                    To keep writing together, with {companion.name} knowing your cycle and meeting you on
-                    the page each day, continue with Journal Companion.
-                  </p>
-                  <p className="text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }} data-testid="companion-offer-price">
-                    {companion.price_monthly || '$9.99'}/month after a {companion.trial_days || 7}-day free trial, or {companion.price_yearly || '$59.99'}/year, through Google Play. Cancel anytime. Your 3 free messages also come back tomorrow.
-                  </p>
-                  <button onClick={handleSubscribe} disabled={!!subBusy} className="block w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }} data-testid="companion-subscribe-btn">
-                    {subBusy === 'buy' ? 'Opening Google Play...' : 'Subscribe'}
-                  </button>
-                  <button onClick={handleRestore} disabled={!!subBusy} className="block w-full mt-2 py-2 text-center text-xs disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.78)' }} data-testid="companion-restore-btn">
-                    {subBusy === 'restore' ? 'Restoring...' : 'Restore Purchase'}
-                  </button>
-                  {subMsg && (
-                    <p className="text-xs mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }} data-testid="companion-sub-msg">{subMsg}</p>
-                  )}
-                </div>
-              </div>
-            )}
-            <>
-                <div className="flex gap-2 p-3" style={{ borderTop: '1px solid rgba(244,167,185,0.12)' }}>
-                  <input
-                    type="text" value={companionInput}
-                    onChange={(e) => { setCompanionInput(e.target.value); if (companionError) setCompanionError(''); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleSendToCompanion(); }}
-                    placeholder={`Write to ${companion.name}...`}
-                    maxLength={1000}
-                    className="flex-1 min-w-0 rounded-full px-4 py-2.5 text-sm outline-none placeholder-white/25 text-white"
-                    style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(244,167,185,0.25)' }}
-                    data-testid="companion-input"
-                  />
-                  <button onClick={handleSendToCompanion} disabled={companionBusy || !companionInput.trim()}
-                    className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40"
-                    style={{ background: '#FF4F9A' }}
-                    data-testid="companion-send" aria-label={`Send to ${companion.name}`}>
-                    <Send className="w-4 h-4 text-white" />
-                  </button>
-                </div>
-                {companionBusy && (
-                  <p className="px-4 pb-3 text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }}>{companion.name} is writing back...</p>
-                )}
-              </>
-          </div>
-        )}
       </div>
 
       {/* The Vault: her sealed days, behind a password only she knows.
@@ -1056,25 +687,6 @@ export default function JournalPage() {
                                       </div>
                                     ))}
                                   </div>
-                                </div>
-                              )}
-                              {day.companion?.length > 0 && (
-                                <div className="p-4" style={(day.entries.length > 0 || day.logs.length > 0) ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`vault-companion-${day.date}`}>
-                                  <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                                    With {day.companion[0].companion_name || 'your companion'}
-                                  </p>
-                                  {day.companion.map((ex) => (
-                                    <div key={ex.id} className="mb-4">
-                                      <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>
-                                        You{ex.created_at ? ` · ${fmtTime(ex.created_at)}` : ''}
-                                      </p>
-                                      <p className="text-white/85 whitespace-pre-wrap mt-1" style={{ fontFamily: SERIF, fontSize: '15px', lineHeight: '26px' }}>{ex.user_message}</p>
-                                      <div className="rounded-lg px-3 py-2.5 mt-2" style={{ background: 'rgba(244,167,185,0.08)', border: '1px solid rgba(244,167,185,0.15)' }}>
-                                        <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>{ex.companion_name}</p>
-                                        <p className="whitespace-pre-wrap mt-1" style={{ fontFamily: "'Poppins', sans-serif", fontStyle: 'italic', fontSize: '16px', lineHeight: '26px', color: '#FDF3F6' }}>{ex.reply}</p>
-                                      </div>
-                                    </div>
-                                  ))}
                                 </div>
                               )}
                             </div>

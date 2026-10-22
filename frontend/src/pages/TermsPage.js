@@ -74,19 +74,6 @@ export default function TermsPage() {
 
         <section>
           <h2 className="text-lg font-semibold text-[#F5F5F5] mb-3" >
-            Journal Companion Subscription
-          </h2>
-          <ul className="list-disc list-inside space-y-2">
-            <li>Journal Companion is an optional subscription, billed monthly at $9.99 USD through Google Play</li>
-            <li>Every eligible account receives 3 complimentary Journal Companion messages, one time</li>
-            <li>You can cancel your subscription at any time in Google Play</li>
-            <li>Refunds are handled on a case-by-case basis</li>
-            <li>Journal Companion is available immediately upon payment</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold text-[#F5F5F5] mb-3" >
             Content & Features
           </h2>
           <p>

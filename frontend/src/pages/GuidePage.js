@@ -22,10 +22,9 @@ export default function GuidePage() {
         </p>
 
         <div className="space-y-10 text-[#d4d4e0] text-sm sm:text-base leading-relaxed" data-testid="guide-body">
-          <section data-testid="guide-free">
-            <h2 className="text-xl sm:text-2xl text-white mb-3">What is free</h2>
-            <p className="mb-3">Everything in HORMOscope is free: cycle tracking, the calendar, your Daily Read, mood and symptom logging, phase guides and Attuned Partner Mode.</p>
-            <p className="mb-3">The only paid feature is the Journal Companion. You get 3 free Journal Companion messages every day. Unlimited messages cost $9.99/month after a 7-day free trial, or $59.99/year.</p>
+          <section data-testid="guide-overview">
+            <h2 className="text-xl sm:text-2xl text-white mb-3">What HORMOscope does</h2>
+            <p className="mb-3">HORMOscope brings together cycle tracking, the calendar, your Daily Read, mood and symptom logging, phase guides and Attuned Partner Mode.</p>
           </section>
           <section data-testid="guide-verify">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Confirm your email</h2>
@@ -47,13 +46,13 @@ export default function GuidePage() {
             <p className="mb-3">Green days are your estimated fertile window, worked out from the period dates you log. These are estimates, not measurements: please do not use HORMOscope to prevent pregnancy. If your cycle situation makes predictions unreliable (for example pregnancy, breastfeeding or hormonal birth control), fertile-window predictions are switched off.</p>
           </section>
           <section data-testid="guide-journal">
-            <h2 className="text-xl sm:text-2xl text-white mb-3">Journal and Journal Companion</h2>
+            <h2 className="text-xl sm:text-2xl text-white mb-3">Journal</h2>
             <p className="mb-3">Your Journal is a book, one day per page. Write, tap Save, and use Older day, Newer day or the small calendar to move between pages.</p>
-            <p className="mb-3">The Journal Companion answers you on the page, knowing where you are in your cycle and what you have logged. You can name it, or switch it off in the journal settings so the page is yours alone. 3 Journal Companion messages a day are free; for unlimited messages it is $9.99/month after a 7-day free trial, or $59.99/year.</p>
+            <p className="mb-3">Your entries are private, saved to your day, and never shared, not even with a partner linked in Attuned Partner Mode.</p>
           </section>
           <section data-testid="guide-attuned">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Attuned Partner Mode</h2>
-            <p className="mb-3">Attuned Partner Mode lets someone you trust follow your cycle with you, for free.</p>
+            <p className="mb-3">Attuned Partner Mode lets someone you trust follow your cycle with you.</p>
             <ul className="list-disc pl-5 space-y-1 mb-3">
               <li><strong>Invite code:</strong> in Profile, tap Create &amp; share invite code and send it. Your partner signs up and enters the code in the Partner Hub.</li>
               <li><strong>Boyfriend or partner without a cycle:</strong> they see your phase, what it may feel like and how to show up for you.</li>

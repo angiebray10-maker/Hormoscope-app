@@ -6,7 +6,7 @@ import { ChevronLeft } from 'lucide-react';
 export const APP_MAP = [
   { group: 'Main tabs', items: [
     { to: '/', name: 'Home', desc: 'Your cycle day, phase, quick log and today\u2019s daily read.' },
-    { to: '/journal', name: 'Journal', desc: 'Your private daily journal and the AI Journal Companion (3 free messages a day).' },
+    { to: '/journal', name: 'Journal', desc: 'Your private daily journal: one day per page, saved to your day and never shared.' },
     { to: '/attunement', name: 'Attunement', desc: 'Attuned Partner Mode: invite your partner or sync cycles with your girlfriend.' },
     { to: '/calendar', name: 'Calendar', desc: 'Periods, fertile window, symptoms and intimacy, past and future.' },
     { to: '/profile', name: 'Profile', desc: 'Your details, what your partner can see, settings and account.' },

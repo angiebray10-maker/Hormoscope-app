@@ -65,7 +65,7 @@ export default function PrivacyPage() {
           </h2>
           <p>
             We implement industry-standard security measures to protect your data. 
-            Your information is sent over encrypted (HTTPS) connections. We never sell your personal data. When you use the Journal Companion or AI features, the text you write and your cycle context are sent to our AI provider (Anthropic) only to generate a reply.
+            Your information is sent over encrypted (HTTPS) connections. We never sell your personal data. When you use AI features in the app, the text you write and your cycle context are sent to our AI provider (Anthropic) only to generate a reply.
           </p>
         </section>
 
