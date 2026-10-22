@@ -154,6 +154,7 @@ class UserResponse(BaseModel):
     fertility_predictions_enabled: bool = True
     partner_visibility: Dict[str, bool] = {}
     conditions: List[str] = []
+    email_verified: bool = False
     created_at: Optional[str] = None
 
 class TokenResponse(BaseModel):
@@ -777,6 +778,9 @@ def build_user_response(user: dict) -> UserResponse:
         fertility_predictions_enabled=user.get("cycle_status", "regular") not in NO_FERTILITY_STATUSES,
         partner_visibility={**DEFAULT_PARTNER_VISIBILITY, **(user.get("partner_visibility") or {})},
         conditions=user.get("conditions") or [],
+        # Accounts created before verification existed have no field;
+        # they are treated as verified so nobody is nagged retroactively.
+        email_verified=bool(user.get("email_verified", True)),
         created_at=user.get("created_at")
     )
 
@@ -1355,6 +1359,124 @@ async def list_all_users(current_user: dict = Depends(get_admin_user)):
 
 
 
+# ==================== EMAIL VERIFICATION ====================
+# Pluggable sender. Configure ONE of:
+#   RESEND_API_KEY (+ EMAIL_FROM)                   -> Resend HTTPS API
+#   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD (+ EMAIL_FROM) -> SMTP (STARTTLS)
+# With neither set, the link and code are written to the server log
+# (dev fallback) and nothing is sent.
+# APP_PUBLIC_URL is the web address used in the verify link.
+import secrets as _secrets
+import smtplib
+from email.message import EmailMessage
+
+EMAIL_VERIFY_TTL_HOURS = 48
+
+
+def _hash_token(t: str) -> str:
+    return hashlib.sha256(t.encode()).hexdigest()
+
+
+async def _send_email(to: str, subject: str, text: str) -> str:
+    sender = os.environ.get("EMAIL_FROM", "HORMOscope <no-reply@hormoscope.app>")
+    resend_key = os.environ.get("RESEND_API_KEY")
+    if resend_key:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.post("https://api.resend.com/emails",
+                             headers={"Authorization": f"Bearer {resend_key}"},
+                             json={"from": sender, "to": [to], "subject": subject, "text": text})
+            r.raise_for_status()
+        return "resend"
+    host = os.environ.get("SMTP_HOST")
+    if host:
+        msg = EmailMessage()
+        msg["From"], msg["To"], msg["Subject"] = sender, to, subject
+        msg.set_content(text)
+        def _go():
+            with smtplib.SMTP(host, int(os.environ.get("SMTP_PORT", "587")), timeout=15) as srv:
+                srv.starttls()
+                if os.environ.get("SMTP_USER"):
+                    srv.login(os.environ["SMTP_USER"], os.environ.get("SMTP_PASSWORD", ""))
+                srv.send_message(msg)
+        import asyncio as _asyncio
+        await _asyncio.get_running_loop().run_in_executor(None, _go)
+        return "smtp"
+    logger.warning("EMAIL (dev fallback, not sent) to=%s subject=%s\n%s", to, subject, text)
+    return "log"
+
+
+async def _start_email_verification(user: dict) -> str:
+    token = _secrets.token_urlsafe(32)
+    code = f"{_secrets.randbelow(1000000):06d}"
+    expires = (datetime.now(timezone.utc) + timedelta(hours=EMAIL_VERIFY_TTL_HOURS)).isoformat()
+    await db.users.update_one({"id": user["id"]}, {"$set": {
+        "email_verify": {"token_hash": _hash_token(token), "code_hash": _hash_token(code + user["id"]),
+                         "expires_at": expires, "attempts": 0},
+    }})
+    base = os.environ.get("APP_PUBLIC_URL", "http://localhost:3000").rstrip("/")
+    link = f"{base}/verify-email?token={token}"
+    text = (f"Welcome to HORMOscope!\n\nConfirm your email by opening this link:\n{link}\n\n"
+            f"Or enter this code in the app: {code}\n\nThe link and code expire in {EMAIL_VERIFY_TTL_HOURS} hours. "
+            "If you didn't create an account, you can ignore this email.")
+    try:
+        return await _send_email(user["email"], "Confirm your HORMOscope email", text)
+    except Exception as e:  # never block sign-up on email trouble
+        logger.error("Verification email failed: %s", e)
+        return "failed"
+
+
+async def _mark_verified(user_id: str):
+    await db.users.update_one({"id": user_id}, {"$set": {"email_verified": True, "email_verified_at": datetime.now(timezone.utc).isoformat()}, "$unset": {"email_verify": ""}})
+
+
+class VerifyTokenRequest(BaseModel):
+    token: str
+
+
+class VerifyCodeRequest(BaseModel):
+    code: str
+
+
+@api_router.post("/auth/verify-email")
+async def verify_email_token(body: VerifyTokenRequest):
+    u = await db.users.find_one({"email_verify.token_hash": _hash_token(body.token)}, {"_id": 0})
+    if not u:
+        raise HTTPException(status_code=400, detail="This link is invalid or was already used.")
+    if u["email_verify"]["expires_at"] < datetime.now(timezone.utc).isoformat():
+        raise HTTPException(status_code=400, detail="This link has expired. Send a new one from the app.")
+    await _mark_verified(u["id"])
+    return {"ok": True}
+
+
+@api_router.post("/auth/verify-code")
+async def verify_email_code(body: VerifyCodeRequest, current_user: dict = Depends(get_current_user)):
+    ev = current_user.get("email_verify") or {}
+    if current_user.get("email_verified"):
+        return {"ok": True}
+    if not ev or ev.get("expires_at", "") < datetime.now(timezone.utc).isoformat():
+        raise HTTPException(status_code=400, detail="Your code expired. Tap Resend for a new one.")
+    if ev.get("attempts", 0) >= 5:
+        raise HTTPException(status_code=429, detail="Too many tries. Tap Resend for a new code.")
+    if _hash_token((body.code or "").strip() + current_user["id"]) != ev.get("code_hash"):
+        await db.users.update_one({"id": current_user["id"]}, {"$inc": {"email_verify.attempts": 1}})
+        raise HTTPException(status_code=400, detail="That code doesn't match. Check the email and try again.")
+    await _mark_verified(current_user["id"])
+    return {"ok": True}
+
+
+@api_router.post("/auth/resend-verification")
+async def resend_verification(current_user: dict = Depends(get_current_user)):
+    if current_user.get("email_verified", True) and "email_verify" not in current_user:
+        return {"ok": True, "already_verified": True}
+    last = current_user.get("email_verify_last_sent")
+    now = datetime.now(timezone.utc)
+    if last and (now - datetime.fromisoformat(last)).total_seconds() < 60:
+        raise HTTPException(status_code=429, detail="Please wait a minute before asking for another email.")
+    await db.users.update_one({"id": current_user["id"]}, {"$set": {"email_verify_last_sent": now.isoformat()}})
+    via = await _start_email_verification(current_user)
+    return {"ok": via != "failed"}
+
+
 @api_router.post("/auth/signup", response_model=TokenResponse)
 async def signup(user_data: UserCreate):
     if len(user_data.password or "") < PASSWORD_MIN_LENGTH:
@@ -1388,7 +1510,9 @@ async def signup(user_data: UserCreate):
         },
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    user["email_verified"] = False
     await db.users.insert_one(user)
+    await _start_email_verification(user)
     
     token = create_token(user_id)
     user_response = build_user_response(user)

@@ -6,6 +6,7 @@ import { BottomNav } from './components/BottomNav';
 import { Toaster } from './components/ui/sonner';
 import InstallPrompt from './components/InstallPrompt';
 import AmbientOrb from './components/PhaseOrb';
+import VerifyEmailBanner from './components/VerifyEmailBanner';
 
 // Pages
 import AuthPage from './pages/AuthPage';
@@ -23,6 +24,7 @@ import PartnerViewPage from './pages/PartnerViewPage';
 import PartnerHubPage from './pages/PartnerHubPage';
 import AttunementPage from './pages/AttunementPage';
 import NotFoundPage from './pages/NotFoundPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 
 import './index.css';
 
@@ -69,6 +71,7 @@ const AppContent = () => {
   return (
     <div className="min-h-screen noise-overlay">
       <AmbientOrb />
+      <VerifyEmailBanner />
       <div className="pb-24 lg:pb-0 relative z-[1]">
       <Routes>
         {/* Public routes */}
@@ -78,6 +81,7 @@ const AppContent = () => {
         <Route path="/founders-note" element={<FoundersNotePage />} />
         <Route path="/guide" element={<GuidePage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/partner/:linkCode" element={<PartnerViewPage />} />
 
         {/* Protected routes */}
