@@ -25,6 +25,7 @@ import PartnerHubPage from './pages/PartnerHubPage';
 import AttunementPage from './pages/AttunementPage';
 import NotFoundPage from './pages/NotFoundPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import AppMapPage from './pages/AppMapPage';
 
 import './index.css';
 
@@ -82,6 +83,7 @@ const AppContent = () => {
         <Route path="/guide" element={<GuidePage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/app-map" element={<AppMapPage />} />
         <Route path="/partner/:linkCode" element={<PartnerViewPage />} />
 
         {/* Protected routes */}

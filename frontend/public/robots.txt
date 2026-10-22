@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://hormoscope.app/sitemap.xml
