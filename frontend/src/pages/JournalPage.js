@@ -924,6 +924,12 @@ export default function JournalPage() {
                 ))}
               </div>
             )}
+            {!companion.has_access && (
+              <p className="px-4 pb-2 text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif', color: '#E6E0EE' }} data-testid="companion-pricing">
+                <strong className="text-white">{typeof companion.free_remaining === 'number' ? companion.free_remaining : 3} of {companion.free_limit || 3} free messages left today.</strong>{' '}
+                Unlimited: {companion.price_monthly || '$9.99'}/month after a {companion.trial_days || 7}-day free trial, or {companion.price_yearly || '$59.99'}/year.
+              </p>
+            )}
             {companionError && (
               <p className="px-4 pb-2 text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="companion-error">{companionError}</p>
             )}
@@ -937,7 +943,7 @@ export default function JournalPage() {
                     the page each day, continue with Journal Companion.
                   </p>
                   <p className="text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.55)' }} data-testid="companion-offer-price">
-                    Journal Companion: $9.99/month through Google Play. Cancel anytime.
+                    {companion.price_monthly || '$9.99'}/month after a {companion.trial_days || 7}-day free trial, or {companion.price_yearly || '$59.99'}/year, through Google Play. Cancel anytime. Your 3 free messages also come back tomorrow.
                   </p>
                   <button onClick={handleSubscribe} disabled={!!subBusy} className="block w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF1493' }} data-testid="companion-subscribe-btn">
                     {subBusy === 'buy' ? 'Opening Google Play...' : 'Subscribe'}

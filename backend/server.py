@@ -2312,18 +2312,27 @@ async def _companion_exchanges_for(user_id: str, date_str: str):
 COMPANION_MESSAGE_CHAR_LIMIT = 1000
 COMPANION_DAILY_REPLY_LIMIT = 30
 COMPANION_MIN_SECONDS_BETWEEN_REQUESTS = 5
-# Free introduction (Angelita, Oct 20, 2026): every eligible account gets
-# exactly COMPANION_FREE_MESSAGE_LIMIT real companion replies in total,
-# for the life of the account, before the subscription is required. The
+# Free allowance (launch fixes, Oct 22, 2026): every account gets
+# COMPANION_FREE_MESSAGE_LIMIT real companion replies PER DAY (UTC),
+# then the subscription is required until the next day. The
 # allowance is enforced here on the server, per account, from the saved
 # exchanges themselves: a successful reply is stored as one exchange, so
 # reinstalling, clearing app data, or switching devices can never reset
 # it, and a failed AI call stores nothing and never burns a free reply.
 COMPANION_FREE_MESSAGE_LIMIT = 3
+# Price copy shown in the app. The real charge always comes from the
+# Google Play product; keep these in sync with Play Console.
+COMPANION_PRICE_MONTHLY = os.environ.get("COMPANION_PRICE_MONTHLY", "$9.99")
+COMPANION_PRICE_YEARLY = os.environ.get("COMPANION_PRICE_YEARLY", "$59.99")
+COMPANION_TRIAL_DAYS = int(os.environ.get("COMPANION_TRIAL_DAYS", "7"))
 COMPANION_SUBSCRIBE_REQUIRED_DETAIL = (
-    "Your free companion messages are used. Subscribe to Journal Companion "
-    "to keep writing together."
+    "You've used today's 3 free companion messages. They come back tomorrow, "
+    f"or subscribe for unlimited: {COMPANION_PRICE_MONTHLY}/month after a "
+    f"{COMPANION_TRIAL_DAYS}-day free trial, or {COMPANION_PRICE_YEARLY}/year."
 )
+# The general AI coach (/api/chat) also costs money per message, so free
+# accounts get a daily cap there too.
+CHAT_FREE_DAILY_LIMIT = int(os.environ.get("CHAT_FREE_DAILY_LIMIT", "3"))
 
 
 def _companion_access(user: dict) -> dict:
@@ -2344,14 +2353,21 @@ def _companion_access(user: dict) -> dict:
     }
 
 
+def _utc_day_start_iso() -> str:
+    now = datetime.now(timezone.utc)
+    return now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+
+
 async def _companion_free_used(user_id: str) -> int:
-    """Total companion replies this account has ever received. Every
-    successful reply is saved as exactly one journal_companion exchange,
-    so the exchange count IS the lifetime reply count, on any device."""
+    """Companion replies this account received TODAY (UTC). The free
+    allowance is COMPANION_FREE_MESSAGE_LIMIT per day and resets at
+    midnight UTC. Counted from saved exchanges, so reinstalling or
+    switching devices never resets it, and a failed AI call costs nothing."""
+    q = {"user_id": user_id, "created_at": {"$gte": _utc_day_start_iso()}}
     try:
-        return int(await db.journal_companion.count_documents({"user_id": user_id}))
+        return int(await db.journal_companion.count_documents(q))
     except AttributeError:
-        docs = await db.journal_companion.find({"user_id": user_id}, {"_id": 1}).to_list(length=None)
+        docs = await db.journal_companion.find(q, {"_id": 1}).to_list(length=None)
         return len(docs)
 
 
@@ -2371,6 +2387,10 @@ async def _companion_status(user: dict) -> dict:
         "free_used": free_used,
         "free_remaining": free_remaining,
         "needs_subscription": not access["has_access"] and free_remaining == 0,
+        "free_resets": "daily",
+        "price_monthly": COMPANION_PRICE_MONTHLY,
+        "price_yearly": COMPANION_PRICE_YEARLY,
+        "trial_days": COMPANION_TRIAL_DAYS,
     })
     return status
 
@@ -3517,6 +3537,17 @@ async def send_chat_message(msg: ChatMessageCreate, current_user: dict = Depends
     if msg.image_base64 and not current_user.get("is_premium", False):
         raise HTTPException(status_code=403, detail="Image feature requires premium subscription")
     
+    # Daily cap for accounts without premium or companion access.
+    if not (current_user.get("is_premium") or _companion_access(current_user)["has_access"]):
+        used_today = await db.chat_messages.count_documents(
+            {"user_id": current_user["id"], "timestamp": {"$gte": _utc_day_start_iso()}}
+        )
+        if used_today >= CHAT_FREE_DAILY_LIMIT:
+            raise HTTPException(
+                status_code=402,
+                detail=f"You've used today's {CHAT_FREE_DAILY_LIMIT} free AI messages. They come back tomorrow.",
+            )
+
     if not ANTHROPIC_API_KEY:
         raise HTTPException(
             status_code=503,
