@@ -48,11 +48,12 @@ export default function DateSelect({ value, onChange, testId, minYear, maxYear }
   const days = [];
   for (let dd = 1; dd <= 31; dd++) days.push(String(dd).padStart(2, '0'));
 
-  const selClass = 'input-dark flex-1 min-w-0';
-  const selStyle = { colorScheme: 'dark' };
+  const selClass = 'input-dark min-w-0 w-full';
+  // Tighter side padding so the 4-digit year is never clipped on phones.
+  const selStyle = { colorScheme: 'dark', paddingLeft: 10, paddingRight: 22, fontSize: 15, textOverflow: 'clip' };
 
   return (
-    <div className="flex gap-2" data-testid={testId}>
+    <div className="grid gap-2" style={{ gridTemplateColumns: '1.5fr 1fr 1.25fr' }} data-testid={testId}>
       <select
         aria-label="Month"
         className={selClass}
@@ -62,7 +63,7 @@ export default function DateSelect({ value, onChange, testId, minYear, maxYear }
       >
         <option value="">Month</option>
         {MONTHS.map((name, i) => (
-          <option key={name} value={String(i + 1).padStart(2, '0')}>{name}</option>
+          <option key={name} value={String(i + 1).padStart(2, '0')}>{name.slice(0, 3)}</option>
         ))}
       </select>
       <select

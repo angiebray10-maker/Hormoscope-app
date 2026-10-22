@@ -129,8 +129,14 @@ export default function OnboardingPage() {
         <div className="rounded-3xl p-7 border border-white/10" style={{ background: 'rgba(21,21,43,0.92)' }}>
           {step === 1 && (
             <div className="space-y-6">
-              <div>
-                <H>Welcome to HORMOscope</H>
+              <div className="text-center">
+                <div className="mx-auto mb-5 w-24 h-24 rounded-full overflow-hidden flex items-center justify-center" style={{ background: '#000', border: '1px solid rgba(255,79,154,0.5)' }} data-testid="onboarding-logo">
+                  <img src="/images/logo.png" alt="HORMOscope" className="w-full h-full object-contain" style={{ padding: 10 }} />
+                </div>
+                <h1 className="text-[28px] leading-tight font-semibold" data-testid="onboarding-welcome"
+                  style={{ fontFamily: BODY_FONT, color: 'rgba(255,79,154,0.12)', WebkitTextStroke: '1.4px #FF4F9A', textShadow: '0 0 18px rgba(255,79,154,0.45)' }}>
+                  Welcome to your true HORMOscope
+                </h1>
                 <Sub>Your cycle, decoded daily, and shared only with the people you choose.</Sub>
               </div>
               <div>
