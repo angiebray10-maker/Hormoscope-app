@@ -761,6 +761,17 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+def _admin_emails() -> set:
+    return {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
+
+
+async def get_admin_user(current_user: dict = Depends(get_current_user)):
+    """Only accounts listed in the ADMIN_EMAILS env var may use /api/admin/*."""
+    if (current_user.get("email") or "").strip().lower() not in _admin_emails():
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+
 def calculate_cycle_info(last_period_date: str, cycle_length: int):
     """Calculate current cycle day and phase with hormone levels.
     Safely handles stale or malformed dates by clamping huge gaps to a single
@@ -1306,7 +1317,7 @@ async def capture_lead(data: LeadCaptureRequest):
 
 # ==================== AUTH ROUTES ====================
 @api_router.get("/admin/users")
-async def list_all_users(current_user: dict = Depends(get_current_user)):
+async def list_all_users(current_user: dict = Depends(get_admin_user)):
     users = await db.users.find({}, {"_id": 0, "email": 1, "name": 1}).to_list(length=500)
     return {"total": len(users), "users": users}
 
@@ -2641,7 +2652,7 @@ async def track_analytics_event(evt: AnalyticsEvent, current_user: dict = Depend
     return {"ok": True}
 
 @api_router.get("/admin/analytics")
-async def get_analytics(current_user: dict = Depends(get_current_user)):
+async def get_analytics(current_user: dict = Depends(get_admin_user)):
     pipeline = [
         {"$group": {"_id": "$event", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}}
@@ -4166,10 +4177,16 @@ async def root():
 # Include router and middleware
 app.include_router(api_router)
 
+# CORS: only the origins listed in CORS_ORIGINS (comma separated) may call
+# the API from a browser. No wildcard default. The Capacitor Android app
+# loads from https://localhost / capacitor://localhost, which are included.
+_cors_origins = [o.strip() for o in os.environ.get(
+    'CORS_ORIGINS', 'https://localhost,capacitor://localhost,http://localhost'
+).split(',') if o.strip() and o.strip() != '*']
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
