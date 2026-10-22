@@ -9,10 +9,19 @@ export default function FoundersNotePage() {
   return (
     <div className="min-h-screen pb-32 lg:pl-80" style={{ background: '#0B0B1E' }} data-testid="founders-note-page">
       <div className="w-full max-w-2xl mx-auto px-6 sm:px-10 lg:px-12 pt-6 sm:pt-10">
-        <Link to="/profile" className="inline-flex items-center gap-2 text-[#a0a0b8] hover:text-white text-sm mb-8" data-testid="back-btn">
+        <Link to={user ? '/profile' : '/auth'} className="inline-flex items-center gap-2 text-[#a0a0b8] hover:text-white text-sm mb-8" data-testid="back-btn">
           <ChevronLeft className="w-4 h-4" />
-          Back to Profile
+          {user ? 'Back to Profile' : 'Back to HORMOscope'}
         </Link>
+
+        <img
+          src="/founder.webp"
+          alt="Angelita, founder of HORMOscope"
+          width="160" height="160"
+          className="w-36 h-36 sm:w-40 sm:h-40 rounded-full object-cover mb-8"
+          style={{ objectPosition: '50% 35%', border: '2px solid #FF4F9A', boxShadow: '0 0 32px rgba(255,79,154,0.35)' }}
+          data-testid="founder-photo"
+        />
 
         <h1 className="text-3xl sm:text-4xl text-white mb-10" data-testid="founders-note-title">
           A Note From The Founder

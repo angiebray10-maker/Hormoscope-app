@@ -283,6 +283,20 @@ export default function AuthPage() {
         </div>
       </section>
 
+      {/* MEET THE FOUNDER */}
+      <section className="py-16 px-6" data-testid="meet-founder">
+        <div className="max-w-xl mx-auto flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+          <img src="/founder.webp" alt="Angelita, founder of HORMOscope" width="128" height="128" loading="lazy"
+            className="w-32 h-32 rounded-full object-cover flex-shrink-0"
+            style={{ objectPosition: '50% 35%', border: '2px solid #FF4F9A', boxShadow: '0 0 28px rgba(255,79,154,0.3)' }} />
+          <div>
+            <p className="text-xs tracking-[0.2em] uppercase mb-2" style={{ color: '#C9B8F0' }}>Meet the founder</p>
+            <p className="text-white text-lg leading-relaxed mb-3">I built HORMOscope after cancer forced me to finally listen to my body. You shouldn&apos;t have to get sick to start listening.</p>
+            <a href="/founders-note" className="text-sm font-medium" style={{ color: '#FF4F9A' }} data-testid="founder-note-link">Read my founder&apos;s note &rarr;</a>
+          </div>
+        </div>
+      </section>
+
       {/* FINAL CTA */}
       <section className="py-20 px-6 text-center relative overflow-hidden">
         <div className="absolute inset-0" style={{ backgroundImage: `url(${BACKDROPS[1]})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
