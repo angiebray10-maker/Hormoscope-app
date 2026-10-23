@@ -26,6 +26,8 @@ import AttunementPage from './pages/AttunementPage';
 import NotFoundPage from './pages/NotFoundPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import AppMapPage from './pages/AppMapPage';
+import BoutiquePage, { PartnerWishlistPage } from './pages/BoutiquePage';
+import AdminCatalogPage from './pages/AdminCatalogPage';
 
 import './index.css';
 
@@ -123,6 +125,21 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
         {/* Fallback - 404 Page */}
+        <Route path="/boutique" element={
+          <ProtectedRoute>
+            <BoutiquePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/partner-wishlist" element={
+          <ProtectedRoute>
+            <PartnerWishlistPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/catalog" element={
+          <ProtectedRoute>
+            <AdminCatalogPage />
+          </ProtectedRoute>
+        } />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       </div>

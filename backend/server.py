@@ -4510,6 +4510,164 @@ async def root():
     return {"message": "horMoscope Ai API - Cosmic Wellness Tracking"}
 
 # Include router and middleware
+# ---------------------------------------------------------------------------
+# HORMOscope Catalog + Wishlist (Orio, Oct 2026; PR for Rio's review).
+# Angie hand-picks Amazon products (admins = ADMIN_EMAILS). Users heart items
+# into their wishlist; partner sees it only when partner_visibility.wishlist
+# is on (the existing "My wishlist" sharing toggle). No prices are stored.
+# ---------------------------------------------------------------------------
+from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
+
+AMAZON_ASSOCIATE_TAG = os.environ.get("AMAZON_ASSOCIATE_TAG", "hormoscope20-20")
+
+
+def _with_affiliate_tag(url: str) -> str:
+    """Add ?tag=<associate tag> to Amazon links that do not carry one."""
+    try:
+        p = urlparse(url.strip())
+    except Exception:
+        return url
+    host = (p.hostname or "").lower()
+    if not (host == "amazon.com" or host.endswith(".amazon.com") or host in ("a.co", "amzn.to")):
+        return url
+    if host in ("a.co", "amzn.to"):
+        return url  # short links: tag must be set when generating them in SiteStripe
+    q = parse_qsl(p.query, keep_blank_values=True)
+    if any(k == "tag" for k, _ in q):
+        return url
+    q.append(("tag", AMAZON_ASSOCIATE_TAG))
+    return urlunparse(p._replace(query=urlencode(q)))
+
+
+def _valid_http_url(u: str) -> bool:
+    return bool(re.match(r"^https://[^\s]+$", (u or "").strip()))
+
+
+class CatalogItemIn(BaseModel):
+    title: str = Field(..., min_length=1, max_length=140)
+    image_url: str
+    amazon_url: str
+    category: Optional[str] = Field(None, max_length=40)
+    note: Optional[str] = Field(None, max_length=240)
+    hidden: bool = False
+
+
+class CatalogItemPatch(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=140)
+    image_url: Optional[str] = None
+    amazon_url: Optional[str] = None
+    category: Optional[str] = Field(None, max_length=40)
+    note: Optional[str] = Field(None, max_length=240)
+    hidden: Optional[bool] = None
+
+
+class WishlistVisibility(BaseModel):
+    public: bool
+
+
+def _public_item(it: dict) -> dict:
+    return {k: it.get(k) for k in ("id", "title", "image_url", "amazon_url", "category", "note")}
+
+
+def _check_urls(d: dict):
+    for k in ("image_url", "amazon_url"):
+        if k in d and d[k] is not None and not _valid_http_url(d[k]):
+            raise HTTPException(status_code=400, detail=f"{k} must be an https:// link")
+    if d.get("amazon_url"):
+        d["amazon_url"] = _with_affiliate_tag(d["amazon_url"])
+
+
+@api_router.get("/catalog")
+async def list_catalog():
+    items = await db.catalog_items.find({"hidden": {"$ne": True}}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return {"items": [_public_item(i) for i in items]}
+
+
+@api_router.get("/admin/catalog")
+async def admin_list_catalog(admin: dict = Depends(get_admin_user)):
+    items = await db.catalog_items.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return {"items": items}
+
+
+@api_router.post("/admin/catalog")
+async def admin_create_catalog_item(body: CatalogItemIn, admin: dict = Depends(get_admin_user)):
+    d = body.dict(); _check_urls(d)
+    now = datetime.now(timezone.utc).isoformat()
+    d.update({"id": str(uuid.uuid4()), "created_at": now, "updated_at": now})
+    await db.catalog_items.insert_one(dict(d))
+    return d
+
+
+@api_router.put("/admin/catalog/{item_id}")
+async def admin_update_catalog_item(item_id: str, body: CatalogItemPatch, admin: dict = Depends(get_admin_user)):
+    d = {k: v for k, v in body.dict().items() if v is not None}
+    _check_urls(d)
+    d["updated_at"] = datetime.now(timezone.utc).isoformat()
+    it = await db.catalog_items.find_one_and_update({"id": item_id}, {"$set": d}, projection={"_id": 0}, return_document=ReturnDocument.AFTER)
+    if not it:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return it
+
+
+@api_router.delete("/admin/catalog/{item_id}")
+async def admin_delete_catalog_item(item_id: str, admin: dict = Depends(get_admin_user)):
+    await db.catalog_items.delete_one({"id": item_id})
+    await db.wishlist_items.delete_many({"item_id": item_id})
+    return {"ok": True}
+
+
+async def _wishlist_for(user_id: str) -> list:
+    rows = await db.wishlist_items.find({"user_id": user_id}, {"_id": 0}).sort("added_at", -1).to_list(500)
+    ids = [r["item_id"] for r in rows]
+    items = {i["id"]: i for i in await db.catalog_items.find({"id": {"$in": ids}, "hidden": {"$ne": True}}, {"_id": 0}).to_list(500)}
+    return [_public_item(items[i]) for i in ids if i in items]
+
+
+def _wishlist_public(user: dict) -> bool:
+    vis = {**DEFAULT_PARTNER_VISIBILITY, **(user.get("partner_visibility") or {})}
+    return bool(vis.get("wishlist"))
+
+
+@api_router.get("/wishlist")
+async def get_my_wishlist(current_user: dict = Depends(get_current_user)):
+    return {"items": await _wishlist_for(current_user["id"]), "public": _wishlist_public(current_user),
+            "name": current_user.get("name")}
+
+
+@api_router.post("/wishlist/{item_id}")
+async def toggle_wishlist_item(item_id: str, current_user: dict = Depends(get_current_user)):
+    if not await db.catalog_items.find_one({"id": item_id, "hidden": {"$ne": True}}):
+        raise HTTPException(status_code=404, detail="Item not found")
+    q = {"user_id": current_user["id"], "item_id": item_id}
+    if await db.wishlist_items.find_one(q):
+        await db.wishlist_items.delete_one(q)
+        return {"in_wishlist": False}
+    await db.wishlist_items.insert_one({**q, "added_at": datetime.now(timezone.utc).isoformat()})
+    return {"in_wishlist": True}
+
+
+@api_router.put("/wishlist/visibility")
+async def set_wishlist_visibility(body: WishlistVisibility, current_user: dict = Depends(get_current_user)):
+    vis = {**DEFAULT_PARTNER_VISIBILITY, **(current_user.get("partner_visibility") or {}), "wishlist": body.public}
+    await db.users.update_one({"id": current_user["id"]}, {"$set": {"partner_visibility": vis}})
+    return {"public": body.public}
+
+
+@api_router.get("/partner/wishlist")
+async def get_partner_wishlist(current_user: dict = Depends(get_current_user)):
+    """The linked partner's wishlist, only if they made it public to their partner."""
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        return {"is_linked": False}
+    owner_id, partner_id = _partner_pair(rel)
+    other_id = partner_id if current_user["id"] == owner_id else owner_id
+    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1, "partner_visibility": 1}) or {}
+    name = other.get("name") or "Partner"
+    if not _wishlist_public(other):
+        return {"is_linked": True, "shared": False, "name": name, "items": []}
+    return {"is_linked": True, "shared": True, "name": name, "items": await _wishlist_for(other_id)}
+
+
 app.include_router(api_router)
 
 # CORS: only the origins listed in CORS_ORIGINS (comma separated) may call

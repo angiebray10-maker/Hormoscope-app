@@ -11,7 +11,12 @@ export const APP_MAP = [
     { to: '/calendar', name: 'Calendar', desc: 'Periods, fertile window, symptoms and intimacy, past and future.' },
     { to: '/profile', name: 'Profile', desc: 'Your details, what your partner can see, settings and account.' },
   ]},
+  { group: 'Shop', items: [
+    { to: '/boutique', name: 'HORMOscope Catalog', desc: 'Hand-picked favorites. Heart anything to add it to your wishlist.' },
+    { to: '/boutique?tab=wishlist', name: 'My Wishlist', desc: 'Your saved items. Choose Public to partner or Private.' },
+  ]},
   { group: 'Partner', items: [
+    { to: '/partner-wishlist', name: 'Partner\u2019s Wishlist', desc: 'What your Attuned partner would love, if they share it.' },
     { to: '/partner-hub', name: 'Partner Hub', desc: 'Where a partner enters an invite code and follows your cycle.' },
   ]},
   { group: 'Help & about', items: [

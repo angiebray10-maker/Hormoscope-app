@@ -421,6 +421,12 @@ export default function ProfilePage() {
 
       {/* Links */}
       <div className="bento-card overflow-hidden mb-6">
+        <Link to="/boutique" className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-b border-white/5" data-testid="boutique-link">
+          <div className="flex items-center gap-3">
+            <FileText className="w-5 h-5 text-[#E8A4B8]" />
+            <span className="text-[#FDF8FA]">Catalog &amp; Wishlist</span>
+          </div>
+        </Link>
         <Link
           to="/app-map"
           className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-b border-white/5"
