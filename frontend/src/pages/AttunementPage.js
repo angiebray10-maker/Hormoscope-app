@@ -134,6 +134,9 @@ export default function AttunementPage() {
             <Link to="/partner-hub" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ ...poppins, background: '#FF4F9A' }}>
               Open your shared space
             </Link>
+            <Link to="/partner-wishlist" className="block w-full py-3 mt-2 rounded-full text-white text-sm font-medium border border-white/20" style={poppins} data-testid="partner-wishlist-link">
+              See {status.partner_name}'s Wishlist
+            </Link>
           </div>
           </>
         ) : (

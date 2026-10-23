@@ -8,10 +8,16 @@ export const APP_MAP = [
     { to: '/', name: 'Home', desc: 'Your cycle day, phase, quick log and today\u2019s daily read.' },
     { to: '/journal', name: 'Journal', desc: 'Your private daily journal: one day per page, saved to your day and never shared.' },
     { to: '/attunement', name: 'Attunement', desc: 'Attuned Partner Mode: invite your partner or sync cycles with your girlfriend.' },
+    { to: '/boutique', name: 'Catalog', desc: 'Angie\u2019s hand-picked favorites, plus your wishlist.' },
     { to: '/calendar', name: 'Calendar', desc: 'Periods, fertile window, symptoms and intimacy, past and future.' },
     { to: '/profile', name: 'Profile', desc: 'Your details, what your partner can see, settings and account.' },
   ]},
+  { group: 'Shop', items: [
+    { to: '/boutique', name: 'HORMOscope Catalog', desc: 'Hand-picked favorites. Heart anything to add it to your wishlist.' },
+    { to: '/boutique?tab=wishlist', name: 'My Wishlist', desc: 'Your saved items. Choose Public to partner or Private.' },
+  ]},
   { group: 'Partner', items: [
+    { to: '/partner-wishlist', name: 'Partner\u2019s Wishlist', desc: 'What your Attuned partner would love, if they share it.' },
     { to: '/partner-hub', name: 'Partner Hub', desc: 'Where a partner enters an invite code and follows your cycle.' },
   ]},
   { group: 'Help & about', items: [
