@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, MessageCircle, Calendar, User, BookOpen, Heart } from 'lucide-react';
+import { Home, MessageCircle, Calendar, User, BookOpen, Heart, ShoppingBag } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/journal', icon: BookOpen, label: 'Journal' },
   { path: '/attunement', icon: Heart, label: 'Attunement' },
   { path: '/calendar', icon: Calendar, label: 'Calendar' },
+  { path: '/boutique', icon: ShoppingBag, label: 'Catalog' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
 
@@ -90,15 +91,15 @@ export default function BottomNav() {
       {/* Mobile Bottom Nav: smaller, transparent, outline only
           (Angelita's fix list, Oct 16: no solid fill slicing into cards) */}
       <nav className="lg:hidden fixed bottom-3 left-4 right-4 z-40">
-        <div className="rounded-full px-1.5 py-0.5 flex justify-around max-w-sm mx-auto" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}>
+        <div className="rounded-full px-1 py-0.5 flex justify-between gap-0.5 max-w-sm mx-auto" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}>
           {navItems.map(({ path, icon: Icon, label }) => {
-            const isActive = location.pathname === path;
+            const isActive = location.pathname === path || (path === '/boutique' && location.pathname.startsWith('/admin/catalog'));
             return (
               <NavLink
                 key={path}
                 to={path}
                 aria-label={label}
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center transition-all ${
                   isActive
                     ? 'bg-[#FF4F9A] text-white'
                     : 'text-[#B4B0C8]'
