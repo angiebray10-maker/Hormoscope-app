@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState, useRef } from 'react';
 import { BACKDROPS, BACKDROP_OVERLAY } from '../lib/backdrops';
 import SecurityNotice from '../components/SecurityNotice';
@@ -11,6 +12,7 @@ const PURPLE = '#7b4fa6';
 const PURPLE_LIGHT = '#c9b8f0';
 const PINK = '#f4a7b9';
 const PINK_SOFT = '#e8dce0';
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const PINK_MUTED = '#a0a0b8';
 
 const NEW_LOGO = '/images/logo.png';
@@ -35,7 +37,27 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [isAdult, setIsAdult] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const { login, signup } = useAuth();
+  const { login, signup, fetchUser } = useAuth();
+  // Inline email verification right after sign-up (replaces the Home banner).
+  const [verifyStep, setVerifyStep] = useState(null); // { user } once signed up
+  const [code, setCode] = useState('');
+  const [verifyMsg, setVerifyMsg] = useState('');
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const authHeaders = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+  const errDetail = (e, fb) => (typeof e.response?.data?.detail === 'string' ? e.response.data.detail : fb);
+  const finishSignup = (u) => navigate(u?.onboarding_complete ? '/' : '/onboarding');
+  const submitCode = async () => {
+    setVerifyBusy(true); setVerifyMsg('');
+    try { await axios.post(`${API}/auth/verify-code`, { code }, authHeaders()); await fetchUser?.(); setVerifyMsg('Email verified. Thank you!'); setTimeout(() => finishSignup(verifyStep?.user), 900); }
+    catch (e) { setVerifyMsg(errDetail(e, "That code didn't work. Try again.")); }
+    finally { setVerifyBusy(false); }
+  };
+  const resendCode = async () => {
+    setVerifyBusy(true); setVerifyMsg('');
+    try { await axios.post(`${API}/auth/resend-verification`, {}, authHeaders()); setVerifyMsg('Sent again. Check your inbox (and spam).'); }
+    catch (e) { setVerifyMsg(errDetail(e, "Couldn't send right now. Try again soon.")); }
+    finally { setVerifyBusy(false); }
+  };
   const navigate = useNavigate();
   const scienceRef = useRef(null);
   const focusRef = useRef(null);
@@ -56,6 +78,7 @@ export default function AuthPage() {
     setLoading(true);
     try {
       const user = isLogin ? await login(email, password) : await signup(email, password, { is_adult: isAdult, accepted_terms: acceptedTerms });
+      if (!isLogin && user.email_verified === false) { setVerifyStep({ user }); return; }
       navigate(user.onboarding_complete ? '/' : '/onboarding');
     } catch (err) {
       setError(typeof err.response?.data?.detail === 'string' ? err.response.data.detail : (err.response ? 'Something went wrong. Please try again.' : 'Could not reach HORMOscope. Check your connection and try again.'));
@@ -335,6 +358,19 @@ export default function AuthPage() {
               <p className="text-sm" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>{isLogin ? 'Sign in to continue' : 'Create your account'}</p>
             </div>
             {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 text-red-400 text-sm text-center" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="auth-error">{error}</div>}
+            {verifyStep ? (
+              <div className="space-y-4" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="inline-verify">
+                <p className="text-sm text-white text-center">We sent a 6-digit code to <span className="break-all" style={{ color: PINK_MUTED }}>{email}</span>. Enter it here to confirm your email.</p>
+                <input data-testid="verify-code-input" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="6-digit code" autoFocus
+                  className="w-full rounded-xl px-4 py-3 text-center text-lg tracking-[0.4em] text-white focus:outline-none" style={{ background: 'rgba(123,79,166,0.08)', border: '1px solid rgba(123,79,166,0.2)' }} />
+                <button type="button" onClick={submitCode} disabled={verifyBusy || code.length !== 6} className="w-full py-3 rounded-full text-white font-medium disabled:opacity-50" style={{ background: '#FF4F9A' }} data-testid="verify-code-btn">{verifyBusy ? 'Checking...' : 'Verify email'}</button>
+                {verifyMsg && <p className="text-xs text-center" style={{ color: PINK_MUTED }}>{verifyMsg}</p>}
+                <div className="flex justify-between text-xs">
+                  <button type="button" onClick={resendCode} disabled={verifyBusy} className="underline" style={{ color: PINK_MUTED }} data-testid="verify-resend-btn">Resend code</button>
+                  <button type="button" onClick={() => finishSignup(verifyStep.user)} style={{ color: PINK_MUTED }} data-testid="verify-skip-btn">Skip for now</button>
+                </div>
+              </div>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="text-xs tracking-wider uppercase block mb-2" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>Email</label>
@@ -367,6 +403,7 @@ export default function AuthPage() {
                 {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
               </button>
             </form>
+            )}
             <p className="text-center text-sm mt-5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
               {isLogin ? "Don't have an account? " : 'Already have an account? '}
               <button data-testid="auth-toggle-btn" onClick={() => { setIsLogin(!isLogin); setError(''); }} className="hover:underline font-medium" style={{ color: PINK }}>

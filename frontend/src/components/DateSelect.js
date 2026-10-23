@@ -50,10 +50,12 @@ export default function DateSelect({ value, onChange, testId, minYear, maxYear }
 
   const selClass = 'input-dark min-w-0 w-full';
   // Tighter side padding so the 4-digit year is never clipped on phones.
-  const selStyle = { colorScheme: 'dark', paddingLeft: 10, paddingRight: 22, fontSize: 15, textOverflow: 'clip' };
+  // Small phones (~360px): narrow side padding, slightly smaller text and a
+  // wider Day column so the native dropdown arrow never covers the day.
+  const selStyle = { colorScheme: 'dark', paddingLeft: 8, paddingRight: 18, fontSize: 14, textOverflow: 'clip', backgroundPosition: 'right 4px center' };
 
   return (
-    <div className="grid gap-2" style={{ gridTemplateColumns: '1.5fr 1fr 1.25fr' }} data-testid={testId}>
+    <div className="grid gap-1.5 w-full" style={{ gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1.1fr) minmax(0,1.35fr)' }} data-testid={testId}>
       <select
         aria-label="Month"
         className={selClass}
