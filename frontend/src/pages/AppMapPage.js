@@ -12,7 +12,7 @@ export const APP_MAP = [
     { to: '/profile', name: 'Profile', desc: 'Your details, what your partner can see, settings and account.' },
   ]},
   { group: 'Partner', items: [
-    { to: '/partner-hub', name: 'Partner Hub', desc: 'Where a partner enters an invite code and follows your cycle.' },
+    { to: '/partner-hub', name: 'Partner Hub', desc: 'Where a partner enters an invite code, follows your cycle, and you each log how you feel today.' },
   ]},
   { group: 'Help & about', items: [
     { to: '/guide', name: 'Instructional Guide', desc: 'How each part of the app works.' },

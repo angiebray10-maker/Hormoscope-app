@@ -144,6 +144,158 @@ function NotesTab({ token, currentUserId, onUnreadChange }) {
   );
 }
 
+const PARTNER_MOOD_OPTIONS = [
+  { value: 1, emoji: '😞', label: 'Low' },
+  { value: 2, emoji: '😟', label: 'Meh' },
+  { value: 3, emoji: '😐', label: 'Okay' },
+  { value: 4, emoji: '🙂', label: 'Good' },
+  { value: 5, emoji: '😄', label: 'Great' },
+];
+
+const PARTNER_FEELINGS = ['Happy', 'Joyful', 'Calm', 'Peaceful', 'Relaxed', 'Content', 'Loved', 'Grateful', 'Hopeful', 'Excited', 'Confident', 'Playful', 'Anxious', 'Irritable', 'Tired', 'Anger', 'Sad', 'Melancholy', 'Nostalgic', 'Hurt', 'Pain', 'Disappointed', 'Misunderstood', 'Sick', 'Scared', 'Bored', 'Dumbfounded', 'Horny', 'Flirtatious', 'Jealous', 'Envious'];
+
+function MoodsTab({ token }) {
+  const [loading, setLoading] = useState(true);
+  const [mood, setMood] = useState(null);
+  const [feelings, setFeelings] = useState([]);
+  const [theirs, setTheirs] = useState(null);
+  const [partnerName, setPartnerName] = useState('Partner');
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState('');
+  const [error, setError] = useState('');
+
+  const fetchMoods = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/partner/mood`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setPartnerName(res.data.partner_name || 'Partner');
+      setTheirs(res.data.theirs_today || null);
+      if (res.data.mine_today) {
+        setMood(res.data.mine_today.mood ?? null);
+        setFeelings(res.data.mine_today.feelings || []);
+      }
+    } catch (err) {
+      logger.error('Failed to fetch partner moods:', err);
+      setError(err.response?.data?.detail || 'Could not load moods. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchMoods(); }, [fetchMoods]);
+
+  const toggleFeeling = (label) => {
+    setSavedMsg('');
+    setFeelings((prev) => prev.includes(label) ? prev.filter((f) => f !== label) : (prev.length >= 12 ? prev : [...prev, label]));
+  };
+
+  const handleSave = async () => {
+    if (saving) return;
+    if (mood === null && feelings.length === 0) {
+      setError('Pick a mood or at least one feeling first.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    setSavedMsg('');
+    try {
+      await axios.post(`${API}/partner/mood`, { mood, feelings }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setSavedMsg('Saved for today');
+      await fetchMoods();
+    } catch (err) {
+      logger.error('Failed to save partner mood:', err);
+      setError(err.response?.data?.detail || 'Could not save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#f4a7b9] animate-spin" /></div>;
+  }
+
+  return (
+    <div data-testid="partner-moods">
+      <div className="text-center mb-6">
+        <h2 className="text-xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>How are you feeling today?</h2>
+        <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>You each log how you feel, and you can see each other&apos;s day.</p>
+      </div>
+
+      <div className="flex justify-between gap-2 mb-5">
+        {PARTNER_MOOD_OPTIONS.map((m) => (
+          <button key={m.value} onClick={() => { setMood(m.value); setSavedMsg(''); }}
+            className="flex-1 py-3 rounded-2xl text-center"
+            style={{
+              fontFamily: 'Poppins, sans-serif',
+              background: mood === m.value ? '#FF4F9A' : 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#fff',
+            }}
+            data-testid={`mood-option-${m.value}`}>
+            <span className="block text-2xl mb-1">{m.emoji}</span>
+            <span className="block text-[10px]">{m.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-5">
+        {PARTNER_FEELINGS.map((label) => {
+          const active = feelings.includes(label);
+          return (
+            <button key={label} onClick={() => toggleFeeling(label)}
+              className="px-3 py-1.5 rounded-full text-xs"
+              style={{
+                fontFamily: 'Poppins, sans-serif',
+                background: active ? '#FF4F9A' : 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: active ? '#fff' : 'rgba(255,255,255,0.65)',
+              }}
+              data-testid={`feeling-chip-${label}`}>
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {error && <p className="text-red-400 text-xs mb-3 text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>{error}</p>}
+      {savedMsg && <p className="text-xs mb-3 text-center" style={{ fontFamily: 'Poppins, sans-serif', color: '#55efc4' }}>{savedMsg}</p>}
+
+      <button onClick={handleSave} disabled={saving}
+        className="w-full py-3.5 rounded-full text-white text-sm font-medium disabled:opacity-40 mb-8"
+        style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
+        data-testid="mood-save">
+        {saving ? 'Saving...' : 'Save for today'}
+      </button>
+
+      <div className="rounded-2xl p-5 border border-white/[0.06] bg-white/[0.03]">
+        <h3 className="text-lg text-white mb-3" style={{ fontFamily: "'Poiret One', sans-serif" }}>{partnerName} today</h3>
+        {theirs ? (
+          <div>
+            {theirs.mood_label && (
+              <p className="text-white text-sm mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                {PARTNER_MOOD_OPTIONS.find((m) => m.value === theirs.mood)?.emoji || ''} {theirs.mood_label}
+                {theirs.date ? <span className="text-white/40 text-xs"> · {theirs.date}</span> : null}
+              </p>
+            )}
+            {!theirs.mood_label && theirs.date && (
+              <p className="text-white/40 text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>{theirs.date}</p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {(theirs.feelings || []).map((label) => (
+                <span key={label} className="px-3 py-1.5 rounded-full text-xs"
+                  style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,79,154,0.12)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff' }}>
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-white/60 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>They have not logged how they feel today yet.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CalendarTab({ markedDays }) {
   const [viewDate, setViewDate] = useState(new Date());
   const y = viewDate.getFullYear(), m = viewDate.getMonth();
@@ -326,6 +478,7 @@ export default function PartnerHubPage() {
             { id: 'cycle', label: 'Cycle', icon: Heart },
             { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
             { id: 'notes', label: 'Notes', icon: null },
+            { id: 'moods', label: 'Moods', icon: null },
           ].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className="flex-1 py-2.5 rounded-full text-sm font-medium relative"
@@ -412,6 +565,8 @@ export default function PartnerHubPage() {
         {tab === 'calendar' && <CalendarTab markedDays={calData?.marked_days} />}
 
         {tab === 'notes' && <NotesTab token={token} currentUserId={user?.id} onUnreadChange={setUnread} />}
+
+        {tab === 'moods' && <MoodsTab token={token} />}
       </div>
     </div>
   );

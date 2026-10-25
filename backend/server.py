@@ -1562,6 +1562,8 @@ async def delete_my_account(body: AccountDeleteRequest, current_user: dict = Dep
             {"$or": [{"user_id": uid}, {"partner_user_id": uid}]})).deleted_count
         removed["partner_notes"] = (await db.partner_notes.delete_many(
             {"$or": [{"author_id": uid}, {"recipient_id": uid}]})).deleted_count
+        removed["partner_mood_logs"] = (await db.partner_mood_logs.delete_many(
+            {"$or": [{"author_id": uid}, {"recipient_id": uid}]})).deleted_count
         if email:
             removed["leads"] = (await db.leads.delete_many({"email": email})).deleted_count
         # Payment transaction records are retained for legal and accounting
@@ -3221,6 +3223,10 @@ class AcceptInviteRequest(BaseModel):
 class PartnerNoteCreate(BaseModel):
     content: str
 
+class PartnerMoodCreate(BaseModel):
+    mood: Optional[int] = None
+    feelings: List[str] = []
+
 async def _get_partner_relationship(user_id: str):
     """Return the active partner relationship for a user, in either direction."""
     return await db.partner_relationships.find_one(
@@ -3562,6 +3568,89 @@ async def delete_partner_note(note_id: str, current_user: dict = Depends(get_cur
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Note not found")
     return {"message": "Note deleted"}
+
+# ==================== ATTUNED PARTNER MODE: MOOD LOGGING ====================
+# Two way attunement: each linked person logs how they feel today, and
+# the other person can see that log. Only partner_mood_logs are read
+# here. Never journal entries, cycle logs, or intimacy data.
+
+PARTNER_MOOD_LABELS = {1: "Low", 2: "Meh", 3: "Okay", 4: "Good", 5: "Great"}
+
+@api_router.post("/partner/mood")
+async def create_partner_mood(payload: PartnerMoodCreate, current_user: dict = Depends(get_current_user)):
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        raise HTTPException(status_code=403, detail="No linked partner account.")
+    mood = payload.mood
+    if mood is not None and mood not in PARTNER_MOOD_LABELS:
+        raise HTTPException(status_code=400, detail="Mood must be between 1 and 5.")
+    raw_feelings = payload.feelings or []
+    if len(raw_feelings) > 12:
+        raise HTTPException(status_code=400, detail="Pick up to 12 feelings.")
+    feelings = []
+    for f in raw_feelings:
+        if not isinstance(f, str):
+            raise HTTPException(status_code=400, detail="Feelings must be text.")
+        cleaned = f.strip()[:40]
+        if cleaned:
+            feelings.append(cleaned)
+    if mood is None and not feelings:
+        raise HTTPException(status_code=400, detail="Pick a mood or at least one feeling.")
+    owner_id, partner_id = _partner_pair(rel)
+    recipient_id = partner_id if current_user["id"] == owner_id else owner_id
+    today_str = datetime.now(timezone.utc).date().isoformat()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    existing = await db.partner_mood_logs.find_one(
+        {"author_id": current_user["id"], "date": today_str}, {"_id": 0}
+    )
+    if existing:
+        await db.partner_mood_logs.update_one(
+            {"author_id": current_user["id"], "date": today_str},
+            {"$set": {
+                "author_name": current_user.get("name") or "Partner",
+                "recipient_id": recipient_id,
+                "mood": mood,
+                "mood_label": PARTNER_MOOD_LABELS.get(mood) if mood is not None else None,
+                "feelings": feelings,
+                "updated_at": now_iso,
+            }}
+        )
+        saved = await db.partner_mood_logs.find_one(
+            {"author_id": current_user["id"], "date": today_str}, {"_id": 0}
+        )
+        return saved
+    doc = {
+        "id": str(uuid.uuid4()),
+        "author_id": current_user["id"],
+        "author_name": current_user.get("name") or "Partner",
+        "recipient_id": recipient_id,
+        "date": today_str,
+        "mood": mood,
+        "mood_label": PARTNER_MOOD_LABELS.get(mood) if mood is not None else None,
+        "feelings": feelings,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+    await db.partner_mood_logs.insert_one(dict(doc))
+    return doc
+
+@api_router.get("/partner/mood")
+async def get_partner_mood(current_user: dict = Depends(get_current_user)):
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        raise HTTPException(status_code=403, detail="No linked partner account.")
+    owner_id, partner_id = _partner_pair(rel)
+    other_id = partner_id if current_user["id"] == owner_id else owner_id
+    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1})
+    partner_name = (other.get("name") if other else None) or "Partner"
+    today_str = datetime.now(timezone.utc).date().isoformat()
+    mine_today = await db.partner_mood_logs.find_one(
+        {"author_id": current_user["id"], "date": today_str}, {"_id": 0}
+    )
+    theirs_today = await db.partner_mood_logs.find_one(
+        {"author_id": other_id, "date": today_str}, {"_id": 0}
+    )
+    return {"mine_today": mine_today, "theirs_today": theirs_today, "partner_name": partner_name}
 
 
 
