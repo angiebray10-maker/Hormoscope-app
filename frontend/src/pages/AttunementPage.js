@@ -86,20 +86,20 @@ export default function AttunementPage() {
 
   return (
     <div className="relative min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="attunement-page">
-      {/* Couples wallpaper (Angelita, Oct 20, 2026: swapped on her
-          order): the two women cover the upper part of the page, and the
-          man-and-woman couple sits lower, appearing as she scrolls down.
+      {/* Couples wallpaper (Angelita, Oct 25, 2026: swapped on her
+          order): the man-and-woman couple covers the upper part of the
+          page, and the two women sit lower, appearing as she scrolls down.
           Each is masked at its inner edge so they blend into each
           other, and a plum veil over both keeps the wording easy to read. */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" data-testid="attunement-wallpaper">
         <img
-          src="/images/attunement-two-women.webp"
+          src="/images/attunement-couple.png"
           alt=""
           className="absolute inset-x-0 top-0 w-full object-cover"
           style={{ height: '56%', opacity: 0.28, maskImage: 'linear-gradient(180deg, black 68%, transparent 100%)', WebkitMaskImage: 'linear-gradient(180deg, black 68%, transparent 100%)' }}
         />
         <img
-          src="/images/attunement-couple.png"
+          src="/images/attunement-two-women.webp"
           alt=""
           className="absolute inset-x-0 bottom-0 w-full object-cover"
           style={{ height: '56%', opacity: 0.28, maskImage: 'linear-gradient(180deg, transparent 0%, black 32%)', WebkitMaskImage: 'linear-gradient(180deg, transparent 0%, black 32%)' }}
@@ -138,10 +138,31 @@ export default function AttunementPage() {
           </>
         ) : (
           <>
-            {/* Choice 1: partner is a woman */}
+            {/* Choice 1: partner is a man (Angelita, Oct 25, 2026:
+                the man choice comes first, headed by what she wants to
+                do, not who he is) */}
+            <div className="card overflow-hidden mb-4" data-testid="attunement-man">
+              <div className="p-5">
+                <h2 className="text-white text-xl mb-2" style={script}>Sync my cycle with him</h2>
+                <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
+                  He follows your cycle, so he knows when to bring tea, when to give you room, and when you are glowing.
+                </p>
+                <button
+                  onClick={() => handleInvite('man')}
+                  disabled={generating}
+                  className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
+                  style={{ ...poppins, background: '#FF4F9A' }}
+                  data-testid="invite-him-btn"
+                >
+                  {generating ? 'Making your link…' : 'Invite him'}
+                </button>
+              </div>
+            </div>
+
+            {/* Choice 2: partner is a woman */}
             <div className="card overflow-hidden mb-4" data-testid="attunement-woman">
               <div className="p-5">
-                <h2 className="text-white text-xl mb-2" style={script}>My partner is a woman</h2>
+                <h2 className="text-white text-xl mb-2" style={script}>Sync my cycle with her</h2>
                 <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
                   You track side by side, in tune with each other. Send her a sign-up link and she can join you here.
                 </p>
@@ -157,25 +178,6 @@ export default function AttunementPage() {
                 <p className="text-[#B4B0C8] text-[11px] mt-3 leading-relaxed" style={poppins}>
                   Once she joins and you link up, you'll both see each other's phase and day side by side, with the days you're in sync highlighted. You each choose what the other can see.
                 </p>
-              </div>
-            </div>
-
-            {/* Choice 2: partner is a man */}
-            <div className="card overflow-hidden mb-4" data-testid="attunement-man">
-              <div className="p-5">
-                <h2 className="text-white text-xl mb-2" style={script}>My partner is a man</h2>
-                <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
-                  He follows your cycle, so he knows when to bring tea, when to give you room, and when you are glowing.
-                </p>
-                <button
-                  onClick={() => handleInvite('man')}
-                  disabled={generating}
-                  className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
-                  style={{ ...poppins, background: '#FF4F9A' }}
-                  data-testid="invite-him-btn"
-                >
-                  {generating ? 'Making your link…' : 'Invite him'}
-                </button>
               </div>
             </div>
 
