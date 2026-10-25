@@ -87,10 +87,15 @@ export default function BottomNav() {
         </nav>
       </aside>
 
-      {/* Mobile Bottom Nav: smaller, transparent, outline only
-          (Angelita's fix list, Oct 16: no solid fill slicing into cards) */}
+      {/* Mobile Bottom Nav: smaller, outline style (Angelita's fix
+          list, Oct 16: no solid fill slicing into cards). v39 fix: the
+          pill was fully transparent, so page content showed through it
+          and the solid active button clipped the Home quick log labels
+          behind it. It now carries the app background color at 97%
+          opacity: same outline look, same size and position, but
+          nothing shows through the pill anymore. */}
       <nav className="lg:hidden fixed bottom-3 left-4 right-4 z-40">
-        <div className="rounded-full px-1.5 py-0.5 flex justify-around max-w-sm mx-auto" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}>
+        <div className="rounded-full px-1.5 py-0.5 flex justify-around max-w-sm mx-auto" style={{ background: 'rgba(11,11,30,0.97)', border: '1.5px solid #FF4F9A' }}>
           {navItems.map(({ path, icon: Icon, label }) => {
             const isActive = location.pathname === path;
             return (

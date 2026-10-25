@@ -6,7 +6,6 @@ import { BottomNav } from './components/BottomNav';
 import { Toaster } from './components/ui/sonner';
 import InstallPrompt from './components/InstallPrompt';
 import AmbientOrb from './components/PhaseOrb';
-import VerifyEmailBanner from './components/VerifyEmailBanner';
 
 // Pages
 import AuthPage from './pages/AuthPage';
@@ -72,7 +71,9 @@ const AppContent = () => {
   return (
     <div className="min-h-screen noise-overlay">
       <AmbientOrb />
-      <VerifyEmailBanner />
+      {/* Email verification card lives on the Profile page now (v39):
+          it used to render here, above every screen, and pushed the
+          Home quick log row down into the bottom nav. */}
       <div className="pb-24 lg:pb-0 relative z-[1]">
       <Routes>
         {/* Public routes */}

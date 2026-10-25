@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
 import DateSelect from '../components/DateSelect';
+import VerifyEmailBanner from '../components/VerifyEmailBanner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const APP_URL = process.env.REACT_APP_BACKEND_URL?.replace('/api', '') || window.location.origin;
@@ -417,6 +418,13 @@ export default function ProfilePage() {
             <p className="text-[#E6E0EE] text-sm break-all" data-testid="profile-email">{user?.email}</p>
           </div>
         </div>
+      </div>
+
+      {/* Email verification (v39): the card moved here from the top of
+          every screen. Same component, same behavior; it only renders
+          while the account email is unverified. */}
+      <div className="mb-6 -mx-4 empty:hidden">
+        <VerifyEmailBanner />
       </div>
 
       {/* Links */}
