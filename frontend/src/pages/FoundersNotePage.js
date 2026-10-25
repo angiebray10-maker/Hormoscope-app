@@ -14,15 +14,6 @@ export default function FoundersNotePage() {
           {user ? 'Back to Profile' : 'Back to HORMOscope'}
         </Link>
 
-        <img
-          src="/founder.webp"
-          alt="Angelita, founder of HORMOscope"
-          width="160" height="160"
-          className="w-36 h-36 sm:w-40 sm:h-40 rounded-full object-cover mb-8"
-          style={{ objectPosition: '50% 35%', border: '2px solid #FF4F9A', boxShadow: '0 0 32px rgba(255,79,154,0.35)' }}
-          data-testid="founder-photo"
-        />
-
         <h1 className="text-3xl sm:text-4xl text-white mb-10" data-testid="founders-note-title">
           A Note From The Founder
         </h1>
@@ -55,10 +46,11 @@ export default function FoundersNotePage() {
 
         <div className="mt-12 pt-8">
           <div className="flex items-center gap-4">
-            <img 
-              src="/images/founder.jpg"
+            <img
+              src="/founder.webp"
               alt="Angelita Braaten"
               className="w-14 h-14 rounded-full object-cover border-2 border-[#C9B8F0]/40 shadow-[0_0_20px_rgba(201,184,240,0.25)]"
+              style={{ objectPosition: '50% 35%' }}
               data-testid="founder-photo"
             />
             <div>
