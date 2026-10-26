@@ -4058,18 +4058,16 @@ async def get_partner_mood(current_user: dict = Depends(get_current_user)):
 # and a linked partner can see them only when she shares (below).
 
 CATALOG_PRODUCT_IDS = {
-    # The Comfort Collection
+    # One single flat list (Angelita, Oct 26, 2026); no collections.
     "B0FHBXCCLM", "B0C1YG33PD", "B0C9LCM3HW", "B07NLSLP9K", "B093LVS21D", "B083C6BYG9",
-    # The Fresh Start Collection
     "B0FGB2NS3C", "B07M5X4D3P",
-    # The Romance Collection
     "B0CNC67C8B",
-    # The Little Luxuries Collection
     "B07VTDXFDC", "B0D7N2KWLH", "B09Y8SV5RY",
-    # Holiday
     "B0F8J3GJDQ", "B0FY7R1TQ3",
-    # Know Your Body
     "B0FQFMDMDC", "B0B75T46L8",
+    # Added Oct 26, 2026, in the order she sent them.
+    "B0BX78DC84", "B0BLSVBMVY", "B0DS1MRGBY", "B00LWE69NU", "B07YQBWVGF", "B06XKP5Z1X",
+    "B07JK78TM7", "B0DZ2J1GS1", "B09PTGQ4CK", "B0CFPRZHYM", "B005F1ATJQ",
 }
 
 
@@ -4133,6 +4131,17 @@ CATALOG_PRODUCTS = {
     "B0FY7R1TQ3": "LOVERY Luxury Perfume Advent Calendar for Women",
     "B0FQFMDMDC": "Evvy Vaginal Health Test, 2 Pack",
     "B0B75T46L8": "Viome Full Body Intelligence Test",
+    "B0BX78DC84": "Pixie Menstrual Cup & Disc Boiler Sterilizer",
+    "B0BLSVBMVY": "Pixie Menstrual Disc Kit",
+    "B0DS1MRGBY": "Pixie Disc + Applicator Bundle (2 discs)",
+    "B00LWE69NU": "Flex Reusable Disc",
+    "B07YQBWVGF": "Cora Overnight Pads, 72 count",
+    "B06XKP5Z1X": "Cora Organic Tampons, 36 Super",
+    "B07JK78TM7": "Cora Organic Tampons Multipack, 36 count",
+    "B0DZ2J1GS1": "Comfytemp Cordless Heating Belt",
+    "B09PTGQ4CK": "Menstruation Crustacean Lobster Heating Plush",
+    "B0CFPRZHYM": "OQQ 3 Piece Bodysuits",
+    "B005F1ATJQ": "Ancient Minerals Magnesium Bath Flakes",
 }
 
 

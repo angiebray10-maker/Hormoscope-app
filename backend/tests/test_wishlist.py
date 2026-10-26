@@ -256,7 +256,7 @@ async def main():
         c, _ = await add(PARTNER, pid)
         if c == "ok":
             accepted += 1
-    results.append(("all server catalog ASINs accepted", accepted == len(server.CATALOG_PRODUCT_IDS) == 16))
+    results.append(("all server catalog ASINs accepted", accepted == len(server.CATALOG_PRODUCT_IDS) == 27))
 
     failed = [name for name, ok in results if not ok]
     for name, ok in results:
