@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Gift, Loader2, Check, X, ExternalLink, Heart } from 'lucide-react';
+import { Gift, Loader2, X, Heart } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
@@ -38,26 +38,25 @@ function openAmazon(asin) {
 function ProductCard({ product, children }) {
   return (
     <div className="rounded-2xl p-4 mb-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }} data-testid={`product-${product.asin}`}>
-      <h4 className="text-white text-sm font-medium leading-snug mb-1" style={poppins}>{product.name}</h4>
+      {/* The product NAME is the Amazon link (Angelita, Oct 26, 2026):
+          no buy wording, no view wording, no button label at all
+          until she picks a word she likes. Same tagged link, same
+          outside-the-WebView open as before. */}
+      <h4 className="text-white text-sm font-medium leading-snug mb-1" style={poppins}>
+        <a
+          href={amazonUrl(product.asin)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => { e.preventDefault(); openAmazon(product.asin); }}
+          className="underline decoration-[rgba(244,167,185,0.55)] underline-offset-2"
+          data-testid={`amazon-${product.asin}`}
+        >
+          {product.name}
+        </a>
+      </h4>
       <p className="text-[#b8b8d1] text-xs leading-relaxed mb-3" style={poppins}>{product.blurb}</p>
-      <div className="flex items-center gap-2 flex-wrap">{children}</div>
+      {children && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
     </div>
-  );
-}
-
-function AmazonButton({ asin }) {
-  return (
-    <a
-      href={amazonUrl(asin)}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => { e.preventDefault(); openAmazon(asin); }}
-      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium"
-      style={{ ...poppins, color: '#0B0B1E', background: PINK }}
-      data-testid={`amazon-${asin}`}
-    >
-      View on Amazon <ExternalLink className="w-3.5 h-3.5" />
-    </a>
   );
 }
 
@@ -188,7 +187,6 @@ export default function AttunementGifts() {
               const product = PRODUCT_BY_ASIN[asin];
               return (
                 <ProductCard key={asin} product={product}>
-                  <AmazonButton asin={asin} />
                   <button
                     onClick={() => removePick(asin)}
                     disabled={busyAsin === asin}
@@ -220,9 +218,7 @@ export default function AttunementGifts() {
             partnerBoutique.items.map((asin) => {
               const product = PRODUCT_BY_ASIN[asin];
               return (
-                <ProductCard key={asin} product={product}>
-                  <AmazonButton asin={asin} />
-                </ProductCard>
+                <ProductCard key={asin} product={product} />
               );
             })
           )}
@@ -251,7 +247,6 @@ export default function AttunementGifts() {
                     <Heart className="w-3.5 h-3.5" /> Add to my wishlist
                   </button>
                 )}
-                <AmazonButton asin={p.asin} />
               </ProductCard>
             );
           })}
