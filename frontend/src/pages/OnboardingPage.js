@@ -8,7 +8,7 @@ import VerifyEmailBanner from '../components/VerifyEmailBanner';
 import { ChevronRight, ChevronLeft, Bell, BellOff, Heart, Users, Clock } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
-import { subscribeToPush } from '../utils/pushNotifications';
+import { syncLocalNotifications } from '../utils/localNotifications';
 import { BRAND, HEADING_FONT, BODY_FONT } from '../lib/phases';
 import { BACKDROPS, BACKDROP_OVERLAY } from '../lib/backdrops';
 
@@ -105,7 +105,11 @@ export default function OnboardingPage() {
       localStorage.setItem('hormoscope-notifications-enabled', notificationsEnabled ? 'true' : 'false');
       localStorage.setItem('hormoscope-notification-time', notificationTime);
       if (notificationsEnabled) {
-        try { await subscribeToPush(token); } catch (pushErr) { logger.error('Push subscription failed during onboarding:', pushErr); }
+        // v43: on-device local notifications replace the old Web Push
+        // subscription (which could never deliver inside the Android
+        // WebView). Permission is requested here, in context, right
+        // after she chose her reminder time. No-op on web builds.
+        try { await syncLocalNotifications({ user: res.data, token, requestPermission: true }); } catch (notifErr) { logger.error('Local notification setup failed during onboarding:', notifErr); }
       }
       localStorage.setItem('hormoscope-show-welcome', 'true');
       navigate(partnerChoice === 'later' ? '/' : '/attunement');

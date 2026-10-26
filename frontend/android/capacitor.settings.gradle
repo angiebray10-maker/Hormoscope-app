@@ -2,5 +2,8 @@
 include ':capacitor-android'
 project(':capacitor-android').projectDir = new File('./capacitor-android-vendored')
 
+include ':capacitor-local-notifications'
+project(':capacitor-local-notifications').projectDir = new File('./local-notifications-vendored')
+
 include ':revenuecat-purchases-capacitor'
 project(':revenuecat-purchases-capacitor').projectDir = new File('./revenuecat-vendored')

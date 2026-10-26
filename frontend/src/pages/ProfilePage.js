@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { User, LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Camera, Loader2, Heart, BookOpen, Trash2 } from 'lucide-react';
+import { User, LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Camera, Loader2, Heart, BookOpen, Trash2, Bell } from 'lucide-react';
+import { syncLocalNotifications, checkNotificationPermission, getNotificationPrefs, isNativePlatform, NOTIFICATION_TIMES } from '../utils/localNotifications';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -162,6 +163,80 @@ function MyDetailsSection({ user, token, updateUser }) {
         {saving ? 'Saving…' : 'Save my details'}
       </button>
       {msg && <p className="text-sm text-center text-[#E6E0EE]" role="status">{msg}</p>}
+    </div>
+  );
+}
+
+// v43: on-device local notifications live here now. This is the one
+// place the daily reminder preference can be changed after onboarding
+// (onboarding step 5 writes the same local storage keys and the same
+// server fields). Changing anything re-schedules on the device at
+// once. If Android permission is denied there is exactly ONE plain
+// line about it (per the Oct 22 plan: no nagging, ever).
+function NotificationsSection({ user, token, updateUser }) {
+  const prefs = getNotificationPrefs(user);
+  const [enabled, setEnabled] = useState(prefs.enabled);
+  const [time, setTime] = useState(prefs.time);
+  const [permDisplay, setPermDisplay] = useState(null);
+  const [msg, setMsg] = useState('');
+  const native = isNativePlatform();
+
+  useEffect(() => {
+    let live = true;
+    checkNotificationPermission().then((d) => { if (live) setPermDisplay(d); });
+    return () => { live = false; };
+  }, []);
+
+  const apply = async (nextEnabled, nextTime) => {
+    setEnabled(nextEnabled);
+    setTime(nextTime);
+    setMsg('');
+    try {
+      localStorage.setItem('hormoscope-notifications-enabled', nextEnabled ? 'true' : 'false');
+      localStorage.setItem('hormoscope-notification-time', nextTime);
+    } catch (e) { /* storage unavailable: server fields below still save */ }
+    try {
+      const res = await axios.put(`${API}/profile`, { notifications_enabled: nextEnabled, notification_time: nextTime }, { headers: { Authorization: `Bearer ${token}` } });
+      updateUser(res.data);
+    } catch (err) {
+      logger.error('Notification preference save failed:', err);
+    }
+    const result = await syncLocalNotifications({
+      user: { ...user, notifications_enabled: nextEnabled, notification_time: nextTime },
+      token,
+      requestPermission: nextEnabled,
+    });
+    if (result && result.permission) setPermDisplay(result.permission);
+    setMsg(nextEnabled ? 'Saved.' : 'Notifications off.');
+  };
+
+  const row = 'flex items-center gap-3 py-1.5 text-sm text-[#F7F4FA] cursor-pointer';
+
+  return (
+    <div className="glass-card p-5 mb-6 space-y-4" data-testid="notifications-section" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-[#FF4F9A]/20 flex items-center justify-center">
+          <Bell className="w-5 h-5 text-[#FF4F9A]" />
+        </div>
+        <div>
+          <p className="text-[#F4D3DC] text-sm font-medium">Daily Notifications</p>
+          <p className="text-[#CFC3CC] text-xs">Your Daily Read and cycle alerts, on this device.</p>
+        </div>
+      </div>
+      <label className={row}>
+        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={enabled} onChange={(e) => apply(e.target.checked, time)} data-testid="notifications-enabled-toggle" />
+        Daily Read reminder
+      </label>
+      <div>
+        <p className="text-white text-base mb-2">Reminder time</p>
+        <select value={time} disabled={!enabled} onChange={(e) => apply(enabled, e.target.value)} className="w-full rounded-xl px-3 py-2.5 bg-white/5 border border-white/15 text-white disabled:opacity-50" data-testid="notification-time-select">
+          {NOTIFICATION_TIMES.map((t) => <option key={t.time} value={t.time} className="bg-[#15152B]">{t.label}</option>)}
+        </select>
+      </div>
+      {native && enabled && permDisplay === 'denied' && (
+        <p className="text-sm text-[#E6E0EE]" data-testid="notifications-denied-line">Notifications are turned off for HORMOscope in your phone settings. Turn them on there to get your Daily Read and cycle alerts.</p>
+      )}
+      {msg && <p className="text-sm text-[#E6E0EE]" role="status">{msg}</p>}
     </div>
   );
 }
@@ -439,6 +514,7 @@ export default function ProfilePage() {
       {/* Attunement Mode */}
       <AttunedSection token={token} />
       <MyDetailsSection user={user} token={token} updateUser={updateUser} />
+      <NotificationsSection user={user} token={token} updateUser={updateUser} />
 
       {/* Logout */}
       <button

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PremiumProvider } from './context/PremiumContext';
 import { BottomNav } from './components/BottomNav';
 import { Toaster } from './components/ui/sonner';
+import { syncLocalNotifications } from './utils/localNotifications';
 import InstallPrompt from './components/InstallPrompt';
 import AmbientOrb from './components/PhaseOrb';
 
@@ -70,7 +71,23 @@ const ProtectedRoute = ({ children }) => {
 
 // App Content with routing
 const AppContent = () => {
-  const { user, loading } = useAuth();
+  const { user, token, loading } = useAuth();
+
+  // v43: on-device local notifications are reconciled once per app
+  // open for a signed-in, onboarded user. This is what keeps the
+  // Daily Read text fresh (the schedule is rebuilt with today's
+  // headline) and the cycle alerts lined up with her current cycle
+  // data. Permission is requested in context only if she has the
+  // preference on and has never been asked; a denial is left alone
+  // (Profile carries one plain line about it). No-op on web.
+  const notifSyncUserRef = useRef(null);
+  useEffect(() => {
+    if (!user || !token || loading) return;
+    if (!user.onboarding_complete || user.email_verified === false) return;
+    if (notifSyncUserRef.current === user.id) return;
+    notifSyncUserRef.current = user.id;
+    syncLocalNotifications({ user, token, requestPermission: true }).catch(() => {});
+  }, [user, token, loading]);
 
   if (loading) {
     return (
