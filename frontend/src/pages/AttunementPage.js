@@ -6,6 +6,7 @@ import { Heart, Loader2, Share2, Copy, Check, Camera } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 import CycleSync from '../components/CycleSync';
+import AttunementGifts from '../components/AttunementGifts';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#C9B8F0';
@@ -380,6 +381,11 @@ export default function AttunementPage() {
         )}
 
         {inviteBlock}
+
+        {/* Attuned gifts (Angelita, Oct 25, 2026): her boutique and
+            the Approved Gifts Catalog live here in Attunement, in a
+            tabbed section under everything else. */}
+        <AttunementGifts />
 
         <p className="text-center text-[#B4B0C8] text-[10px] leading-relaxed" style={poppins}>
           Your journal and private entries are never shared. Your people only see what you chose to share.

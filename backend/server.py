@@ -120,6 +120,7 @@ CYCLE_STATUSES = {"regular", "unsure", "hormonal_birth_control", "pregnant", "po
 NO_FERTILITY_STATUSES = {"hormonal_birth_control", "pregnant", "postpartum", "menopause"}
 PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_window", "wishlist")
 DEFAULT_PARTNER_VISIBILITY = {"phase": True, "mood_energy": True, "period_dates": True, "fertile_window": False, "wishlist": True}
+BOUTIQUE_VISIBILITY_VALUES = ("private", "partner", "public")
 
 
 class UserOnboarding(BaseModel):
@@ -153,6 +154,7 @@ class UserResponse(BaseModel):
     cycle_status: str = "regular"
     fertility_predictions_enabled: bool = True
     partner_visibility: Dict[str, bool] = {}
+    boutique_visibility: str = "private"
     conditions: List[str] = []
     email_verified: bool = False
     created_at: Optional[str] = None
@@ -198,6 +200,7 @@ class ProfileUpdate(BaseModel):
     birthday: Optional[str] = None  # "" clears it
     cycle_status: Optional[str] = None
     partner_visibility: Optional[Dict[str, bool]] = None
+    boutique_visibility: Optional[str] = None  # private | partner | public
     notifications_enabled: Optional[bool] = None
     notification_time: Optional[str] = None
     conditions: Optional[List[str]] = None  # e.g. PMDD, PCOS, endometriosis
@@ -777,6 +780,7 @@ def build_user_response(user: dict) -> UserResponse:
         cycle_status=user.get("cycle_status", "regular"),
         fertility_predictions_enabled=user.get("cycle_status", "regular") not in NO_FERTILITY_STATUSES,
         partner_visibility={**DEFAULT_PARTNER_VISIBILITY, **(user.get("partner_visibility") or {})},
+        boutique_visibility=user.get("boutique_visibility") or "private",
         conditions=user.get("conditions") or [],
         # Accounts created before verification existed have no field;
         # they are treated as verified so nobody is nagged retroactively.
@@ -1554,7 +1558,7 @@ async def delete_my_account(body: AccountDeleteRequest, current_user: dict = Dep
         for coll in (db.cycle_logs, db.journal_entries, db.intimacy_logs,
                      db.chat_messages, db.conversations, db.journal_companion,
                      db.daily_content, db.daily_reads, db.push_subscriptions,
-                     db.analytics):
+                     db.wishlist_items, db.analytics):
             removed[coll.name] = (await coll.delete_many({"user_id": uid})).deleted_count
         removed["partner_links"] = (await db.partner_links.delete_many({"user_id": uid})).deleted_count
         removed["partner_invites"] = (await db.partner_invites.delete_many({"inviter_id": uid})).deleted_count
@@ -2010,6 +2014,10 @@ async def update_profile(data: ProfileUpdate, current_user: dict = Depends(get_c
             if k in PARTNER_VISIBILITY_KEYS:
                 vis[k] = bool(v)
         update_data["partner_visibility"] = vis
+    if data.boutique_visibility is not None:
+        if data.boutique_visibility not in BOUTIQUE_VISIBILITY_VALUES:
+            raise HTTPException(status_code=400, detail="Unknown boutique visibility.")
+        update_data["boutique_visibility"] = data.boutique_visibility
     if data.notifications_enabled is not None:
         update_data["notifications_enabled"] = data.notifications_enabled
     if data.notification_time is not None:
@@ -3663,7 +3671,98 @@ async def get_partner_mood(current_user: dict = Depends(get_current_user)):
     return {"mine_today": mine_today, "theirs_today": theirs_today, "partner_name": partner_name, "partner_photo": partner_photo}
 
 
+# ==================== ATTUNED GIFTS: WISHLIST / BOUTIQUE ====================
+# Angelita's curated Amazon catalog (Oct 25, 2026): the picks live in the
+# app as a fixed ASIN list, and this is the server copy of that list.
+# Picks are validated against it, so the boutique can only ever hold
+# catalog items. A user's picks are her boutique: private by default,
+# and a linked partner can see them only when she shares (below).
 
+CATALOG_PRODUCT_IDS = {
+    # The Comfort Collection
+    "B0FHBXCCLM", "B0C1YG33PD", "B0C9LCM3HW", "B07NLSLP9K", "B093LVS21D", "B083C6BYG9",
+    # The Fresh Start Collection
+    "B0FGB2NS3C", "B07M5X4D3P",
+    # The Romance Collection
+    "B0CNC67C8B",
+    # The Little Luxuries Collection
+    "B07VTDXFDC", "B0D7N2KWLH", "B09Y8SV5RY",
+    # Holiday
+    "B0F8J3GJDQ", "B0FY7R1TQ3",
+    # Know Your Body
+    "B0FQFMDMDC", "B0B75T46L8",
+}
+
+
+class WishlistAdd(BaseModel):
+    product_id: str
+
+
+@api_router.get("/wishlist")
+async def get_wishlist(current_user: dict = Depends(get_current_user)):
+    cursor = db.wishlist_items.find({"user_id": current_user["id"]}, {"_id": 0})
+    docs = await cursor.to_list(length=500)
+    docs.sort(key=lambda d: d.get("created_at") or "")
+    return {"items": docs}
+
+
+@api_router.post("/wishlist")
+async def add_wishlist_item(payload: WishlistAdd, current_user: dict = Depends(get_current_user)):
+    pid = (payload.product_id or "").strip()
+    if pid not in CATALOG_PRODUCT_IDS:
+        raise HTTPException(status_code=400, detail="That item is not in the catalog.")
+    existing = await db.wishlist_items.find_one(
+        {"user_id": current_user["id"], "product_id": pid}, {"_id": 0}
+    )
+    if existing:
+        return existing
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "product_id": pid,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.wishlist_items.insert_one(dict(doc))
+    return doc
+
+
+@api_router.delete("/wishlist/{product_id}")
+async def remove_wishlist_item(product_id: str, current_user: dict = Depends(get_current_user)):
+    result = await db.wishlist_items.delete_many(
+        {"user_id": current_user["id"], "product_id": product_id}
+    )
+    return {"ok": True, "removed": result.deleted_count}
+
+
+@api_router.get("/partner/wishlist")
+async def get_partner_wishlist(current_user: dict = Depends(get_current_user)):
+    """Your partner's boutique, inside your Attunement gift section.
+    It opens only when BOTH of her choices say share: her boutique
+    visibility is "partner" or "public", AND her "My wishlist" partner
+    visibility toggle is on. Returns product ids only (the catalog
+    names and copy live in the app), plus her name and picture so the
+    boutique carries her face, as she asked."""
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        raise HTTPException(status_code=403, detail="No linked partner account.")
+    owner_id, partner_id = _partner_pair(rel)
+    other_id = partner_id if current_user["id"] == owner_id else owner_id
+    other = await db.users.find_one({"id": other_id}, {"_id": 0})
+    if not other:
+        raise HTTPException(status_code=404, detail="Partner account not found")
+    boutique_vis = other.get("boutique_visibility") or "private"
+    vis = {**DEFAULT_PARTNER_VISIBILITY, **(other.get("partner_visibility") or {})}
+    if boutique_vis not in ("partner", "public") or not vis.get("wishlist"):
+        raise HTTPException(status_code=403, detail="Your partner has not shared their boutique.")
+    cursor = db.wishlist_items.find({"user_id": other_id}, {"_id": 0})
+    docs = await cursor.to_list(length=500)
+    docs.sort(key=lambda d: d.get("created_at") or "")
+    return {
+        "partner_name": other.get("name") or "Partner",
+        "partner_photo": other.get("profile_photo"),
+        "boutique_visibility": boutique_vis,
+        "items": docs,
+    }
 
 
 # ==================== CYCLE LOGS ====================
