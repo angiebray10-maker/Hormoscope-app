@@ -1,9 +1,9 @@
-// The HORMOscope Approved Gifts Catalog (Angelita's picks, Oct 23, 2026,
+// The Gift Edit, her gift catalog (Angelita's picks, Oct 23, 2026,
 // sorted into collections in her preview draft of Oct 23-24, 2026).
 // Every link carries her Amazon Associates tag. NO PRICES live here or
 // anywhere in the app by her rule and Amazon's: prices are checked on
 // Amazon itself. NO product images either; we never hotlink Amazon's.
-// The backend validates boutique picks against this same ASIN list.
+// The backend validates wishlist picks against this same ASIN list.
 // Picks that are still unidentified (her screenshots pending) are NOT
 // in this list and must not be added until she names them.
 

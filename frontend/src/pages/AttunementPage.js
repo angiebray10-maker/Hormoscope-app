@@ -382,8 +382,8 @@ export default function AttunementPage() {
 
         {inviteBlock}
 
-        {/* Attuned gifts (Angelita, Oct 25, 2026): her boutique and
-            the Approved Gifts Catalog live here in Attunement, in a
+        {/* Attuned gifts (Angelita, Oct 25, 2026): her wishlist and
+            The Gift Edit catalog live here in Attunement, in a
             tabbed section under everything else. */}
         <AttunementGifts />
 

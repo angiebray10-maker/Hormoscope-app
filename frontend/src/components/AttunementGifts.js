@@ -14,9 +14,9 @@ const script = { fontFamily: "'Poiret One', sans-serif" };
 
 // Attuned Gifts (Angelita, Oct 25, 2026): inside Attunement, a section
 // "HORMOscope approved attuned gifts for you and your partner" with a
-// tab menu. FIRST tab is the user's own boutique (her wishlist, with
-// her name and picture on it), LAST tab is the "HORMOscope Approved
-// Gifts Catalog". Her boutique is private by default; a linked partner
+// tab menu. FIRST tab is the user's own wishlist (with her name and
+// picture on it), LAST tab is "The Gift Edit" (her gift catalog,
+// renamed Oct 26, 2026). Her wishlist is private by default; a linked partner
 // sees it here too, only when she set it Shared or Public AND her "My
 // wishlist" share toggle is on (the server enforces both).
 // Amazon links open OUTSIDE the WebView (Amazon's rule): the Capacitor
@@ -28,10 +28,10 @@ const VIS_CHOICES = [
   { id: 'public', label: 'Public', caption: 'Shared openly, beyond the app' },
 ];
 
-function possessive(name) {
-  const first = (name || 'Your').trim().split(/\s+/)[0] || 'Your';
-  if (first === 'Your') return 'Your Boutique';
-  return first.endsWith('s') || first.endsWith('S') ? `${first}' Boutique` : `${first}'s Boutique`;
+function wishlistTitle(name, fallback) {
+  const first = (name || '').trim().split(/\s+/)[0];
+  if (!first) return fallback;
+  return first.endsWith('s') || first.endsWith('S') ? `${first}' Wishlist` : `${first}'s Wishlist`;
 }
 
 function openAmazon(asin) {
@@ -131,16 +131,16 @@ export default function AttunementGifts() {
       updateUser(res.data);
     } catch (err) {
       setMsg("Couldn't save that just now. Please try again.");
-      logger.error('Boutique visibility error:', err);
+      logger.error('Wishlist visibility error:', err);
     } finally {
       setVisBusy(false);
     }
   };
 
   const tabs = [
-    { id: 'boutique', label: 'My Boutique' },
-    ...(partnerBoutique ? [{ id: 'partner', label: possessive(partnerBoutique.name) }] : []),
-    { id: 'catalog', label: 'HORMOscope Approved Gifts Catalog' },
+    { id: 'boutique', label: wishlistTitle(user?.name, 'My Wishlist') },
+    ...(partnerBoutique ? [{ id: 'partner', label: wishlistTitle(partnerBoutique.name, 'Their Wishlist') }] : []),
+    { id: 'catalog', label: 'The Gift Edit' },
   ];
   const myVisibility = (user && user.boutique_visibility) || 'private';
 
@@ -154,7 +154,7 @@ export default function AttunementGifts() {
         HORMOscope approved attuned gifts for you and your partner
       </p>
 
-      {/* Tab menu: her boutique first, the Catalog last (her spec). */}
+      {/* Tab menu: her wishlist first, The Gift Edit last (her spec). */}
       <div className="flex gap-2 mb-5 flex-wrap" role="tablist" data-testid="gift-tabs">
         {tabs.map((t) => {
           const active = activeTab === t.id;
@@ -186,15 +186,15 @@ export default function AttunementGifts() {
           <div className="flex items-center gap-3 mb-2">
             <PartnerAvatar photo={user?.profile_photo} name={user?.name} size={44} />
             <div>
-              <h3 className="text-white text-lg leading-tight" style={script}>{possessive(user?.name)}</h3>
+              <h3 className="text-white text-lg leading-tight" style={script}>{wishlistTitle(user?.name, 'My Wishlist')}</h3>
               <p className="text-[#B4B0C8] text-[11px]" style={poppins}>The pieces you picked, gathered in one place.</p>
             </div>
           </div>
           <p className="text-[#CFC3CC] text-xs mb-4" style={poppins}>
-            The HORMOscope Approved Gifts Catalog is in the last tab.
+            The Gift Edit is in the last tab.
           </p>
 
-          <p className="text-white text-xs font-medium mb-2" style={poppins}>Who can see my boutique</p>
+          <p className="text-white text-xs font-medium mb-2" style={poppins}>Who can see my wishlist</p>
           <div className="flex gap-2 mb-1 flex-wrap">
             {VIS_CHOICES.map((v) => {
               const active = myVisibility === v.id;
@@ -225,7 +225,7 @@ export default function AttunementGifts() {
             <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 text-[#f4a7b9] animate-spin" /></div>
           ) : myPicks.length === 0 ? (
             <p className="text-[#b8b8d1] text-sm leading-relaxed py-2" style={poppins} data-testid="boutique-empty">
-              Nothing here yet, and that is perfectly fine. When something in the Catalog catches your eye, tap Add to my boutique and it will be waiting for you right here.
+              Nothing here yet, and that is perfectly fine. When something in The Gift Edit catches your eye, tap Add to my wishlist and it will be waiting for you right here.
             </p>
           ) : (
             myPicks.filter((a) => PRODUCT_BY_ASIN[a]).map((asin) => {
@@ -251,10 +251,10 @@ export default function AttunementGifts() {
 
       {activeTab === 'partner' && partnerBoutique && (
         <div data-testid="partner-boutique-tab">
-          <p className="text-[#CFC3CC] text-xs mb-3" style={poppins}>Your partner's boutique</p>
+          <p className="text-[#CFC3CC] text-xs mb-3" style={poppins}>Your partner's wishlist</p>
           <div className="flex items-center gap-3 mb-4">
             <PartnerAvatar photo={partnerBoutique.photo} name={partnerBoutique.name} size={44} />
-            <h3 className="text-white text-lg leading-tight" style={script}>{possessive(partnerBoutique.name)}</h3>
+            <h3 className="text-white text-lg leading-tight" style={script}>{wishlistTitle(partnerBoutique.name, 'Their Wishlist')}</h3>
           </div>
           {partnerBoutique.items.length === 0 ? (
             <p className="text-[#b8b8d1] text-sm leading-relaxed" style={poppins}>
@@ -286,7 +286,7 @@ export default function AttunementGifts() {
                   <ProductCard key={p.asin} product={product}>
                     {inBoutique ? (
                       <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium" style={{ ...poppins, color: '#9fd8b4', border: '1px solid rgba(159,216,180,0.45)' }} data-testid={`in-boutique-${p.asin}`}>
-                        <Check className="w-3.5 h-3.5" /> In your boutique
+                        <Check className="w-3.5 h-3.5" /> In your wishlist
                       </span>
                     ) : (
                       <button
@@ -296,7 +296,7 @@ export default function AttunementGifts() {
                         style={{ ...poppins, background: HOT }}
                         data-testid={`add-${p.asin}`}
                       >
-                        Add to my boutique
+                        Add to my wishlist
                       </button>
                     )}
                     <AmazonButton asin={p.asin} />
