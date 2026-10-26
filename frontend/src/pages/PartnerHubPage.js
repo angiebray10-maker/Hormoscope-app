@@ -205,6 +205,7 @@ export default function PartnerHubPage() {
   const { loading: rcLoading } = usePremium();
   const [status, setStatus] = useState(null);
   const [calData, setCalData] = useState(null);
+  const [syncData, setSyncData] = useState(null);
   const [tab, setTab] = useState('cycle');
   const [inviteCode, setInviteCode] = useState('');
   const [accepting, setAccepting] = useState(false);
@@ -218,6 +219,15 @@ export default function PartnerHubPage() {
       if (res.data.is_linked) {
         const c = await axios.get(`${API}/partner/calendar`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
         setCalData(c.data);
+        // The sync payload carries the owner's side (v46): when she
+        // no longer has periods it holds her logged days, which the
+        // Cycle tab shows instead of a cycle.
+        try {
+          const s = await axios.get(`${API}/partner/sync`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+          setSyncData(s.data);
+        } catch (syncErr) {
+          logger.error('Partner sync load error:', syncErr);
+        }
       }
     } catch (err) {
       logger.error('Partner hub load error:', err);
@@ -327,6 +337,10 @@ export default function PartnerHubPage() {
 
   const phaseColor = PHASE_COLORS[calData?.phase] || '#c9b8f0';
   const tips = calData?.partner_tips;
+  // Feature B (v46): the cycle OWNER's sync block. When she no longer
+  // has periods, her Cycle tab is her logged days, not a cycle strip.
+  const ownerBlock = syncData ? (status.role === 'owner' ? syncData.me : syncData.them) : null;
+  const ownerNoPeriods = !!ownerBlock?.no_periods;
 
   return (
     <div className="min-h-screen px-5 py-8 pb-28" style={{ background: '#0B0B1E' }} data-testid="partner-hub">
@@ -343,7 +357,7 @@ export default function PartnerHubPage() {
             </div>
           )}
           <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>
-            {calData ? `${calData.name}'s Cycle` : 'Partner Hub'}
+            {calData ? (ownerNoPeriods ? `${calData.name}'s Days` : `${calData.name}'s Cycle`) : 'Partner Hub'}
           </h1>
           {status.role === 'owner' && (
             <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
@@ -379,7 +393,47 @@ export default function PartnerHubPage() {
           ))}
         </div>
 
-        {tab === 'cycle' && calData && (
+        {tab === 'cycle' && ownerNoPeriods && (
+          <div data-testid="partner-logged-days">
+            <p className="text-center text-[#E6E0EE] text-sm mb-5" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              She no longer has periods, so there is no cycle to show. These are her days, from what she logs.
+            </p>
+            {!ownerBlock.shared ? (
+              <p className="text-center text-[#CFC3CC] text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>She is keeping her days private right now.</p>
+            ) : (ownerBlock.log_days || []).filter((d) => d.logged).length === 0 ? (
+              <p className="text-center text-[#CFC3CC] text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing logged in the last few weeks yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {(ownerBlock.log_days || []).filter((d) => d.logged).map((d) => {
+                  const bits = [];
+                  if (d.feelings?.length) bits.push(`Feeling ${d.feelings.join(', ')}`);
+                  if (d.mood) bits.push(`Mood: ${d.mood}`);
+                  if (d.symptoms?.length) bits.push(d.symptoms.join(', '));
+                  if (d.flow) bits.push(`Flow: ${d.flow}`);
+                  if (d.is_period) bits.push('Period day');
+                  return (
+                    <div key={d.date} className="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03]">
+                      <p className="text-[#f4a7b9] text-xs mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                        {new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      </p>
+                      <p className="text-white text-sm leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                        {bits.length ? bits.join(' · ') : 'She logged this day'}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="text-center mt-6">
+              <div className="flex items-center justify-center gap-1.5">
+                <Shield className="w-3 h-3 text-[#B4B0C8]" />
+                <span className="text-[#B4B0C8] text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Her journal stays private. You only see what she chose to share.</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'cycle' && calData && syncData && !ownerNoPeriods && (
           <div>
             <div className="flex flex-col items-center mb-8">
               <div className="w-32 h-32 rounded-full flex flex-col items-center justify-center"
@@ -440,7 +494,7 @@ export default function PartnerHubPage() {
           </div>
         )}
 
-        {tab === 'cycle' && !calData && (
+        {tab === 'cycle' && !ownerNoPeriods && (!calData || !syncData) && (
           <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#f4a7b9] animate-spin" /></div>
         )}
 

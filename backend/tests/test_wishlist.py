@@ -211,9 +211,13 @@ async def main():
     code, res = await remove(OWNER, TEA)
     results.append(("removing again is a no-op, not an error", code == "ok" and res.get("removed") == 0))
 
-    # 6. Partner view is blocked while the boutique is private (the default).
+    # 6. Partner view while the boutique is private (the default).
+    # Rule change (Angelita, Oct 26, 2026): the wishlist is ALWAYS part
+    # of the partner experience, so a linked partner sees it even when
+    # the stored boutique visibility still says private. Strangers are
+    # still blocked.
     code, _ = await partner_view(PARTNER)
-    results.append(("partner blocked while private 403", code == 403))
+    results.append(("partner allowed while private (wishlist always on)", code == "ok"))
     code, _ = await partner_view(STRANGER)
     results.append(("unlinked user blocked 403", code == 403))
 
@@ -224,10 +228,12 @@ async def main():
     results.append(("profile PUT sets partner sharing", code == "ok" and res.boutique_visibility == "partner"))
     results.append(("stored on the user record", USERS["u-owner"].get("boutique_visibility") == "partner"))
 
-    # 8. Shared boutique but the wishlist toggle off: still blocked.
+    # 8. Shared boutique but the wishlist toggle off: the old toggle
+    # gate is gone too (same Oct 26, 2026 rule). Her control is the
+    # contents of the list, not a switch.
     USERS["u-owner"]["partner_visibility"] = {"wishlist": False}
-    code, _ = await partner_view(PARTNER)
-    results.append(("partner blocked when share_wishlist off 403", code == 403))
+    code, res = await partner_view(PARTNER)
+    results.append(("partner allowed when share_wishlist off (gate removed)", code == "ok" and [i["product_id"] for i in res["items"]] == [PADS]))
 
     # 9. Both gates on: partner sees the picks, with name and photo.
     USERS["u-owner"]["partner_visibility"] = {"wishlist": True}

@@ -14,11 +14,16 @@ import { BACKDROPS, BACKDROP_OVERLAY } from '../lib/backdrops';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Onboarding redesign (Orio launch fixes): 5 short steps.
-// name -> last period -> cycle -> partner -> reminders.
+// Onboarding redesign (Orio launch fixes), extended in v46: 6 steps.
+// invite -> name -> last period -> cycle -> partner -> reminders.
+// The invite step is new in v46 (Angelita, Oct 26, 2026): a woman who
+// was invited by her partner enters the sync code here and links
+// before her own questions begin. View invites are links, not codes,
+// and never reach this step.
 // Birthday moved to Profile (optional). "I don't remember" is stored as
-// unknown; we never invent a date.
-const STEP_BG = { 1: BACKDROPS[0], 2: BACKDROPS[1], 3: BACKDROPS[2], 4: BACKDROPS[0], 5: BACKDROPS[1] };
+// unknown; we never invent a date. "I no longer have periods" (Feature
+// B) stores the no_periods flag and skips every cycle estimate.
+const STEP_BG = { 1: BACKDROPS[0], 2: BACKDROPS[1], 3: BACKDROPS[2], 4: BACKDROPS[0], 5: BACKDROPS[1], 6: BACKDROPS[2] };
 
 const SITUATIONS = [
   { id: 'regular', label: 'I get a period', hint: 'Set my usual length below' },
@@ -27,6 +32,7 @@ const SITUATIONS = [
   { id: 'pregnant', label: "I'm pregnant", hint: 'Fertility predictions stay off' },
   { id: 'postpartum', label: 'Postpartum / breastfeeding', hint: 'Fertility predictions stay off' },
   { id: 'menopause', label: 'Perimenopause or menopause', hint: 'Fertility predictions stay off' },
+  { id: 'no_periods', label: 'I no longer have periods', hint: 'Your days are built from what you log' },
 ];
 
 const VISIBILITY = [
@@ -34,7 +40,6 @@ const VISIBILITY = [
   { id: 'mood_energy', label: 'My mood and energy' },
   { id: 'period_dates', label: 'When my next period is due' },
   { id: 'fertile_window', label: 'My fertile window' },
-  { id: 'wishlist', label: 'My wishlist' },
 ];
 
 const TIMES = [
@@ -52,6 +57,7 @@ export default function OnboardingPage() {
   const [name, setName] = useState('');
   const [lastPeriodDate, setLastPeriodDate] = useState('');
   const [dontRemember, setDontRemember] = useState(false);
+  const [noPeriods, setNoPeriods] = useState(false);
   const [situation, setSituation] = useState('regular');
   const [cycleLength, setCycleLength] = useState(28);
   const [partnerChoice, setPartnerChoice] = useState('later');
@@ -60,9 +66,57 @@ export default function OnboardingPage() {
   const [notificationTime, setNotificationTime] = useState('09:00');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Invite step state (v46): 'yes' opens the code field; a successful
+  // accept records who she linked with and unlocks Next.
+  const [invitedChoice, setInvitedChoice] = useState(null); // 'yes' | 'no'
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [inviteLinked, setInviteLinked] = useState(null); // partner name
   const { token, user, updateUser } = useAuth();
   const navigate = useNavigate();
-  const totalSteps = 5;
+  const totalSteps = 6;
+
+  const effSituation = noPeriods ? 'no_periods' : situation;
+  const pickSituation = (id) => {
+    if (id === 'no_periods') { setNoPeriods(true); return; }
+    setNoPeriods(false);
+    setSituation(id);
+  };
+
+  // Already linked? The invite step has nothing to ask her: record
+  // the link for the confirmation line and move her to the name step.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    axios.get(`${API}/partner/status`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
+      .then((res) => {
+        if (!cancelled && res.data?.is_linked) {
+          setInviteLinked(res.data.partner_name || 'your partner');
+          setInvitedChoice('yes');
+          setStep((s) => (s === 1 ? 2 : s));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  const acceptInvite = async () => {
+    const code = inviteCode.trim().toUpperCase();
+    if (!code || inviteBusy) return;
+    setInviteBusy(true);
+    setInviteError('');
+    try {
+      const res = await axios.post(`${API}/partner/accept-invite`, { invite_code: code }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setInviteLinked(res.data.linked_to || 'your partner');
+    } catch (err) {
+      setInviteError(err.response?.data?.detail || "That code didn't work. Check it and try again, or continue without linking.");
+      logger.error('Onboarding invite accept error:', err);
+    } finally {
+      setInviteBusy(false);
+    }
+  };
 
   // The verification gate (v42) also catches EXISTING accounts that
   // finished onboarding long ago but never verified (ProtectedRoute
@@ -83,9 +137,10 @@ export default function OnboardingPage() {
   }, [user, navigate]);
 
   const canNext =
-    (step === 1 && name.trim().length > 0) ||
-    (step === 2 && (dontRemember || !!lastPeriodDate)) ||
-    step >= 3;
+    (step === 1 && (invitedChoice === 'no' || !!inviteLinked)) ||
+    (step === 2 && name.trim().length > 0) ||
+    (step === 3 && (noPeriods || dontRemember || !!lastPeriodDate)) ||
+    step >= 4;
 
   const handleComplete = async () => {
     setLoading(true);
@@ -93,9 +148,10 @@ export default function OnboardingPage() {
     try {
       const res = await axios.post(`${API}/onboarding`, {
         name: name.trim(),
-        last_period_date: dontRemember ? null : lastPeriodDate,
-        cycle_status: situation,
-        cycle_length: situation === 'regular' ? cycleLength : 28,
+        last_period_date: noPeriods || dontRemember ? null : lastPeriodDate,
+        cycle_status: effSituation,
+        no_periods: effSituation === 'no_periods',
+        cycle_length: effSituation === 'regular' ? cycleLength : 28,
         partner_choice: partnerChoice,
         partner_visibility: visibility,
         notifications_enabled: notificationsEnabled,
@@ -173,13 +229,60 @@ export default function OnboardingPage() {
       </div>
       <div className="w-full max-w-md relative">
         <div className="flex items-center justify-center gap-2 mb-8" aria-label={`Step ${step} of ${totalSteps}`}>
-          {[1, 2, 3, 4, 5].map((s) => (
+          {[1, 2, 3, 4, 5, 6].map((s) => (
             <div key={s} className="h-2 rounded-full transition-all" style={{ width: s <= step ? 36 : 20, background: s <= step ? BRAND.pink : 'rgba(255,255,255,0.15)' }} />
           ))}
         </div>
 
         <div className="rounded-3xl p-7 border border-white/10" style={{ background: 'rgba(21,21,43,0.92)' }}>
           {step === 1 && (
+            <div className="space-y-6" data-testid="onboarding-invite-step">
+              <div>
+                <H>Were you invited by your partner?</H>
+                <Sub>If she sent you an invite code, enter it here and you will be linked before anything else. If nobody sent you one, just say no and continue.</Sub>
+              </div>
+              {inviteLinked ? (
+                <div className="rounded-xl p-4 border border-[#FF4F9A]/40 text-center" style={{ background: 'rgba(255,79,154,0.08)' }} data-testid="onboarding-invite-linked">
+                  <p className="text-white text-[15px]">You're linked with {inviteLinked}.</p>
+                  <p className="text-xs mt-1" style={{ color: BRAND.textMuted }}>Now let's set up your own side.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <button data-testid="onboarding-invited-yes" onClick={() => { setInvitedChoice('yes'); setInviteError(''); }} className={choiceClass(invitedChoice === 'yes')}>
+                      {invitedChoice === 'yes' ? '✓ ' : ''}Yes, I have a code
+                    </button>
+                    <button data-testid="onboarding-invited-no" onClick={() => { setInvitedChoice('no'); setInviteError(''); }} className={choiceClass(invitedChoice === 'no')}>
+                      {invitedChoice === 'no' ? '✓ ' : ''}No, I'm starting on my own
+                    </button>
+                  </div>
+                  {invitedChoice === 'yes' && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block mb-2 text-sm text-white" htmlFor="ob-invite-code">Her invite code</label>
+                        <Input id="ob-invite-code" data-testid="onboarding-invite-code" type="text" value={inviteCode}
+                          onChange={(e) => setInviteCode(e.target.value.toUpperCase().slice(0, 8))}
+                          placeholder="8 characters" className="input-dark text-lg uppercase" autoFocus />
+                      </div>
+                      <Button data-testid="onboarding-invite-accept" onClick={acceptInvite} disabled={inviteBusy || inviteCode.trim().length < 4} className="w-full rounded-full text-white" style={{ background: BRAND.pink }}>
+                        {inviteBusy ? 'Linking…' : 'Link us'}
+                      </Button>
+                      {inviteError && (
+                        <div role="alert" data-testid="onboarding-invite-error" className="rounded-xl p-3 text-sm border border-red-400/40 bg-red-500/10 text-red-200">
+                          {inviteError}
+                        </div>
+                      )}
+                      <button data-testid="onboarding-invite-skip" onClick={() => { setInvitedChoice('no'); setInviteError(''); }} className="w-full text-center text-sm underline" style={{ color: BRAND.textMuted }}>
+                        Continue without linking
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {step === 2 && (
             <div className="space-y-6">
               <div className="text-center">
                 <div className="mx-auto mb-5 w-24 h-24 rounded-full overflow-hidden flex items-center justify-center" style={{ background: '#000', border: '1px solid rgba(255,79,154,0.5)' }} data-testid="onboarding-logo">
@@ -198,23 +301,27 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <div className="space-y-6">
               <div>
                 <H>Your last period</H>
                 <Sub>When did your most recent period start?</Sub>
               </div>
-              {!dontRemember && (
+              {!dontRemember && !noPeriods && (
                 <DateSelect testId="onboarding-date-input" value={lastPeriodDate} onChange={setLastPeriodDate} minYear={new Date().getFullYear() - 1} maxYear={new Date().getFullYear()} />
               )}
-              <button data-testid="onboarding-dont-remember" onClick={() => { setDontRemember(!dontRemember); setLastPeriodDate(''); }} className={choiceClass(dontRemember)}>
+              <button data-testid="onboarding-dont-remember" onClick={() => { setDontRemember(!dontRemember); setLastPeriodDate(''); setNoPeriods(false); }} className={choiceClass(dontRemember)}>
                 {dontRemember ? '✓ ' : ''}I don't remember
                 <span className="block text-xs mt-1" style={{ color: BRAND.textMuted }}>No problem. Log your next period when it starts and your predictions will begin then.</span>
+              </button>
+              <button data-testid="onboarding-noperiods" onClick={() => { setNoPeriods(!noPeriods); setLastPeriodDate(''); setDontRemember(false); }} className={choiceClass(noPeriods)}>
+                {noPeriods ? '✓ ' : ''}I no longer have periods
+                <span className="block text-xs mt-1" style={{ color: BRAND.textMuted }}>No periods to predict. Your days are built from what you log instead.</span>
               </button>
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="space-y-5">
               <div>
                 <H>Your cycle</H>
@@ -222,13 +329,13 @@ export default function OnboardingPage() {
               </div>
               <div className="space-y-2">
                 {SITUATIONS.map((o) => (
-                  <button key={o.id} data-testid={`onboarding-situation-${o.id}`} onClick={() => setSituation(o.id)} className={choiceClass(situation === o.id)}>
-                    {situation === o.id ? '✓ ' : ''}{o.label}
+                  <button key={o.id} data-testid={`onboarding-situation-${o.id}`} onClick={() => pickSituation(o.id)} className={choiceClass(effSituation === o.id)}>
+                    {effSituation === o.id ? '✓ ' : ''}{o.label}
                     <span className="block text-xs mt-0.5" style={{ color: BRAND.textMuted }}>{o.hint}</span>
                   </button>
                 ))}
               </div>
-              {situation === 'regular' && (
+              {effSituation === 'regular' && (
                 <div className="pt-2">
                   <label htmlFor="ob-cycle" className="flex justify-between text-sm text-white mb-2">
                     <span>About how long is your cycle?</span>
@@ -242,7 +349,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <div className="space-y-5">
               <div>
                 <H>Stay attuned together</H>
@@ -274,7 +381,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <div className="space-y-5">
               <div>
                 <H>Daily reminder</H>

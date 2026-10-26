@@ -45,8 +45,10 @@ export const PERIOD_ALERT_HOUR = 19; // 7 PM, evening before
 export const OVULATION_ALERT_HOUR = 9; // 9 AM, morning of
 
 // Cycle situations where the app switches predictions off entirely
-// (onboarding copy: "Fertility predictions stay off").
-const PREDICTIONS_OFF = ['hormonal_birth_control', 'pregnant', 'postpartum', 'menopause'];
+// (onboarding copy: "Fertility predictions stay off"). no_periods
+// joined in v46 (Feature B): no period or ovulation alerts for her,
+// ever; her daily notification at her chosen time still stands.
+const PREDICTIONS_OFF = ['hormonal_birth_control', 'pregnant', 'postpartum', 'menopause', 'no_periods'];
 
 export function parseTimeHHMM(value) {
   if (typeof value !== 'string') return null;
@@ -105,6 +107,7 @@ function parseISODate(value) {
 // date, an unparseable date, or a cycle situation with predictions off.
 export function cycleInfoFor(user, refDate) {
   if (!user) return null;
+  if (user.no_periods) return null;
   if (PREDICTIONS_OFF.includes(user.cycle_status)) return null;
   const start = parseISODate(user.last_period_date);
   if (!start) return null;

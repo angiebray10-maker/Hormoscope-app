@@ -45,6 +45,56 @@ const PHASE_ROWS = [
   { id: 'luteal', name: 'Luteal Phase', days: 'Before your period • Slow down' },
 ];
 
+// Feature B (v46): for a woman who no longer has periods, Home is a
+// log-based day, not a cycle day. These lines are deliberately NOT
+// phase-bound: one gentle thought per day of the year, rotating.
+const DAILY_WISDOM = [
+  'Your body has carried you through every season so far. It deserves your kindness today.',
+  'Rest is not falling behind. Rest is how strength comes back.',
+  'You do not have to earn a slow day. Take it gently.',
+  'Small comforts count: warm tea, soft light, an early night.',
+  'How you feel today is worth writing down. Future you will be glad you did.',
+  'There is no schedule your body has to keep anymore. There is only how today feels.',
+  'Tend to yourself the way you would tend to someone you love.',
+  'A short walk, a deep breath, a kind word to yourself. That is enough for today.',
+  'Your worth was never measured by a calendar.',
+  'Notice one good thing about today and hold onto it a moment longer.',
+  'Gentle is not weak. Gentle is wise.',
+  'You are allowed to change the plan when your body asks you to.',
+  'Warmth, water, rest, light. The simple things still work.',
+  'Every day you log is a day you understand yourself a little better.',
+];
+
+const MOOD_WORDS = { 1: 'Low', 2: 'Meh', 3: 'Okay', 4: 'Good', 5: 'Great' };
+
+// What she logged on one date, in readable lines (her own view, so her
+// notes show here; partner summaries never include notes).
+const summarizeOwnLogs = (logs) => {
+  const feelings = [];
+  const symptoms = [];
+  let mood = null;
+  let flow = null;
+  let isPeriod = false;
+  const notes = [];
+  (logs || []).forEach((l) => {
+    if (l.flow) flow = l.flow;
+    if (l.is_period) isPeriod = true;
+    if (l.notes) notes.push(l.notes);
+    (l.symptoms || []).forEach((s) => {
+      if (typeof s !== 'string') return;
+      if (s.startsWith('emotion:')) {
+        const n = s.slice('emotion:'.length).replace(/_/g, ' ').trim();
+        if (n) feelings.push(n.charAt(0).toUpperCase() + n.slice(1));
+      } else if (s.startsWith('mood:')) {
+        mood = MOOD_WORDS[Number(s.slice('mood:'.length))] || mood;
+      } else if (!s.includes(':')) {
+        symptoms.push(s);
+      }
+    });
+  });
+  return { feelings, symptoms, mood, flow, isPeriod, notes };
+};
+
 export default function HomePage() {
   const { user, token } = useAuth();
   const { refreshCustomerInfo, companionEntitled } = usePremium();
@@ -182,9 +232,121 @@ export default function HomePage() {
     }
   }
 
+  // Feature B (v46): her Home when she no longer has periods. No orb,
+  // no countdown, no phase rows, and no Daily Read: the phase-based
+  // read would invent a phase she is not in. Instead her day is built
+  // from what she logs (the plain log-focused card choice), plus a
+  // rotating daily wisdom line that is not tied to any phase.
+  const noPeriods = !!(user?.no_periods || user?.cycle_status === 'no_periods');
+  if (noPeriods) {
+    const todayISO = toISODateLocal(new Date());
+    const logsArr = Array.isArray(cycleLogs) ? cycleLogs : [];
+    const todaySummary = summarizeOwnLogs(logsArr.filter((l) => l.date === todayISO));
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+    const wisdom = DAILY_WISDOM[dayOfYear % DAILY_WISDOM.length];
+    const recentDays = [];
+    for (let i = 1; i <= 7; i += 1) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const iso = toISODateLocal(d);
+      const dayLogs = logsArr.filter((l) => l.date === iso);
+      if (dayLogs.length) {
+        recentDays.push({ iso, label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), summary: summarizeOwnLogs(dayLogs) });
+      }
+    }
+    const dayLines = (s) => {
+      const lines = [];
+      if (s.feelings.length) lines.push(`Feeling ${s.feelings.join(', ')}`);
+      if (s.mood) lines.push(`Mood: ${s.mood}`);
+      if (s.symptoms.length) lines.push(s.symptoms.join(', '));
+      if (s.flow) lines.push(`Flow: ${s.flow}`);
+      if (s.isPeriod) lines.push('Period day');
+      s.notes.forEach((n) => lines.push(n));
+      return lines;
+    };
+    const todayLines = dayLines(todaySummary);
+    return (
+      <div className="min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8" data-testid="home-noperiods">
+        <div className="text-center mb-8">
+          <p className="text-[#B4B0C8] text-xs tracking-widest uppercase mb-2">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+          <h1 className="text-3xl text-white mb-3 font-script">
+            {firstName ? `${dayGreeting}, ${firstName}` : `Hello, ${data?.user_name || 'Beautiful'}`}
+          </h1>
+        </div>
+
+        {showWelcome && (
+          <div className="rounded-2xl p-5 mb-10 border border-[#FF4F9A]/40 text-center" style={{ background: 'rgba(255,79,154,0.08)' }} data-testid="welcome-banner">
+            <p className="text-xl font-script mb-1 text-white">Welcome to your HORMOscope.</p>
+            <p className="text-[#E6E0EE] text-sm">Your days, in your own words. Log how you feel and watch your story build.</p>
+            <button onClick={() => setShowWelcome(false)} className="mt-4 px-6 py-2 rounded-full text-sm text-white" style={{ background: '#FF4F9A' }}>
+              Begin
+            </button>
+          </div>
+        )}
+
+        {paymentBanner && (
+          <div className={`card p-4 mb-6 border ${paymentBanner === 'success' ? 'border-[#C9B8F0]/40 bg-[#C9B8F0]/10' : paymentBanner === 'failed' ? 'border-[#ff6b6b]/30 bg-[#ff6b6b]/5' : 'border-white/20 bg-white/5'}`} data-testid={`payment-banner-${paymentBanner}`}>
+            <p className="text-sm text-white">
+              {paymentBanner === 'pending' && 'Confirming your payment…'}
+              {paymentBanner === 'success' && 'Your subscription is active. Welcome in.'}
+              {paymentBanner === 'failed' && 'We couldn\'t confirm your payment yet. If you completed checkout, refresh in a minute and your access will activate automatically.'}
+            </p>
+          </div>
+        )}
+
+        {/* Today, from her own logs */}
+        <div className="card p-5 mb-4" data-testid="noperiods-today">
+          <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-3">Today</p>
+          {todayLines.length > 0 ? (
+            <div className="space-y-2">
+              {todayLines.map((line, i) => (
+                <p key={`np-today-${i}`} className="text-[#E6E0EE] text-sm leading-relaxed">{line}</p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[#b8b8d1] text-sm leading-relaxed">
+              Nothing logged yet today. Use the quick log below whenever something is worth remembering, and it will be right here.
+            </p>
+          )}
+        </div>
+
+        {/* Quick log: the same five buttons, saving to today */}
+        <FloatingCarousel token={token} onLogged={fetchData} />
+
+        {/* A gentle daily thought, never phase-bound */}
+        <div className="card p-5 mb-4 mt-4" data-testid="noperiods-wisdom">
+          <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-3">For today</p>
+          <p className="text-white text-base italic leading-relaxed">&ldquo;{wisdom}&rdquo;</p>
+        </div>
+
+        {/* Her recent days, from what she logged */}
+        {recentDays.length > 0 && (
+          <div className="card p-5" data-testid="noperiods-recent">
+            <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-3">Your recent days</p>
+            <div className="space-y-4">
+              {recentDays.map((d) => (
+                <div key={d.iso}>
+                  <p className="text-[#ff8fab] text-xs mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>{d.label}</p>
+                  {dayLines(d.summary).map((line, i) => (
+                    <p key={`np-${d.iso}-${i}`} className="text-[#b8b8d1] text-sm leading-relaxed">{line}</p>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <p className="text-[#B4B0C8] text-xs mt-3 pt-3 border-t border-white/10">
+              Every day you log lives on the Calendar. Tap any day to see it.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8">
-      
+
       {/* Header */}
       <div className="text-center mb-8">
         <p className="text-[#B4B0C8] text-xs tracking-widest uppercase mb-2">

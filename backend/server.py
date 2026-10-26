@@ -1,4 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Body, UploadFile, File
+from fastapi.responses import HTMLResponse
+import html as html_lib
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -116,8 +118,8 @@ class UserLogin(BaseModel):
 
 # Cycle situations that make fertile-window / ovulation predictions
 # meaningless, so they are switched off for these users.
-CYCLE_STATUSES = {"regular", "unsure", "hormonal_birth_control", "pregnant", "postpartum", "menopause"}
-NO_FERTILITY_STATUSES = {"hormonal_birth_control", "pregnant", "postpartum", "menopause"}
+CYCLE_STATUSES = {"regular", "unsure", "hormonal_birth_control", "pregnant", "postpartum", "menopause", "no_periods"}
+NO_FERTILITY_STATUSES = {"hormonal_birth_control", "pregnant", "postpartum", "menopause", "no_periods"}
 PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_window", "wishlist")
 DEFAULT_PARTNER_VISIBILITY = {"phase": True, "mood_energy": True, "period_dates": True, "fertile_window": False, "wishlist": True}
 BOUTIQUE_VISIBILITY_VALUES = ("private", "partner", "public")
@@ -130,6 +132,9 @@ class UserOnboarding(BaseModel):
     # None = she doesn't remember. We never invent a date.
     last_period_date: Optional[str] = None
     cycle_status: str = "regular"
+    # Feature B (v46): she no longer has periods. Durable flag; her days
+    # are built from what she logs, never from cycle math.
+    no_periods: bool = False
     partner_choice: Optional[str] = None  # invite_partner | sync_girlfriend | later
     partner_visibility: Optional[Dict[str, bool]] = None
     notifications_enabled: bool = True
@@ -152,6 +157,7 @@ class UserResponse(BaseModel):
     notification_time: str = "09:00"
     notification_preferences: Dict[str, bool] = {}
     cycle_status: str = "regular"
+    no_periods: bool = False
     fertility_predictions_enabled: bool = True
     partner_visibility: Dict[str, bool] = {}
     boutique_visibility: str = "private"
@@ -199,6 +205,7 @@ class ProfileUpdate(BaseModel):
     profile_photo: Optional[str] = None
     birthday: Optional[str] = None  # "" clears it
     cycle_status: Optional[str] = None
+    no_periods: Optional[bool] = None
     partner_visibility: Optional[Dict[str, bool]] = None
     boutique_visibility: Optional[str] = None  # private | partner | public
     notifications_enabled: Optional[bool] = None
@@ -778,6 +785,7 @@ def build_user_response(user: dict) -> UserResponse:
         notification_time=user.get("notification_time", "09:00"),
         notification_preferences=user.get("notification_preferences", {}),
         cycle_status=user.get("cycle_status", "regular"),
+        no_periods=bool(user.get("no_periods")) or user.get("cycle_status") == "no_periods",
         fertility_predictions_enabled=user.get("cycle_status", "regular") not in NO_FERTILITY_STATUSES,
         partner_visibility={**DEFAULT_PARTNER_VISIBILITY, **(user.get("partner_visibility") or {})},
         boutique_visibility=user.get("boutique_visibility") or "private",
@@ -787,6 +795,15 @@ def build_user_response(user: dict) -> UserResponse:
         email_verified=bool(user.get("email_verified", True)),
         created_at=user.get("created_at")
     )
+
+
+def _is_no_periods(u: dict) -> bool:
+    """Feature B (v46): true when she no longer has periods. The durable
+    flag wins; the no_periods cycle status counts too, so accounts set
+    either way behave the same everywhere."""
+    if not u:
+        return False
+    return bool(u.get("no_periods")) or u.get("cycle_status") == "no_periods"
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
@@ -1942,6 +1959,9 @@ async def complete_onboarding(data: UserOnboarding, current_user: dict = Depends
         if k in PARTNER_VISIBILITY_KEYS:
             visibility[k] = bool(v)
     period_length = current_user.get("period_length") or 5
+    # Feature B (v46): "I no longer have periods" stores the durable flag
+    # and wipes the period date so no cycle math ever runs for her.
+    no_periods = bool(data.no_periods) or data.cycle_status == "no_periods"
     await db.users.update_one(
         {"id": current_user["id"]},
         {"$set": {
@@ -1949,7 +1969,8 @@ async def complete_onboarding(data: UserOnboarding, current_user: dict = Depends
             "birthday": data.birthday or current_user.get("birthday"),
             "cycle_length": int(data.cycle_length),
             "period_length": period_length,
-            "last_period_date": data.last_period_date or None,
+            "last_period_date": None if no_periods else (data.last_period_date or None),
+            "no_periods": no_periods,
             "cycle_status": data.cycle_status,
             "partner_choice": data.partner_choice,
             "partner_visibility": visibility,
@@ -1961,7 +1982,7 @@ async def complete_onboarding(data: UserOnboarding, current_user: dict = Depends
 
     # Save initial period days as permanent cycle logs so they persist forever.
     # Always insert the full period_length window (default 5) — past or future.
-    if data.last_period_date:
+    if data.last_period_date and not no_periods:
         period_start = datetime.strptime(data.last_period_date, "%Y-%m-%d").date()
         for i in range(period_length):
             day = period_start + timedelta(days=i)
@@ -2008,6 +2029,11 @@ async def update_profile(data: ProfileUpdate, current_user: dict = Depends(get_c
         if data.cycle_status not in CYCLE_STATUSES:
             raise HTTPException(status_code=400, detail="Unknown cycle situation.")
         update_data["cycle_status"] = data.cycle_status
+    if data.no_periods is not None:
+        update_data["no_periods"] = bool(data.no_periods)
+        if data.no_periods:
+            # Turning it on clears the period date: no cycle math for her.
+            update_data["last_period_date"] = None
     if data.partner_visibility is not None:
         vis = {**DEFAULT_PARTNER_VISIBILITY, **(current_user.get("partner_visibility") or {})}
         for k, v in data.partner_visibility.items():
@@ -2201,7 +2227,7 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
     age_group = get_age_group(age) if age else "adult"
     is_birthday = is_birthday_today(birthday) if birthday else False
     
-    if last_period:
+    if last_period and not _is_no_periods(current_user):
         cycle_info = calculate_cycle_info(last_period, cycle_length)
     else:
         cycle_info = {
@@ -3248,27 +3274,53 @@ def _partner_pair(rel: dict):
 
 class PartnerInviteRequest(BaseModel):
     partner_type: Optional[str] = None  # "woman" | "man" | None
+    # v46 (Angelita, Oct 26, 2026): the OWNER decides the kind when she
+    # creates the invite. "sync" is the two-way account link (code);
+    # "view" is a read-only link (token) for a partner who does not
+    # track a cycle: a man, or a woman who does not get periods.
+    kind: Optional[str] = None  # "sync" | "view"
 
 @api_router.post("/partner/invite")
 async def create_partner_invite(payload: Optional[PartnerInviteRequest] = None, current_user: dict = Depends(get_current_user)):
     # Attunement is free for every user (Angelita, Oct 18, 2026): no
     # subscription check on invites, whatever the partner type.
     partner_type = payload.partner_type if payload else None
-    # One active invite at a time; revoke older pending ones
+    kind = payload.kind if payload else None
+    if kind not in ("sync", "view"):
+        # Callers that predate kinds: a woman's invite was always the
+        # two-way sync; everything else is a view link now.
+        kind = "sync" if partner_type == "woman" else "view"
+    # One active invite at a time; revoke older pending ones. This is
+    # also what retires an old view token when she makes a new invite.
     await db.partner_invites.delete_many({"inviter_id": current_user["id"], "status": "pending"})
     existing = await _get_partner_relationship(current_user["id"])
     if existing:
         raise HTTPException(status_code=400, detail="You already have a linked partner. Unlink first to send a new invite.")
     code = str(uuid.uuid4())[:8].upper()
-    await db.partner_invites.insert_one({
+    doc = {
         "id": str(uuid.uuid4()),
         "inviter_id": current_user["id"],
         "invite_code": code,
         "partner_type": partner_type,
+        "kind": kind,
         "status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    return {"invite_code": code}
+    }
+    view_token = None
+    if kind == "view":
+        view_token = _secrets.token_urlsafe(32)
+        doc["view_token"] = view_token
+    await db.partner_invites.insert_one(doc)
+    return {"invite_code": code, "kind": kind, "view_token": view_token}
+
+@api_router.post("/partner/view-link/revoke")
+async def revoke_view_link(current_user: dict = Depends(get_current_user)):
+    """Turn off her outstanding view link: the pending view invite is
+    deleted, so the old token page reads inactive at once. (An accepted
+    invite's link is governed by the relationship; unlinking ends it.)"""
+    result = await db.partner_invites.delete_many(
+        {"inviter_id": current_user["id"], "status": "pending", "kind": "view"})
+    return {"ok": True, "removed": result.deleted_count}
 
 @api_router.get("/partner/invites/sent")
 async def get_sent_invites(current_user: dict = Depends(get_current_user)):
@@ -3283,6 +3335,9 @@ async def accept_partner_invite(req: AcceptInviteRequest, current_user: dict = D
     invite = await db.partner_invites.find_one({"invite_code": code, "status": "pending"}, {"_id": 0})
     if not invite:
         raise HTTPException(status_code=404, detail="Invite code not found or already used.")
+    if invite.get("kind") == "view":
+        # A view invite is a link, not a code: it can never link accounts.
+        raise HTTPException(status_code=400, detail="That invite is a view-only link. It cannot be used to link accounts.")
     if invite["inviter_id"] == current_user["id"]:
         raise HTTPException(status_code=400, detail="You can't accept your own invite.")
     if await _get_partner_relationship(current_user["id"]):
@@ -3327,6 +3382,90 @@ def _phase_for_cycle_day(cycle_day: int) -> str:
     return "luteal"
 
 
+MOOD_LABELS = {1: "Low", 2: "Meh", 3: "Okay", 4: "Good", 5: "Great"}
+
+
+def _summarize_day_logs(logs):
+    """What a day's cycle logs say, in partner-safe summary form:
+    feelings (emotion: tags), one mood word (mood: tags), plain symptom
+    names, flow, and whether it was a period day. Her log NOTES text is
+    never part of a summary: notes are hers alone."""
+    feelings, symptoms = [], []
+    mood = flow = None
+    is_period = False
+    for l in logs:
+        if l.get("flow"):
+            flow = l["flow"]
+        if l.get("is_period"):
+            is_period = True
+        for s in (l.get("symptoms") or []):
+            if not isinstance(s, str):
+                continue
+            if s.startswith("emotion:"):
+                name = s.split(":", 1)[1].replace("_", " ").strip()
+                if name:
+                    feelings.append(name[:1].upper() + name[1:])
+            elif s.startswith("mood:"):
+                try:
+                    mood = MOOD_LABELS.get(int(s.split(":", 1)[1]), mood)
+                except ValueError:
+                    pass
+            elif ":" in s:
+                # Prefixed tags (collection:, etc.) are internal detail,
+                # not part of a partner summary.
+                continue
+            else:
+                symptoms.append(s)
+    return {"feelings": feelings, "mood": mood, "symptoms": symptoms,
+            "flow": flow, "is_period": is_period}
+
+
+async def _log_days_for(user_id: str, include_details: bool, days: int = 28):
+    """Feature B (v46): the last `days` calendar days for a user who
+    does not track a cycle, built ONLY from her date-keyed cycle logs:
+    per date, whether she logged and (when include_details) what she
+    logged, as feelings / mood / symptoms / flow. Never notes, never
+    journal, vault or intimacy data."""
+    today = date.today()
+    start = today - timedelta(days=days - 1)
+    logs = await db.cycle_logs.find(
+        {"user_id": user_id,
+         "date": {"$gte": start.isoformat(), "$lte": today.isoformat()}},
+        {"_id": 0, "date": 1, "symptoms": 1, "flow": 1, "is_period": 1},
+    ).to_list(length=None)
+    by_date = {}
+    for l in logs:
+        by_date.setdefault(l.get("date"), []).append(l)
+    out = []
+    for i in range(days):
+        dstr = (today - timedelta(days=i)).isoformat()
+        day_logs = by_date.get(dstr) or []
+        entry = {"date": dstr, "logged": bool(day_logs)}
+        if include_details and day_logs:
+            entry.update(_summarize_day_logs(day_logs))
+        out.append(entry)
+    return out
+
+
+async def _mood_today_for(user_id: str):
+    """Her overall feeling today as one word, from the mood: tags in
+    today's cycle logs (the same coarse signal /partner/calendar uses)."""
+    today_str = datetime.now(timezone.utc).date().isoformat()
+    logs = await db.cycle_logs.find(
+        {"user_id": user_id, "date": today_str},
+        {"_id": 0, "symptoms": 1, "created_at": 1},
+    ).sort("created_at", 1).to_list(length=None)
+    mood = None
+    for l in logs:
+        for s in (l.get("symptoms") or []):
+            if isinstance(s, str) and s.startswith("mood:"):
+                try:
+                    mood = MOOD_LABELS.get(int(s.split(":", 1)[1]), mood)
+                except ValueError:
+                    pass
+    return mood
+
+
 def _sync_person(u: dict, is_self: bool, days: int = 28):
     """One person's side of two-cycle sync. Her own side is always full;
     the other person's side only includes what she chose to share."""
@@ -3334,6 +3473,14 @@ def _sync_person(u: dict, is_self: bool, days: int = 28):
     out = {"name": u.get("name") or "Partner", "is_self": is_self, "profile_photo": u.get("profile_photo")}
     lp = u.get("last_period_date")
     status = u.get("cycle_status", "regular")
+    if _is_no_periods(u):
+        # Feature B (v46): no cycle to project. Her side is her logged
+        # days; get_partner_sync attaches them (log_days) and settles
+        # the shared flag from her toggles there.
+        out["no_periods"] = True
+        out["shared"] = True
+        out["tracking"] = False
+        return out, None
     if not is_self and not vis.get("phase"):
         out["shared"] = False
         return out, None
@@ -3374,6 +3521,21 @@ async def get_partner_sync(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Partner account not found")
     me, my_tl = _sync_person(current_user, True)
     them, their_tl = _sync_person(other, False)
+    # Feature B (v46): a no_periods side carries her logged days inside
+    # her person block (never a new top-level key, never cycle fields).
+    # For the other person's side, feelings detail rides on her
+    # mood/energy sharing choice, and if she shares neither her days
+    # nor her feelings, her side stays private.
+    for person, is_self in ((me, True), (them, False)):
+        if person.get("no_periods"):
+            src = current_user if is_self else other
+            svis = {**DEFAULT_PARTNER_VISIBILITY, **(src.get("partner_visibility") or {})}
+            if not is_self and not (svis.get("phase") or svis.get("mood_energy")):
+                person["shared"] = False
+            elif person.get("shared"):
+                person["log_days"] = await _log_days_for(
+                    src["id"],
+                    include_details=is_self or bool(svis.get("mood_energy")))
     days = []
     if my_tl and their_tl:
         for a, b in zip(my_tl, their_tl):
@@ -3410,6 +3572,223 @@ async def unlink_partner(current_user: dict = Depends(get_current_user)):
         "$or": [{"user_id": current_user["id"]}, {"partner_user_id": current_user["id"]}]
     })
     return {"ok": True, "removed": result.deleted_count}
+
+async def _partner_view_payload(token: str):
+    """The data behind the read-only partner view link (v46). Returns
+    None when the link is not active. The dict holds ONLY what the
+    owner's current visibility choices allow (plus her name and
+    picture, which say whose page this is); anything a toggle hides is
+    ABSENT here, not just hidden on the page. Journal, vault, intimacy
+    data, email and account details are never read for this page.
+    The wishlist is always included: it is part of the partner
+    experience (Angelita, Oct 26, 2026), whatever the old stored
+    toggles say. An empty list simply means she has picked nothing."""
+    if not token:
+        return None
+    invite = await db.partner_invites.find_one({"view_token": token}, {"_id": 0})
+    if not invite or invite.get("kind") != "view":
+        return None
+    if invite.get("status") == "accepted":
+        # The link lives only while the relationship does.
+        if not await _get_partner_relationship(invite["inviter_id"]):
+            return None
+    elif invite.get("status") != "pending":
+        return None
+    owner = await db.users.find_one(
+        {"id": invite["inviter_id"]},
+        {"_id": 0, "name": 1, "profile_photo": 1, "last_period_date": 1,
+         "cycle_length": 1, "cycle_status": 1, "no_periods": 1,
+         "partner_visibility": 1})
+    if not owner:
+        return None
+    owner_id = invite["inviter_id"]
+    vis = {**DEFAULT_PARTNER_VISIBILITY, **(owner.get("partner_visibility") or {})}
+    payload = {"owner_name": owner.get("name") or "Her",
+               "owner_photo": owner.get("profile_photo")}
+    if _is_no_periods(owner):
+        if vis.get("phase") or vis.get("mood_energy"):
+            payload["log_days"] = await _log_days_for(
+                owner_id, include_details=bool(vis.get("mood_energy")))
+        if vis.get("mood_energy"):
+            payload["feeling_today"] = await _mood_today_for(owner_id)
+    else:
+        lp = owner.get("last_period_date")
+        if lp:
+            info = calculate_cycle_info(lp, int(owner.get("cycle_length") or 28))
+            if vis.get("phase"):
+                payload["phase"] = info.get("phase")
+                payload["cycle_day"] = info.get("cycle_day")
+            if vis.get("period_dates"):
+                payload["next_period_date"] = info.get("next_period_date")
+                payload["days_until_period"] = info.get("days_until_period")
+            if vis.get("fertile_window") and owner.get("cycle_status", "regular") not in NO_FERTILITY_STATUSES:
+                npd = info.get("next_period_date")
+                if npd:
+                    ov = date.fromisoformat(str(npd)[:10]) - timedelta(days=14)
+                    payload["ovulation_date"] = ov.isoformat()
+                    payload["fertile_window"] = {
+                        "start": (ov - timedelta(days=5)).isoformat(),
+                        "end": ov.isoformat()}
+        if vis.get("mood_energy"):
+            payload["feeling_today"] = await _mood_today_for(owner_id)
+    cursor = db.wishlist_items.find({"user_id": owner_id},
+                                    {"_id": 0, "product_id": 1, "created_at": 1})
+    docs = await cursor.to_list(length=500)
+    docs.sort(key=lambda d: d.get("created_at") or "")
+    payload["wishlist"] = [
+        {"name": CATALOG_PRODUCTS[d["product_id"]],
+         "url": f"https://www.amazon.com/dp/{d['product_id']}?tag=hormoscope20-20"}
+        for d in docs if d.get("product_id") in CATALOG_PRODUCTS
+    ]
+    return payload
+
+
+_PHASE_TITLES = {
+    "menstrual": "Menstrual phase",
+    "follicular": "Follicular phase",
+    "ovulatory": "Ovulatory phase",
+    "luteal": "Luteal phase",
+}
+
+
+def _fmt_view_date(iso):
+    try:
+        return date.fromisoformat(str(iso)[:10]).strftime("%A, %B %d")
+    except (TypeError, ValueError):
+        return ""
+
+
+def _render_partner_view_html(payload):
+    """Render the read-only partner view page. Every value that came
+    from the owner is escaped. Only keys present in the payload render;
+    hidden things leave no trace in the markup."""
+    esc = html_lib.escape
+    if payload is None:
+        body = (
+            "<h1>This link is no longer active</h1>"
+            "<p class=\"sub\">The person who shared it has turned it off "
+            "or replaced it. Ask her for a new link if you would like "
+            "to keep following along.</p>"
+        )
+    else:
+        name = esc(str(payload.get("owner_name") or "Her"))
+        first = name.split(" ")[0] if name else "Her"
+        parts = []
+        photo = payload.get("owner_photo")
+        if photo:
+            parts.append(
+                f'<img class="avatar" src="{esc(str(photo), quote=True)}" alt="">')
+        parts.append(f"<h1>{name}</h1>")
+        parts.append('<p class="sub">Shared with you from her HORMOscope</p>')
+        if payload.get("phase"):
+            phase_title = _PHASE_TITLES.get(payload["phase"], "Her cycle today")
+            day_txt = (f' <span class="dot">&middot;</span> Day {payload["cycle_day"]}'
+                       if payload.get("cycle_day") else "")
+            parts.append(
+                f'<div class="card"><p class="label">Where she is in her cycle</p>'
+                f'<p class="big">{esc(phase_title)}{day_txt}</p></div>')
+        if payload.get("feeling_today"):
+            parts.append(
+                f'<div class="card"><p class="label">How she is feeling today</p>'
+                f'<p class="big">{esc(str(payload["feeling_today"]))}</p></div>')
+        if payload.get("next_period_date"):
+            when = _fmt_view_date(payload["next_period_date"])
+            du = payload.get("days_until_period")
+            du_txt = ""
+            if du == 0:
+                du_txt = " (estimated to start today)"
+            elif du == 1:
+                du_txt = " (tomorrow)"
+            elif isinstance(du, int) and du > 1:
+                du_txt = f" (in {du} days)"
+            parts.append(
+                f'<div class="card"><p class="label">Her next period is estimated</p>'
+                f'<p class="big">{esc(when)}{esc(du_txt)}</p></div>')
+        if payload.get("fertile_window"):
+            fw = payload["fertile_window"]
+            parts.append(
+                f'<div class="card"><p class="label">Her fertile window</p>'
+                f'<p class="big">{esc(_fmt_view_date(fw.get("start")))} to '
+                f'{esc(_fmt_view_date(fw.get("end")))}</p>'
+                f'<p class="note">Ovulation estimated around '
+                f'{esc(_fmt_view_date(payload.get("ovulation_date")))}</p></div>')
+        if payload.get("log_days") is not None:
+            rows = []
+            for d in payload["log_days"]:
+                if not d.get("logged"):
+                    continue
+                bits = []
+                if d.get("feelings"):
+                    bits.append("Feeling " + ", ".join(esc(str(f)) for f in d["feelings"]))
+                if d.get("mood"):
+                    bits.append("Mood: " + esc(str(d["mood"])))
+                if d.get("symptoms"):
+                    bits.append(esc(", ".join(str(s) for s in d["symptoms"])))
+                if d.get("flow"):
+                    bits.append("Flow: " + esc(str(d["flow"])))
+                if d.get("is_period"):
+                    bits.append("Period day")
+                rows.append(
+                    f'<div class="day"><p class="daydate">{esc(_fmt_view_date(d.get("date")))}</p>'
+                    f'<p class="daybody">{" &middot; ".join(bits) if bits else "She logged this day"}</p></div>')
+            inner = "".join(rows) if rows else '<p class="note">Nothing logged yet in the last few weeks.</p>'
+            parts.append(
+                f'<div class="card"><p class="label">Her recent days, from what she logs</p>{inner}</div>')
+        wish = payload.get("wishlist")
+        if wish is not None:
+            if wish:
+                items = "".join(
+                    f'<div class="wish"><span>{esc(str(w["name"]))}</span>'
+                    f'<a href="{esc(str(w["url"]), quote=True)}" target="_blank" rel="noopener">See it on Amazon</a></div>'
+                    for w in wish)
+            else:
+                items = '<p class="note">Nothing picked yet. When she finds pieces she loves, they will be waiting here.</p>'
+            parts.append(
+                f'<div class="card"><p class="label">{esc(first)}&rsquo;s wishlist</p>{items}'
+                f'<p class="fine">As an Amazon Associate I earn from qualifying purchases.</p></div>')
+        parts.append(
+            '<p class="fine">If you track a cycle too, ask her for a sync '
+            'invite so you can follow each other in the app.</p>')
+        body = "".join(parts)
+    return (
+        "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+        "<title>HORMOscope</title>"
+        "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">"
+        "<link href=\"https://fonts.googleapis.com/css2?family=Poiret+One&family=Poppins:wght@300;400;500;600&display=swap\" rel=\"stylesheet\">"
+        "<style>"
+        "body{margin:0;background:#0B0B1E;color:#EDEDF5;font-family:Poppins,system-ui,sans-serif;}"
+        ".wrap{max-width:520px;margin:0 auto;padding:32px 20px 48px;}"
+        "h1{font-family:'Poiret One',serif;font-weight:400;font-size:34px;margin:10px 0 4px;color:#fff;}"
+        ".sub{color:#B8B8D1;font-size:14px;margin:0 0 22px;}"
+        ".avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid #FF4F9A;}"
+        ".card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:18px;padding:18px;margin:0 0 14px;}"
+        ".label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#F4A7B9;margin:0 0 8px;}"
+        ".big{font-size:20px;margin:0;color:#fff;}"
+        ".note{color:#B8B8D1;font-size:13px;margin:8px 0 0;}"
+        ".fine{color:#8A87A3;font-size:11px;margin:14px 0 0;line-height:1.6;}"
+        ".dot{color:#FF4F9A;}"
+        ".day{padding:8px 0;border-top:1px solid rgba(255,255,255,0.06);}"
+        ".day:first-of-type{border-top:none;}"
+        ".daydate{font-size:12px;color:#F4A7B9;margin:0 0 2px;}"
+        ".daybody{font-size:14px;margin:0;color:#EDEDF5;}"
+        ".wish{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.06);font-size:14px;}"
+        ".wish:first-of-type{border-top:none;}"
+        ".wish a{color:#0B0B1E;background:#F4A7B9;padding:7px 12px;border-radius:999px;font-size:12px;text-decoration:none;white-space:nowrap;}"
+        "</style></head><body><div class=\"wrap\">"
+        + body +
+        "</div></body></html>"
+    )
+
+
+@app.get("/partner/view/{token}")
+async def partner_view_page(token: str):
+    """The read-only partner link page (v46). No account, no login:
+    the unguessable token is the key, and it dies the moment she
+    revokes it, replaces it, or unlinks."""
+    payload = await _partner_view_payload(token)
+    return HTMLResponse(_render_partner_view_html(payload))
+
 
 @api_router.get("/partner/calendar")
 async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
@@ -3734,14 +4113,39 @@ async def remove_wishlist_item(product_id: str, current_user: dict = Depends(get
     return {"ok": True, "removed": result.deleted_count}
 
 
+# Names for the server-rendered partner link view's wishlist section.
+# Mirrors frontend/src/data/catalog.js (same picks; links are built
+# with her Associates tag, hormoscope20-20).
+CATALOG_PRODUCTS = {
+    "B0FHBXCCLM": "Dona Tea Library",
+    "B0C1YG33PD": "BouZaFoFa Portable Heating Pad for Cramps",
+    "B0C9LCM3HW": "FLEX Reusable Menstrual Disc Starter Bundle",
+    "B07NLSLP9K": "Always Radiant Pads, Size 5 Extra Heavy Overnight, 54 Count",
+    "B093LVS21D": "Tampax Pearl Tampons, Regular, 50 Count x 2",
+    "B083C6BYG9": "Rael Slim Applicator Tampons, Organic Cotton, 40 Count",
+    "B0FGB2NS3C": "Philips Lumea 9000 Series IPL Hair Removal Device",
+    "B07M5X4D3P": "iRESTORE Professional Laser Hair Growth System",
+    "B0CNC67C8B": "Diamond Tennis Bracelet, 20 Carat Lab Grown, Platinum, 7 Inch",
+    "B07VTDXFDC": "Aromatherapy Associates Ultimate Wellbeing Bath & Shower Oil Set",
+    "B0D7N2KWLH": "iRestore LED Face Mask",
+    "B09Y8SV5RY": "KARMAPLEDGE Chakra Tree of Life",
+    "B0F8J3GJDQ": "Survival Kit Advent Calendar for Men",
+    "B0FY7R1TQ3": "LOVERY Luxury Perfume Advent Calendar for Women",
+    "B0FQFMDMDC": "Evvy Vaginal Health Test, 2 Pack",
+    "B0B75T46L8": "Viome Full Body Intelligence Test",
+}
+
+
 @api_router.get("/partner/wishlist")
 async def get_partner_wishlist(current_user: dict = Depends(get_current_user)):
-    """Your partner's boutique, inside your Attunement gift section.
-    It opens only when BOTH of her choices say share: her boutique
-    visibility is "partner" or "public", AND her "My wishlist" partner
-    visibility toggle is on. Returns product ids only (the catalog
-    names and copy live in the app), plus her name and picture so the
-    boutique carries her face, as she asked."""
+    """Your partner's wishlist, inside your Attunement gift section.
+    The wishlist is always part of the partner experience (Angelita,
+    Oct 26, 2026): a linked partner sees her picks whatever the stored
+    "My wishlist" toggle or boutique visibility say. Those fields stay
+    stored but no longer gate this view; her real control is the
+    contents. No picks, an empty list. Returns product ids only (the
+    catalog names and copy live in the app), plus her name and picture
+    so the wishlist carries her face, as she asked."""
     rel = await _get_partner_relationship(current_user["id"])
     if not rel:
         raise HTTPException(status_code=403, detail="No linked partner account.")
@@ -3751,9 +4155,6 @@ async def get_partner_wishlist(current_user: dict = Depends(get_current_user)):
     if not other:
         raise HTTPException(status_code=404, detail="Partner account not found")
     boutique_vis = other.get("boutique_visibility") or "private"
-    vis = {**DEFAULT_PARTNER_VISIBILITY, **(other.get("partner_visibility") or {})}
-    if boutique_vis not in ("partner", "public") or not vis.get("wishlist"):
-        raise HTTPException(status_code=403, detail="Your partner has not shared their boutique.")
     cursor = db.wishlist_items.find({"user_id": other_id}, {"_id": 0})
     docs = await cursor.to_list(length=500)
     docs.sort(key=lambda d: d.get("created_at") or "")

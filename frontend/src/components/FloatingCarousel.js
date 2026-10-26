@@ -463,7 +463,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
   );
 }
 
-export default function FloatingCarousel({ token }) {
+export default function FloatingCarousel({ token, onLogged }) {
   // Quick log is a static row of five large buttons (launch fixes): no
   // orbit, no motion, nothing to chase with a thumb.
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -509,6 +509,9 @@ export default function FloatingCarousel({ token }) {
             setJustLogged(true);
             if (pillTimer.current) clearTimeout(pillTimer.current);
             pillTimer.current = setTimeout(() => setJustLogged(false), 2500);
+            // Optional parent refresh (v46: the no-periods Home rebuilds
+            // its Today card from the fresh logs).
+            if (onLogged) onLogged();
           }}
         />
       )}

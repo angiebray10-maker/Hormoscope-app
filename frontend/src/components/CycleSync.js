@@ -30,6 +30,14 @@ function Side({ p }) {
       <p className="text-white text-sm font-medium truncate">{p.is_self ? 'You' : p.name}</p>
       {!p.shared ? (
         <p className="text-[#E6E0EE] text-xs mt-3">Keeping this private</p>
+      ) : p.no_periods ? (
+        <>
+          <p className="text-[#E6E0EE] text-xs mt-3">No periods to track</p>
+          <p className="text-[#E6E0EE] text-xs mt-1">Her days come from what she logs</p>
+          {Array.isArray(p.log_days) && (
+            <p className="text-white text-xs mt-2">Logged {p.log_days.filter((d) => d.logged).length} of the last 28 days</p>
+          )}
+        </>
       ) : !p.tracking ? (
         <p className="text-[#E6E0EE] text-xs mt-3">Not tracking a cycle right now</p>
       ) : (
@@ -68,6 +76,34 @@ export default function CycleSync({ token }) {
         <Side p={data.me} />
         <Side p={data.them} />
       </div>
+      {/* Feature B (v46): a no-periods side shows her logged days
+          under the cards (feelings detail only rides along when she
+          shares her mood and energy). */}
+      {[data.me, data.them].filter((p) => p && p.no_periods && p.shared && Array.isArray(p.log_days)).map((p) => (
+        <div key={p.is_self ? 'me-logs' : 'them-logs'} className="mb-5" data-testid="sync-logged-days">
+          <p className="text-white text-sm mb-2">{p.is_self ? 'Your' : `${p.name}'s`} recent days</p>
+          {p.log_days.filter((d) => d.logged).length === 0 ? (
+            <p className="text-[#E6E0EE] text-xs">Nothing logged in the last few weeks yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {p.log_days.filter((d) => d.logged).slice(0, 7).map((d) => {
+                const bits = [];
+                if (d.feelings?.length) bits.push(`Feeling ${d.feelings.join(', ')}`);
+                if (d.mood) bits.push(`Mood: ${d.mood}`);
+                if (d.symptoms?.length) bits.push(d.symptoms.join(', '));
+                if (d.flow) bits.push(`Flow: ${d.flow}`);
+                if (d.is_period) bits.push('Period day');
+                return (
+                  <div key={d.date} className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <p className="text-[#f4a7b9] text-[11px]">{new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                    <p className="text-[#E6E0EE] text-xs">{bits.length ? bits.join(' · ') : 'Logged'}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ))}
       {both ? (
         <>
           <p className="text-white text-sm mb-1">Next 4 weeks</p>

@@ -7,6 +7,7 @@ import axios from 'axios';
 import logger from '../utils/logger';
 import CycleSync from '../components/CycleSync';
 import AttunementGifts from '../components/AttunementGifts';
+import { partnerViewUrl, shareInviteText, syncInviteMessage, viewInviteMessage } from '../lib/invite';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#C9B8F0';
@@ -28,13 +29,20 @@ const script = { fontFamily: "'Poiret One', sans-serif" };
 // Profile) BEFORE any invite code is created, and a profile picture is
 // required before an invite can be created or accepted, so a partner
 // always sees the face beside the name.
+// v46 (Angelita, Oct 26, 2026): the OWNER picks the invite kind.
+// "Sync my cycle with him" always makes a VIEW invite (a read-only
+// link page, no account for him). "Sync my cycle with her" first asks
+// "Does your partner get a period?": yes makes a SYNC invite (the
+// code, two-way, as before); no makes a view invite like his. The
+// wishlist left the checklist: it is always part of what a partner
+// sees, so there is no wishlist switch anymore (the stored field
+// stays, dormant).
 
 const VIS_OPTIONS = [
   { id: 'phase', label: 'My phase and cycle day' },
   { id: 'mood_energy', label: 'My mood and energy' },
   { id: 'period_dates', label: 'When my next period is due' },
   { id: 'fertile_window', label: 'My fertile window' },
-  { id: 'wishlist', label: 'My wishlist' },
 ];
 const DEFAULT_VIS = { phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true };
 
@@ -53,7 +61,7 @@ export function PartnerAvatar({ photo, name, size = 32 }) {
   );
 }
 
-// The five share toggles, with app-styled pink checkboxes (the raw
+// The share toggles, with app-styled pink checkboxes (the raw
 // native white squares from the old Profile form are not used here).
 function VisibilityChecklist({ vis, onToggle }) {
   return (
@@ -101,22 +109,44 @@ export default function AttunementPage() {
   const { token, user, updateUser } = useAuth();
 
   const [status, setStatus] = useState(null);
-  const [inviteCode, setInviteCode] = useState(null);
+  // The invite she just created: { kind: 'sync' | 'view', code, viewToken }.
+  const [invite, setInvite] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [inviteError, setInviteError] = useState(null); // 'pro' | string
   const [copied, setCopied] = useState(false);
-  const [setupType, setSetupType] = useState(null); // 'man' | 'woman' | 'share'
+  const [setupType, setSetupType] = useState(null); // 'man' | 'woman-sync' | 'woman-view' | 'share'
+  const [womanQuestion, setWomanQuestion] = useState(false);
   const [needPhoto, setNeedPhoto] = useState(false);
   const [vis, setVis] = useState(() => ({ ...DEFAULT_VIS, ...(user?.partner_visibility || {}) }));
   const [visSaving, setVisSaving] = useState(false);
   const [visMsg, setVisMsg] = useState('');
+  const [shareMsg, setShareMsg] = useState('');
+  const [sentInvites, setSentInvites] = useState([]);
+  const [revoking, setRevoking] = useState(false);
+
+  const auth = { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 };
+
+  const loadSentInvites = () => {
+    if (!token) return;
+    axios.get(`${API}/partner/invites/sent`, auth)
+      .then((res) => setSentInvites(Array.isArray(res.data) ? res.data : []))
+      .catch(() => {});
+  };
 
   useEffect(() => {
     if (!token) { setStatus({ is_linked: false }); return; }
     axios.get(`${API}/partner/status`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
       .then((res) => setStatus(res.data))
       .catch(() => setStatus({ is_linked: false }));
+    loadSentInvites();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // An outstanding view link from an earlier visit (still hers to
+  // share again or turn off), and the accepted invite behind a link,
+  // so she can see which kind of partner she has.
+  const pendingView = sentInvites.find((i) => i.status === 'pending' && i.kind === 'view' && i.view_token);
+  const acceptedInvite = sentInvites.find((i) => i.status === 'accepted');
 
   const hasPhoto = !!(user && user.profile_photo);
   const toggleVis = (id, on) => { setVis((prev) => ({ ...prev, [id]: on })); setVisMsg(''); };
@@ -146,18 +176,35 @@ export default function AttunementPage() {
 
   // Tapping a sync card opens the setup step (checklist first). With
   // no profile picture there is no setup: the picture prompt shows.
+  // "Sync my cycle with her" detours through one question first:
+  // does her partner get a period? (v46: the owner decides the kind.)
   const startSetup = (type) => {
     setInviteError(null);
     if (!hasPhoto) {
       setNeedPhoto(true);
       setSetupType(null);
+      setWomanQuestion(false);
       setTimeout(() => {
         document.querySelector('[data-testid="photo-required"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 60);
       return;
     }
     setNeedPhoto(false);
+    if (type === 'woman') {
+      setSetupType(null);
+      setWomanQuestion(true);
+      setTimeout(() => {
+        document.querySelector('[data-testid="woman-period-question"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 60);
+      return;
+    }
+    setWomanQuestion(false);
     setSetupType(type);
+  };
+
+  const chooseWomanPeriods = (getsPeriods) => {
+    setWomanQuestion(false);
+    setSetupType(getsPeriods ? 'woman-sync' : 'woman-view');
   };
 
   const createInvite = async () => {
@@ -166,13 +213,20 @@ export default function AttunementPage() {
     setInviteError(null);
     try {
       // Her share choices are saved as part of creating the invite,
-      // before the code exists, so the partner only ever sees what
-      // she just picked.
+      // before the code or link exists, so the partner only ever sees
+      // what she just picked.
       await saveVisibility();
-      const body = setupType === 'share' ? {} : { partner_type: setupType };
-      const res = await axios.post(`${API}/partner/invite`, body, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setInviteCode(res.data.invite_code);
+      const bodies = {
+        'man': { partner_type: 'man', kind: 'view' },
+        'woman-sync': { partner_type: 'woman', kind: 'sync' },
+        'woman-view': { partner_type: 'woman', kind: 'view' },
+        'share': { kind: 'view' },
+      };
+      const res = await axios.post(`${API}/partner/invite`, bodies[setupType] || {}, auth);
+      setInvite({ kind: res.data.kind || 'sync', code: res.data.invite_code, viewToken: res.data.view_token || null });
       setSetupType(null);
+      setShareMsg('');
+      loadSentInvites();
     } catch (err) {
       setInviteError(err.response?.data?.detail || 'Could not create an invite just now. Try again in a moment.');
       logger.error('Attunement invite error:', err);
@@ -181,30 +235,93 @@ export default function AttunementPage() {
     }
   };
 
-  const copyCode = () => {
-    if (inviteCode) {
-      navigator.clipboard?.writeText(inviteCode).catch(() => {});
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const copyText = (text) => {
+    navigator.clipboard?.writeText(text).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const firstName = (user?.name || '').trim().split(/\s+/)[0] || '';
+
+  const shareSyncInvite = async (code) => {
+    const outcome = await shareInviteText(syncInviteMessage(code, firstName));
+    setShareMsg(outcome === 'copied' ? 'Copied. Paste it wherever you talk to her.' : outcome === 'failed' ? "Sharing didn't open. Copy the code above and send it to her." : '');
+  };
+
+  const shareViewInvite = async (viewToken) => {
+    const outcome = await shareInviteText(viewInviteMessage(partnerViewUrl(viewToken), firstName));
+    setShareMsg(outcome === 'copied' ? 'Copied. Paste the link wherever you talk to them.' : outcome === 'failed' ? "Sharing didn't open. Copy the link above and send it to them." : '');
+  };
+
+  const revokeView = async () => {
+    if (revoking) return;
+    setRevoking(true);
+    try {
+      await axios.post(`${API}/partner/view-link/revoke`, {}, auth);
+      setInvite(null);
+      loadSentInvites();
+    } catch (err) {
+      logger.error('Revoke view link error:', err);
+    } finally {
+      setRevoking(false);
     }
   };
 
+  const unlink = async () => {
+    try {
+      await axios.post(`${API}/partner/unlink`, {}, auth);
+      setStatus({ is_linked: false });
+      setSentInvites([]);
+      loadSentInvites();
+    } catch (err) {
+      logger.error('Unlink error:', err);
+    }
+  };
+
+  const viewLinkCard = (viewToken, testid) => (
+    <div className="rounded-2xl p-4 mb-4 text-center" style={{ border: '1px solid rgba(244,167,185,0.35)', background: 'rgba(244,167,185,0.06)' }} data-testid={testid}>
+      <p className="text-[#CFC3CC] text-xs mb-2" style={poppins}>
+        This link opens a simple page with only what you chose to share. No app and no account needed on their side. It stops working the moment you turn it off or make a new one.
+      </p>
+      <button onClick={() => copyText(partnerViewUrl(viewToken))} className="w-full py-3 px-3 rounded-xl text-center" style={{ background: 'rgba(255,79,154,0.08)', border: '1px dashed rgba(255,79,154,0.4)' }}>
+        <span className="text-white text-xs break-all" style={poppins}>{partnerViewUrl(viewToken)}</span>
+        <span className="flex items-center justify-center gap-1 text-[#CFC3CC] text-[10px] mt-1" style={poppins}>
+          {copied ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Tap to copy the link</>}
+        </span>
+      </button>
+      <button onClick={() => shareViewInvite(viewToken)} className="w-full py-3 rounded-full text-white text-sm font-medium mt-3" style={{ ...poppins, background: '#FF4F9A' }} data-testid="share-view-invite-btn">
+        Share invite
+      </button>
+      <button onClick={revokeView} disabled={revoking} className="w-full py-2.5 rounded-full text-sm mt-2 disabled:opacity-50" style={{ ...poppins, color: '#CFC3CC', border: '1px solid rgba(255,255,255,0.2)' }} data-testid="revoke-view-btn">
+        {revoking ? 'Turning it off…' : 'Turn this link off'}
+      </button>
+    </div>
+  );
+
   const inviteBlock = (
     <>
-      {inviteCode && (
-        <div className="rounded-2xl p-4 mb-4 text-center" style={{ border: '1px solid rgba(244,167,185,0.35)', background: 'rgba(244,167,185,0.06)' }}>
+      {invite && invite.kind === 'sync' && invite.code && (
+        <div className="rounded-2xl p-4 mb-4 text-center" style={{ border: '1px solid rgba(244,167,185,0.35)', background: 'rgba(244,167,185,0.06)' }} data-testid="sync-invite-result">
           <p className="text-[#CFC3CC] text-xs mb-2" style={poppins}>
-            Share this code with your person. They make their own HORMOscope account, open the Attunement tab, and enter it to link with you.
+            Share this code with your person. They make their own HORMOscope account, and right in onboarding they can enter it to link with you. The Attunement tab works too.
           </p>
-          <button onClick={copyCode} className="w-full py-3 rounded-xl text-center" style={{ background: 'rgba(255,79,154,0.08)', border: '1px dashed rgba(255,79,154,0.4)' }}>
-            <span className="text-white text-xl font-bold tracking-[0.3em]" style={poppins}>{inviteCode}</span>
+          <button onClick={() => copyText(invite.code)} className="w-full py-3 rounded-xl text-center" style={{ background: 'rgba(255,79,154,0.08)', border: '1px dashed rgba(255,79,154,0.4)' }}>
+            <span className="text-white text-xl font-bold tracking-[0.3em]" style={poppins}>{invite.code}</span>
             <span className="flex items-center justify-center gap-1 text-[#CFC3CC] text-[10px] mt-1" style={poppins}>
               {copied ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Tap to copy</>}
             </span>
           </button>
+          <button onClick={() => shareSyncInvite(invite.code)} className="w-full py-3 rounded-full text-white text-sm font-medium mt-3" style={{ ...poppins, background: '#FF4F9A' }} data-testid="share-invite-btn">
+            Share invite
+          </button>
         </div>
       )}
-      {inviteError && (
+      {invite && invite.kind === 'view' && invite.viewToken && viewLinkCard(invite.viewToken, 'view-invite-result')}
+      {!invite && pendingView && viewLinkCard(pendingView.view_token, 'active-view-link')}
+      {shareMsg && (
+        <p className="text-[#E6E0EE] text-xs text-center mb-4" role="status" style={poppins}>{shareMsg}</p>
+      )}
+      {inviteError && !setupType && (
         <p className="text-red-400 text-xs text-center mb-4" style={poppins}>{inviteError}</p>
       )}
     </>
@@ -260,9 +377,19 @@ export default function AttunementPage() {
             <p className="text-[#CFC3CC] text-xs mb-4" style={poppins}>
               They can see your cycle calendar and leave you little notes. Your journal always stays private.
             </p>
+            {acceptedInvite && (
+              <p className="text-[#B4B0C8] text-[11px] mb-4" style={poppins} data-testid="partner-kind-label">
+                {acceptedInvite.partner_type === 'woman'
+                  ? 'This is a sync partner: she has the app too, and you follow each other both ways.'
+                  : 'This is a sync partner: they have the app, and you follow each other both ways.'}
+              </p>
+            )}
             <Link to="/partner-hub" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ ...poppins, background: '#FF4F9A' }}>
               Open your shared space
             </Link>
+            <button onClick={unlink} className="w-full py-2.5 rounded-full text-sm mt-3" style={{ ...poppins, color: '#CFC3CC', border: '1px solid rgba(255,255,255,0.2)' }} data-testid="unlink-btn">
+              Unlink
+            </button>
           </div>
           {/* The share choices stay changeable after linking, here in
               Attunement where the checklist now lives. */}
@@ -329,9 +456,9 @@ export default function AttunementPage() {
         )}
 
         {/* Share with anyone else (Angelita, Oct 17: the circle list of
-            relationship types came off; one simple share link instead.
-            No partner_type, so the backend's plain Pro gate applies, and
-            the shared inviteBlock below shows the code or the reason.) */}
+            relationship types came off; one simple share instead. Since
+            v46 this makes a view invite: a read-only link page with
+            only what she checked off, no account on their side.) */}
         <div className="card p-5 mb-4" data-testid="attunement-share">
           <div className="flex items-center gap-2 mb-2">
             <Share2 className="w-5 h-5" style={{ color: PINK }} />
@@ -353,16 +480,46 @@ export default function AttunementPage() {
           </p>
         </div>
 
-        {/* Sync setup (v42): the checklist comes BEFORE the invite
-            code exists. Her choices save with the invite creation, so
-            the very first thing her partner can see is what she just
-            picked here. */}
-        {setupType && !inviteCode && (
+        {/* For a woman partner, one question comes before the
+            checklist (v46): does she get a period? Yes means the
+            two-way sync invite; no means a read-only view link. */}
+        {womanQuestion && (
+          <div className="card p-5 mb-4" data-testid="woman-period-question">
+            <h2 className="text-white text-xl mb-2" style={script}>One quick question</h2>
+            <p className="text-[#F7F4FA] text-base mb-2" style={poppins}>Does your partner get a period?</p>
+            <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
+              If she does, she joins you in the app and you follow each other both ways. If she doesn't, she gets a simple link to a page that shows only what you choose to share. No app, no account for her.
+            </p>
+            <button
+              onClick={() => chooseWomanPeriods(true)}
+              className="w-full py-3 rounded-full text-white text-sm font-medium mb-2"
+              style={{ ...poppins, background: '#FF4F9A' }}
+              data-testid="woman-periods-yes"
+            >
+              Yes, she does
+            </button>
+            <button
+              onClick={() => chooseWomanPeriods(false)}
+              className="w-full py-3 rounded-full text-sm font-medium"
+              style={{ ...poppins, color: '#F7F4FA', border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.04)' }}
+              data-testid="woman-periods-no"
+            >
+              No, she doesn't
+            </button>
+          </div>
+        )}
+
+        {/* Invite setup (v42, kinds added v46): the checklist comes
+            BEFORE the invite exists. Her choices save with the invite
+            creation, so the very first thing her partner can see is
+            what she just picked here. */}
+        {setupType && !invite && (
           <div className="card p-5 mb-4" data-testid="sync-setup">
             <p className="text-[#b8b8d1] text-sm leading-relaxed mb-3" style={poppins}>
-              {setupType === 'man' && 'Syncing your cycle with him. First, choose what he can see.'}
-              {setupType === 'woman' && 'Syncing your cycle with her. First, choose what she can see.'}
-              {setupType === 'share' && 'Sharing your cycle. First, choose what they can see.'}
+              {setupType === 'man' && 'He gets a link to a simple page, no app and no account for him. First, choose what the page can show.'}
+              {setupType === 'woman-sync' && 'Syncing your cycle with her. First, choose what she can see.'}
+              {setupType === 'woman-view' && 'She gets a link to a simple page, no app and no account for her. First, choose what the page can show.'}
+              {setupType === 'share' && 'They get a link to a simple page, no app and no account for them. First, choose what the page can show.'}
             </p>
             <VisibilityChecklist vis={vis} onToggle={toggleVis} />
             <button
@@ -372,7 +529,7 @@ export default function AttunementPage() {
               style={{ ...poppins, background: '#FF4F9A' }}
               data-testid="create-invite-btn"
             >
-              {generating ? 'Making your link…' : 'Create my invite code'}
+              {generating ? 'Making your invite…' : setupType === 'woman-sync' ? 'Create my invite code' : 'Create my invite link'}
             </button>
             {inviteError && (
               <p className="text-red-400 text-xs text-center mt-3" style={poppins}>{inviteError}</p>

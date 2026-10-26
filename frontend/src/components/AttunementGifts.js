@@ -16,17 +16,12 @@ const script = { fontFamily: "'Poiret One', sans-serif" };
 // "HORMOscope approved attuned gifts for you and your partner" with a
 // tab menu. FIRST tab is the user's own wishlist (with her name and
 // picture on it), LAST tab is "The Gift Edit" (her gift catalog,
-// renamed Oct 26, 2026). Her wishlist is private by default; a linked partner
-// sees it here too, only when she set it Shared or Public AND her "My
-// wishlist" share toggle is on (the server enforces both).
+// renamed Oct 26, 2026). Since Oct 26, 2026 the wishlist is always
+// part of the partner experience: a linked partner (and anyone with
+// her partner view link) always sees it, so there is no visibility
+// switch here anymore. Her control is the contents of the list.
 // Amazon links open OUTSIDE the WebView (Amazon's rule): the Capacitor
 // shell treats window.open(url, '_system') as an external browser open.
-
-const VIS_CHOICES = [
-  { id: 'private', label: 'Private', caption: 'Only you can see it' },
-  { id: 'partner', label: 'Shared with my partner', caption: 'Your linked partner can see it here' },
-  { id: 'public', label: 'Public', caption: 'Shared openly, beyond the app' },
-];
 
 function wishlistTitle(name, fallback) {
   const first = (name || '').trim().split(/\s+/)[0];
@@ -68,12 +63,11 @@ function AmazonButton({ asin }) {
 }
 
 export default function AttunementGifts() {
-  const { token, user, updateUser } = useAuth();
+  const { token, user } = useAuth();
   const [activeTab, setActiveTab] = useState('boutique');
   const [myPicks, setMyPicks] = useState(null); // array of ASINs, null while loading
   const [partnerBoutique, setPartnerBoutique] = useState(null);
   const [busyAsin, setBusyAsin] = useState(null);
-  const [visBusy, setVisBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
   const auth = { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 };
@@ -123,26 +117,11 @@ export default function AttunementGifts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busyAsin, token]);
 
-  const setVisibility = async (value) => {
-    if (visBusy || !user || (user.boutique_visibility || 'private') === value) return;
-    setVisBusy(true); setMsg('');
-    try {
-      const res = await axios.put(`${API}/profile`, { boutique_visibility: value }, auth);
-      updateUser(res.data);
-    } catch (err) {
-      setMsg("Couldn't save that just now. Please try again.");
-      logger.error('Wishlist visibility error:', err);
-    } finally {
-      setVisBusy(false);
-    }
-  };
-
   const tabs = [
     { id: 'boutique', label: wishlistTitle(user?.name, 'My Wishlist') },
     ...(partnerBoutique ? [{ id: 'partner', label: wishlistTitle(partnerBoutique.name, 'Their Wishlist') }] : []),
     { id: 'catalog', label: 'The Gift Edit' },
   ];
-  const myVisibility = (user && user.boutique_visibility) || 'private';
 
   return (
     <div className="card p-5 mb-4" data-testid="attunement-gifts">
@@ -194,31 +173,9 @@ export default function AttunementGifts() {
             The Gift Edit is in the last tab.
           </p>
 
-          <p className="text-white text-xs font-medium mb-2" style={poppins}>Who can see my wishlist</p>
-          <div className="flex gap-2 mb-1 flex-wrap">
-            {VIS_CHOICES.map((v) => {
-              const active = myVisibility === v.id;
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => setVisibility(v.id)}
-                  disabled={visBusy}
-                  className="px-3 py-1.5 rounded-full text-[11px] font-medium disabled:opacity-50"
-                  style={{
-                    ...poppins,
-                    background: active ? HOT : 'rgba(255,255,255,0.05)',
-                    color: active ? '#fff' : '#CFC3CC',
-                    border: `1px solid ${active ? HOT : 'rgba(255,255,255,0.12)'}`,
-                  }}
-                  data-testid={`boutique-vis-${v.id}`}
-                >
-                  {v.label}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[#B4B0C8] text-[11px] mb-4" style={poppins}>
-            {VIS_CHOICES.find((v) => v.id === myVisibility)?.caption}. You can change this any time.
+          <p className="text-white text-xs font-medium mb-2" style={poppins}>Your wishlist and your partner</p>
+          <p className="text-[#B4B0C8] text-[11px] mb-4 leading-relaxed" style={poppins}>
+            Your wishlist is part of Attunement, so your linked partner always sees it here, and anyone with your partner link sees it too. You are in charge of what is in it: take a piece off and it is gone from their view too. If nothing is picked, they see an empty list.
           </p>
 
           {myPicks === null ? (
