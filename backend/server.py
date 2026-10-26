@@ -3379,6 +3379,13 @@ async def get_partner_sync(current_user: dict = Depends(get_current_user)):
     elif my_tl:
         days = [{"date": a["date"], "me": {"cycle_day": a["cycle_day"], "phase": a["phase"]}, "them": None,
                  "same_phase": False, "both_period": False} for a in my_tl]
+    elif their_tl:
+        # The requester does not track a cycle of their own (e.g. a male
+        # partner), but the other person does and shares their phase: build
+        # the strip from their timeline so the non-tracking side still sees
+        # the full 4 weeks, mirrored from the my_tl branch above.
+        days = [{"date": b["date"], "me": None, "them": {"cycle_day": b["cycle_day"], "phase": b["phase"]},
+                 "same_phase": False, "both_period": False} for b in their_tl]
     return {
         "me": me,
         "them": them,
