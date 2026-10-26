@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Gift, Loader2, Check, X, ExternalLink } from 'lucide-react';
+import { Gift, Loader2, Check, X, ExternalLink, Heart } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
@@ -56,7 +56,7 @@ function AmazonButton({ asin }) {
       style={{ ...poppins, color: '#0B0B1E', background: PINK }}
       data-testid={`amazon-${asin}`}
     >
-      See it on Amazon <ExternalLink className="w-3.5 h-3.5" />
+      View on Amazon <ExternalLink className="w-3.5 h-3.5" />
     </a>
   );
 }
@@ -238,17 +238,17 @@ export default function AttunementGifts() {
               <ProductCard key={p.asin} product={p}>
                 {inBoutique ? (
                   <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium" style={{ ...poppins, color: '#9fd8b4', border: '1px solid rgba(159,216,180,0.45)' }} data-testid={`in-boutique-${p.asin}`}>
-                    <Check className="w-3.5 h-3.5" /> In your wishlist
+                    <Heart className="w-3.5 h-3.5" fill="currentColor" /> In your wishlist
                   </span>
                 ) : (
                   <button
                     onClick={() => addPick(p.asin)}
                     disabled={busyAsin === p.asin}
-                    className="px-3.5 py-2 rounded-full text-xs font-medium text-white disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium text-white disabled:opacity-50"
                     style={{ ...poppins, background: HOT }}
                     data-testid={`add-${p.asin}`}
                   >
-                    Add to my wishlist
+                    <Heart className="w-3.5 h-3.5" /> Add to my wishlist
                   </button>
                 )}
                 <AmazonButton asin={p.asin} />
