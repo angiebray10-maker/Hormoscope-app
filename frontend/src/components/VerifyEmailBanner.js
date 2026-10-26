@@ -5,15 +5,23 @@ import { useLocation } from 'react-router-dom';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Soft reminder for unverified accounts. Never blocks the app.
-export default function VerifyEmailBanner() {
+// Email verification card. Two modes:
+// - default: a soft reminder (code entry, Verify, Resend, Later).
+// - hardGate (v42 correction, Angelita, Oct 25, 2026): NO Later, no
+//   skip. Onboarding renders this as a hard gate and the app routes
+//   every signed-in unverified user to it before anything else.
+export default function VerifyEmailBanner({ hardGate = false } = {}) {
   const { user, token, fetchUser } = useAuth();
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [hidden, setHidden] = useState(false);
   const { pathname } = useLocation();
-  if (!user || user.email_verified !== false || hidden || pathname === '/onboarding' || pathname === '/verify-email') return null;
+  // v42: the banner now lives at the START of onboarding (Angelita,
+  // Oct 25, 2026: verification belongs where the email is first given,
+  // not on the Profile tab), so /onboarding no longer hides it. It is
+  // rendered by OnboardingPage itself; /verify-email keeps its own page.
+  if (!user || user.email_verified !== false || hidden || pathname === '/verify-email') return null;
 
   const H = { headers: { Authorization: `Bearer ${token}` } };
   const detail = (e, fb) => (typeof e.response?.data?.detail === 'string' ? e.response.data.detail : fb);
@@ -40,7 +48,7 @@ export default function VerifyEmailBanner() {
       </div>
       <div className="flex justify-between mt-2 text-xs">
         <button onClick={resend} disabled={busy} className="underline text-[#E6E0EE]" data-testid="verify-resend-btn">Resend email</button>
-        <button onClick={() => setHidden(true)} className="text-[#E6E0EE]">Later</button>
+        {!hardGate && <button onClick={() => setHidden(true)} className="text-[#E6E0EE]">Later</button>}
       </div>
       {msg && <p className="text-xs mt-2 text-[#E6E0EE]">{msg}</p>}
     </div>

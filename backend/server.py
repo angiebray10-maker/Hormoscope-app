@@ -3299,11 +3299,12 @@ async def get_partner_status(current_user: dict = Depends(get_current_user)):
         return {"is_linked": False}
     owner_id, partner_id = _partner_pair(rel)
     other_id = partner_id if current_user["id"] == owner_id else owner_id
-    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1})
+    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1, "profile_photo": 1})
     return {
         "is_linked": True,
         "role": "owner" if current_user["id"] == owner_id else "partner",
         "partner_name": (other.get("name") if other else None) or "Partner",
+        "partner_photo": (other.get("profile_photo") if other else None),
         "linked_since": rel.get("created_at")
     }
 
@@ -3322,7 +3323,7 @@ def _sync_person(u: dict, is_self: bool, days: int = 28):
     """One person's side of two-cycle sync. Her own side is always full;
     the other person's side only includes what she chose to share."""
     vis = {**DEFAULT_PARTNER_VISIBILITY, **(u.get("partner_visibility") or {})}
-    out = {"name": u.get("name") or "Partner", "is_self": is_self}
+    out = {"name": u.get("name") or "Partner", "is_self": is_self, "profile_photo": u.get("profile_photo")}
     lp = u.get("last_period_date")
     status = u.get("cycle_status", "regular")
     if not is_self and not vis.get("phase"):
@@ -3494,6 +3495,7 @@ async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
 
     return {
         "name": owner.get("name", "Her"),
+        "profile_photo": owner.get("profile_photo"),
         "cycle_day": cycle_info.get("cycle_day", 1),
         "mood_today": mood_today,
         "cycle_length": cycle_length,
@@ -3641,8 +3643,9 @@ async def get_partner_mood(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="No linked partner account.")
     owner_id, partner_id = _partner_pair(rel)
     other_id = partner_id if current_user["id"] == owner_id else owner_id
-    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1})
+    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1, "profile_photo": 1})
     partner_name = (other.get("name") if other else None) or "Partner"
+    partner_photo = (other.get("profile_photo") if other else None)
     today_str = datetime.now(timezone.utc).date().isoformat()
     mine_today = await db.partner_mood_logs.find_one(
         {"author_id": current_user["id"], "date": today_str}, {"_id": 0}
@@ -3650,7 +3653,7 @@ async def get_partner_mood(current_user: dict = Depends(get_current_user)):
     theirs_today = await db.partner_mood_logs.find_one(
         {"author_id": other_id, "date": today_str}, {"_id": 0}
     )
-    return {"mine_today": mine_today, "theirs_today": theirs_today, "partner_name": partner_name}
+    return {"mine_today": mine_today, "theirs_today": theirs_today, "partner_name": partner_name, "partner_photo": partner_photo}
 
 
 

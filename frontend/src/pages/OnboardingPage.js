@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import DateSelect from '../components/DateSelect';
+import VerifyEmailBanner from '../components/VerifyEmailBanner';
 import { ChevronRight, ChevronLeft, Bell, BellOff, Heart, Users, Clock } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -59,9 +60,27 @@ export default function OnboardingPage() {
   const [notificationTime, setNotificationTime] = useState('09:00');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { token, updateUser } = useAuth();
+  const { token, user, updateUser } = useAuth();
   const navigate = useNavigate();
   const totalSteps = 5;
+
+  // The verification gate (v42) also catches EXISTING accounts that
+  // finished onboarding long ago but never verified (ProtectedRoute
+  // sends them here). Remember whether this user ARRIVED already
+  // complete: once she verifies, she goes straight home instead of
+  // being walked through onboarding again. A new user arrives with
+  // onboarding_complete false, so this never fires mid-onboarding.
+  const arrivedComplete = useRef(null);
+  useEffect(() => {
+    if (user && arrivedComplete.current === null) {
+      arrivedComplete.current = !!user.onboarding_complete;
+    }
+  }, [user]);
+  useEffect(() => {
+    if (user && user.email_verified !== false && arrivedComplete.current && user.onboarding_complete) {
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
 
   const canNext =
     (step === 1 && name.trim().length > 0) ||
@@ -100,6 +119,40 @@ export default function OnboardingPage() {
       setLoading(false);
     }
   };
+
+  // HARD GATE (v42 correction, Angelita, Oct 25, 2026): an unverified
+  // user sees ONLY this panel. Code entry, Verify, and Resend email;
+  // no Later, no skip, no steps, no way forward until the email is
+  // verified. The banner's Verify calls fetchUser, so the moment the
+  // account verifies, this gate lifts on its own: a new user lands on
+  // step 1 below, and an existing user is sent home by the effect
+  // above. Once verified it never shows again.
+  if (user && user.email_verified === false) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden" style={{ background: BRAND.bg, fontFamily: BODY_FONT }}>
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true" data-testid="onboarding-bg">
+          <img src={STEP_BG[1]} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
+        </div>
+        <div className="w-full max-w-md relative">
+          <div className="rounded-3xl p-7 border border-white/10" style={{ background: 'rgba(21,21,43,0.92)' }} data-testid="verify-gate">
+            <div className="text-center mb-2">
+              <div className="mx-auto mb-5 w-24 h-24 rounded-full overflow-hidden flex items-center justify-center" style={{ background: '#000', border: '1px solid rgba(255,79,154,0.5)' }}>
+                <img src="/images/logo.png" alt="HORMOscope" className="w-full h-full object-contain" style={{ padding: 10 }} />
+              </div>
+              <h1 className="text-2xl text-white" style={{ fontFamily: HEADING_FONT }}>Confirm your email</h1>
+              <p className="text-center mt-2 text-[15px] leading-relaxed" style={{ color: BRAND.textMuted }}>
+                One quick step before you start. Enter the 6-digit code we sent you, and you are in.
+              </p>
+            </div>
+            <div className="-mx-4 empty:hidden">
+              <VerifyEmailBanner hardGate />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const H = ({ children }) => (
     <h2 className="text-3xl text-white text-center" style={{ fontFamily: HEADING_FONT }}>{children}</h2>

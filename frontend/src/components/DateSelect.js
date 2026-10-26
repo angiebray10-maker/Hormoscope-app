@@ -50,10 +50,14 @@ export default function DateSelect({ value, onChange, testId, minYear, maxYear }
 
   const selClass = 'input-dark min-w-0 w-full';
   // Tighter side padding so the 4-digit year is never clipped on phones.
-  const selStyle = { colorScheme: 'dark', paddingLeft: 10, paddingRight: 22, fontSize: 15, textOverflow: 'clip' };
+  // v42 (Angelita, Oct 25, 2026): the Day column was too narrow next to
+  // its dropdown arrow and clipped "Day" to "Da" at 390px. The day
+  // column is wider now and the arrow padding slimmer, so Month / Day /
+  // Year all read fully.
+  const selStyle = { colorScheme: 'dark', paddingLeft: 8, paddingRight: 16, fontSize: 15, textOverflow: 'clip' };
 
   return (
-    <div className="grid gap-2" style={{ gridTemplateColumns: '1.5fr 1fr 1.25fr' }} data-testid={testId}>
+    <div className="grid gap-2" style={{ gridTemplateColumns: '1.45fr 1.1fr 1.25fr' }} data-testid={testId}>
       <select
         aria-label="Month"
         className={selClass}

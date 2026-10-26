@@ -8,18 +8,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
 import DateSelect from '../components/DateSelect';
-import VerifyEmailBanner from '../components/VerifyEmailBanner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const APP_URL = process.env.REACT_APP_BACKEND_URL?.replace('/api', '') || window.location.origin;
 
 function AttunedSection({ token }) {
   // Attunement Mode is FREE for everyone (Angelita, Oct 18, 2026): no Pro
-  // gate anywhere on this section; the invite always shows.
+  // gate anywhere on this section.
+  // v42 (Angelita, Oct 25, 2026): this card no longer creates an invite
+  // code itself. There is ONE sync flow, in the Attunement tab, because
+  // the "What your partner can see" checklist now lives there and must
+  // always appear during setup. This card routes there instead.
   const [status, setStatus] = useState(null);
-  const [inviteCode, setInviteCode] = useState(null);
-  const [generating, setGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -28,33 +28,12 @@ function AttunedSection({ token }) {
       .catch(() => setStatus({ is_linked: false }));
   }, [token]);
 
-  const handleInvite = async () => {
-    setGenerating(true);
-    try {
-      const res = await axios.post(`${API}/partner/invite`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      setInviteCode(res.data.invite_code);
-    } catch (err) {
-      logger.error('Invite error:', err);
-    } finally {
-      setGenerating(false);
-    }
-  };
-
   const handleUnlink = async () => {
     try {
       await axios.post(`${API}/partner/unlink`, {}, { headers: { Authorization: `Bearer ${token}` } });
       setStatus({ is_linked: false });
-      setInviteCode(null);
     } catch (err) {
       logger.error('Unlink error:', err);
-    }
-  };
-
-  const copyCode = () => {
-    if (inviteCode) {
-      navigator.clipboard?.writeText(inviteCode).catch(() => {});
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -91,39 +70,16 @@ function AttunedSection({ token }) {
             </button>
           </div>
         </div>
-      ) : inviteCode ? (
-        <div>
-          <p className="text-[#CFC3CC] text-xs mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Share this code with your partner. They create their own HORMOscope account, open Partner Hub, and enter it.
-          </p>
-          <button onClick={copyCode}
-            className="w-full py-3 rounded-xl text-center mb-2"
-            style={{ background: 'rgba(255,79,154,0.08)', border: '1px dashed rgba(255,79,154,0.4)' }}>
-            <span className="text-white text-xl font-bold tracking-[0.3em]" style={{ fontFamily: 'Poppins, sans-serif' }}>{inviteCode}</span>
-            <span className="block text-[#CFC3CC] text-[10px] mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              {copied ? 'Copied!' : 'Tap to copy'}
-            </span>
-          </button>
-          {navigator.share && (
-            <button onClick={() => navigator.share({ title: 'Join me on HORMOscope', text: `Join me on HORMOscope. Create your account, open Partner Hub and enter my code: ${inviteCode}` }).catch(() => {})}
-              className="w-full py-2.5 rounded-full text-white text-sm font-medium mb-2" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }} data-testid="share-invite-btn">
-              Share code
-            </button>
-          )}
-          <p className="text-[#E6E0EE] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            They only see what you allow under "What your partner can see" below. Never your journal or intimacy log.
-          </p>
-        </div>
       ) : (
         <div>
           <p className="text-[#CFC3CC] text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Link your partner's account to yours so they can follow your cycle. If she tracks too, you'll see both cycles side by side.
+            Link your partner's account to yours so they can follow your cycle. If they track too, you'll see both cycles side by side.
           </p>
-          <button onClick={handleInvite} disabled={generating}
-            className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50"
+          <Link to="/attunement" data-testid="attuned-go-btn"
+            className="block w-full py-2.5 rounded-full text-white text-sm font-medium text-center"
             style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}>
-            {generating ? 'Creating your code...' : 'Create & share invite code'}
-          </button>
+            Create &amp; share invite code
+          </Link>
         </div>
       )}
     </div>
@@ -131,13 +87,6 @@ function AttunedSection({ token }) {
 }
 
 
-const VIS_OPTIONS = [
-  { id: 'phase', label: 'My phase and cycle day' },
-  { id: 'mood_energy', label: 'My mood and energy' },
-  { id: 'period_dates', label: 'When my next period is due' },
-  { id: 'fertile_window', label: 'My fertile window' },
-  { id: 'wishlist', label: 'My wishlist' },
-];
 const SITUATION_OPTIONS = [
   { id: 'regular', label: 'I get a period' },
   { id: 'unsure', label: 'Not sure of my cycle length' },
@@ -152,7 +101,6 @@ function MyDetailsSection({ user, token, updateUser }) {
   const [birthday, setBirthday] = useState(user?.birthday || '');
   const [situation, setSituation] = useState(user?.cycle_status || 'regular');
   const [conditions, setConditions] = useState(user?.conditions || []);
-  const [vis, setVis] = useState(user?.partner_visibility || {});
   const [motion, setMotion] = useState(localStorage.getItem('hormoscope-motion') === 'on');
   const [orb, setOrb] = useState(localStorage.getItem('hormoscope-orb') !== 'off');
   const [msg, setMsg] = useState('');
@@ -161,7 +109,7 @@ function MyDetailsSection({ user, token, updateUser }) {
   const save = async () => {
     setSaving(true); setMsg('');
     try {
-      const res = await axios.put(`${API}/profile`, { birthday: birthday || '', cycle_status: situation, conditions, partner_visibility: vis }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.put(`${API}/profile`, { birthday: birthday || '', cycle_status: situation, conditions }, { headers: { Authorization: `Bearer ${token}` } });
       updateUser(res.data);
       setMsg('Saved.');
     } catch (err) {
@@ -197,16 +145,11 @@ function MyDetailsSection({ user, token, updateUser }) {
           </label>
         ))}
       </div>
-      <div>
-        <p className="text-white text-base mb-1">What your partner can see</p>
-        {VIS_OPTIONS.map((v) => (
-          <label key={v.id} className={row}>
-            <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={!!vis[v.id]} onChange={(e) => setVis({ ...vis, [v.id]: e.target.checked })} />
-            {v.label}
-          </label>
-        ))}
-        <p className="text-[#E6E0EE] text-xs mt-1">Your journal and intimacy log are never shared.</p>
-      </div>
+      {/* v42 (Angelita, Oct 25, 2026): the "What your partner can see"
+          checklist moved to the Attunement tab. It pops up during sync
+          setup, behind "Sync my cycle with him / her", where the choice
+          belongs; it can also be changed there after linking. The
+          values still save through PUT /profile partner_visibility. */}
       <label className={row}>
         <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={motion} onChange={(e) => toggleMotion(e.target.checked)} data-testid="motion-toggle" />
         Gentle motion and glow effects
@@ -415,17 +358,14 @@ export default function ProfilePage() {
                 {user?.name || 'Beautiful'}
               </h2>
             )}
-            <p className="text-[#E6E0EE] text-sm break-all" data-testid="profile-email">{user?.email}</p>
+            <p className="text-[#E6E0EE] text-xs break-all" data-testid="profile-email">{user?.email}</p>
           </div>
         </div>
       </div>
 
-      {/* Email verification (v39): the card moved here from the top of
-          every screen. Same component, same behavior; it only renders
-          while the account email is unverified. */}
-      <div className="mb-6 -mx-4 empty:hidden">
-        <VerifyEmailBanner />
-      </div>
+      {/* Email verification lived here in v39-v41. v42 (Angelita,
+          Oct 25, 2026): it moved to the START of onboarding, where the
+          email is first given. Nothing renders here anymore. */}
 
       {/* Links */}
       <div className="bento-card overflow-hidden mb-6">

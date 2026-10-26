@@ -6,11 +6,27 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Two-cycle syncing (launch fixes): both linked people side by side, plus
 // the next 4 weeks with overlap highlights. Only what each chose to share.
+function SideAvatar({ photo, name, size = 36 }) {
+  if (photo) {
+    return <img src={photo} alt={name || 'Partner'} className="rounded-full object-cover mx-auto mb-1.5" style={{ width: size, height: size }} />;
+  }
+  const initial = (name || 'P').trim().charAt(0).toUpperCase() || 'P';
+  return (
+    <span className="rounded-full flex items-center justify-center mx-auto mb-1.5 text-white font-semibold" aria-hidden="true"
+      style={{ width: size, height: size, background: 'linear-gradient(135deg, #FF5C8A, #8B5CF6)', fontSize: Math.round(size * 0.45) }}>
+      {initial}
+    </span>
+  );
+}
+
 function Side({ p }) {
   if (!p) return null;
   const color = PHASE_COLORS[p.phase] || PHASE_COLORS.unknown;
   return (
     <div className="flex-1 rounded-2xl p-4 text-center border border-white/10" style={{ background: 'rgba(255,255,255,0.04)' }}>
+      {/* The face beside the name (v42), initial disc when she has
+          no picture (legacy accounts). */}
+      <SideAvatar photo={p.profile_photo} name={p.is_self ? 'You' : p.name} />
       <p className="text-white text-sm font-medium truncate">{p.is_self ? 'You' : p.name}</p>
       {!p.shared ? (
         <p className="text-[#E6E0EE] text-xs mt-3">Keeping this private</p>

@@ -45,6 +45,18 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/auth" replace />;
   }
 
+  // Email verification is a HARD GATE (v42 correction, Angelita,
+  // Oct 25, 2026: "they need to verify email. Take Later off."). A
+  // signed-in but unverified user is routed to the verification gate
+  // at the start of onboarding before reaching ANY app screen, so the
+  // rule also holds for accounts created before this change. Resend
+  // lives inside the gate, so nobody is stuck without a code path.
+  // The /verify-email link page is a public route (not wrapped here),
+  // so the emailed link keeps working for unverified users too.
+  if (user.email_verified === false && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   // Compare the ROUTER path, not window.location.pathname: under a
   // basename (the web preview lives at /Hormoscope-app/preview) the
   // window path carries the prefix, never equals '/onboarding', and
@@ -71,9 +83,9 @@ const AppContent = () => {
   return (
     <div className="min-h-screen noise-overlay">
       <AmbientOrb />
-      {/* Email verification card lives on the Profile page now (v39):
-          it used to render here, above every screen, and pushed the
-          Home quick log row down into the bottom nav. */}
+      {/* Email verification is the hard gate at the start of
+          onboarding (v42): ProtectedRoute sends every signed-in
+          unverified user there before any app screen. */}
       <div className="pb-24 lg:pb-0 relative z-[1]">
       <Routes>
         {/* Public routes */}

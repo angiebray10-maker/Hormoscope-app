@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Link } from 'react-router-dom';
-import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2 } from 'lucide-react';
+import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2, Camera } from 'lucide-react';
 import axios from 'axios';
 import { PHASE_COLORS as SHARED_PHASE_COLORS } from '../lib/phases';
 import logger from '../utils/logger';
 import CycleSync from '../components/CycleSync';
+import { PartnerAvatar } from './AttunementPage';
 
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -160,6 +161,7 @@ function MoodsTab({ token }) {
   const [feelings, setFeelings] = useState([]);
   const [theirs, setTheirs] = useState(null);
   const [partnerName, setPartnerName] = useState('Partner');
+  const [partnerPhoto, setPartnerPhoto] = useState(null);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
   const [error, setError] = useState('');
@@ -168,6 +170,7 @@ function MoodsTab({ token }) {
     try {
       const res = await axios.get(`${API}/partner/mood`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
       setPartnerName(res.data.partner_name || 'Partner');
+      setPartnerPhoto(res.data.partner_photo || null);
       setTheirs(res.data.theirs_today || null);
       if (res.data.mine_today) {
         setMood(res.data.mine_today.mood ?? null);
@@ -267,7 +270,10 @@ function MoodsTab({ token }) {
       </button>
 
       <div className="rounded-2xl p-5 border border-white/[0.06] bg-white/[0.03]">
-        <h3 className="text-lg text-white mb-3" style={{ fontFamily: "'Poiret One', sans-serif" }}>{partnerName} today</h3>
+        <div className="flex items-center gap-2.5 mb-3">
+          <PartnerAvatar photo={partnerPhoto} name={partnerName} size={28} />
+          <h3 className="text-lg text-white" style={{ fontFamily: "'Poiret One', sans-serif" }}>{partnerName} today</h3>
+        </div>
         {theirs ? (
           <div>
             {theirs.mood_label && (
@@ -383,6 +389,12 @@ export default function PartnerHubPage() {
   const handleAccept = async () => {
     const code = inviteCode.trim();
     if (!code || accepting) return;
+    // Picture gate (v42): the form is hidden without a picture, and
+    // this refuses here too so no path accepts an invite pictureless.
+    if (!user?.profile_photo) {
+      setAcceptError('Add your profile picture first: tap "Add my picture" above.');
+      return;
+    }
     setAccepting(true);
     setAcceptError(null);
     try {
@@ -421,9 +433,28 @@ export default function PartnerHubPage() {
           </p>
           <h1 className="text-2xl text-white mb-3" style={{ fontFamily: "'Poiret One', sans-serif" }}>Link Your Accounts</h1>
           <p className="text-[#CFC3CC] text-sm mb-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Ask her for the invite code from her Profile, then enter it below. You will be able to follow her cycle —
+            Ask her for the invite code from her Attunement tab, then enter it below. You will be able to follow her cycle —
             ovulation days, fertile window, and when to expect her period.
           </p>
+          {!user?.profile_photo ? (
+            /* v42 (Angelita, Oct 25, 2026): a picture is mandatory to
+               sync, on the accepting side too. No picture, no link: she
+               adds one first, so the person she syncs with sees her
+               face beside her name. */
+            <div className="rounded-3xl p-6 border border-white/10 mb-3" style={{ background: '#15152B' }} data-testid="photo-required">
+              <div className="w-12 h-12 rounded-full bg-[#FF4F9A]/15 flex items-center justify-center mx-auto mb-3">
+                <Camera className="w-5 h-5 text-[#FF4F9A]" />
+              </div>
+              <h2 className="text-white text-xl mb-2" style={{ fontFamily: "'Poiret One', sans-serif" }}>Add your picture first</h2>
+              <p className="text-[#CFC3CC] text-sm leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                A profile picture is required to sync your cycle, so your partner can see who they are syncing with. Add yours, then come back and enter the code.
+              </p>
+              <Link to="/profile" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }} data-testid="photo-required-btn">
+                Add my picture
+              </Link>
+            </div>
+          ) : (
+          <>
           <input
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value.toUpperCase().slice(0, 8))}
@@ -441,6 +472,8 @@ export default function PartnerHubPage() {
             data-testid="accept-invite-btn">
             {accepting ? 'Linking...' : 'Link Accounts'}
           </button>
+          </>
+          )}
           <p className="text-[#B4B0C8] text-[10px] mt-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Her journal and private entries are never shared. You only see what she chose to share.
           </p>
@@ -459,6 +492,13 @@ export default function PartnerHubPage() {
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>
             Attunement Mode
           </p>
+          {/* Her face beside her name (v42): the cycle belongs to a
+              person, and her partner sees who it is. */}
+          {calData && (
+            <div className="flex justify-center mb-2">
+              <PartnerAvatar photo={calData.profile_photo || status.partner_photo} name={calData.name || status.partner_name} size={52} />
+            </div>
+          )}
           <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>
             {calData ? `${calData.name}'s Cycle` : 'Partner Hub'}
           </h1>
