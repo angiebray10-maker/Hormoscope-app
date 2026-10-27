@@ -9,7 +9,8 @@ import { ChevronRight, ChevronLeft, ChevronDown, Heart, BookOpen, Lock, Gift, Sh
 import axios from 'axios';
 import logger from '../utils/logger';
 import { BRAND, HEADING_FONT, BODY_FONT } from '../lib/phases';
-import { BACKDROPS, BACKDROP_OVERLAY } from '../lib/backdrops';
+import { BACKDROP_OVERLAY, ONBOARDING_BG } from '../lib/backdrops';
+import FallingFlowers from '../components/FallingFlowers';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -28,7 +29,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // instead; the backend fields stay optional and are simply no longer
 // collected here). "I no longer have periods" keeps its off-ramp on
 // the period step exactly as before. Birthday stays in Profile.
-const STEP_BG = { 1: BACKDROPS[0], 2: BACKDROPS[1], 3: BACKDROPS[2] };
+const STEP_BG = { 1: ONBOARDING_BG, 2: ONBOARDING_BG, 3: ONBOARDING_BG };
 
 const WHAT_IT_DOES = [
   { icon: BookOpen, text: 'Your Daily Read, written for your exact cycle day' },
@@ -184,6 +185,7 @@ export default function OnboardingPage() {
           <img src={STEP_BG[1]} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
+        <FallingFlowers />
         <div className="w-full max-w-md relative">
           <div className="rounded-3xl p-7 border border-white/10" style={{ background: 'rgba(21,21,43,0.92)' }} data-testid="verify-gate">
             <div className="text-center mb-2">
@@ -217,6 +219,7 @@ export default function OnboardingPage() {
         <img key={step} src={STEP_BG[step]} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
       </div>
+      <FallingFlowers />
       <div className="w-full max-w-md relative">
         <div className="flex items-center justify-center gap-2 mb-8" aria-label={`Step ${step} of ${totalSteps}`}>
           {[1, 2, 3].map((s) => (

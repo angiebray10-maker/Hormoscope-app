@@ -11,3 +11,8 @@ export const BACKDROPS = [
   '/images/backdrop-couple-2.webp',
 ];
 export const BACKDROP_OVERLAY = 'rgba(11,11,30,0.92)';
+
+// Onboarding backdrop (Angelita, Oct 27, 2026): NO couple pictures in
+// onboarding at all. Her peach in an Andy Warhol pop grid with one black
+// street-art panel, on every onboarding step, same navy fade as the rest.
+export const ONBOARDING_BG = '/images/backdrop-warhol-peach.webp';
