@@ -102,8 +102,6 @@ function MyDetailsSection({ user, token, updateUser }) {
   const [birthday, setBirthday] = useState(user?.birthday || '');
   const [situation, setSituation] = useState(user?.cycle_status || 'regular');
   const [conditions, setConditions] = useState(user?.conditions || []);
-  const [motion, setMotion] = useState(localStorage.getItem('hormoscope-motion') === 'on');
-  const [orb, setOrb] = useState(localStorage.getItem('hormoscope-orb') !== 'off');
   const [msg, setMsg] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -116,11 +114,6 @@ function MyDetailsSection({ user, token, updateUser }) {
     } catch (err) {
       setMsg(typeof err.response?.data?.detail === 'string' ? err.response.data.detail : "Couldn't save. Please try again.");
     } finally { setSaving(false); }
-  };
-  const toggleMotion = (on) => {
-    setMotion(on);
-    localStorage.setItem('hormoscope-motion', on ? 'on' : 'off');
-    document.documentElement.classList.toggle('hs-motion', on);
   };
   const row = 'flex items-center gap-3 py-1.5 text-sm text-[#F7F4FA] cursor-pointer';
 
@@ -151,14 +144,11 @@ function MyDetailsSection({ user, token, updateUser }) {
           setup, behind "Sync my cycle with him / her", where the choice
           belongs; it can also be changed there after linking. The
           values still save through PUT /profile partner_visibility. */}
-      <label className={row}>
-        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={motion} onChange={(e) => toggleMotion(e.target.checked)} data-testid="motion-toggle" />
-        Gentle motion and glow effects
-      </label>
-      <label className={row}>
-        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={orb} onChange={(e) => { const on = e.target.checked; setOrb(on); localStorage.setItem('hormoscope-orb', on ? 'on' : 'off'); document.documentElement.classList.toggle('hs-orb-off', !on); }} data-testid="orb-toggle" />
-        Slow pulsing phase orb
-      </label>
+      {/* v48 (Angelita, Oct 26, 2026): the two decorative motion/orb
+          settings are removed from Profile (she called them Lively
+          leftovers). The CSS and index.js machinery behind them stays
+          dormant, untouched; the front page pulsating orb signature
+          is not affected. */}
       <button onClick={save} disabled={saving} className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ background: '#FF4F9A' }} data-testid="save-details-btn">
         {saving ? 'Saving…' : 'Save my details'}
       </button>
@@ -348,7 +338,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="pb-32 lg:pb-8 lg:pl-72 p-6 min-h-screen">
+    <div className="pb-48 lg:pb-8 lg:pl-72 p-6 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>

@@ -13,10 +13,11 @@ const poppins = { fontFamily: 'Poppins, sans-serif' };
 const script = { fontFamily: "'Poiret One', sans-serif" };
 
 // Attuned Gifts (Angelita, Oct 25, 2026): inside Attunement, a section
-// "HORMOscope approved attuned gifts for you and your partner" with a
+// headed with the short line "Make your wishlist" (Angelita, Oct 26,
+// 2026: the long explanation is gone) with a
 // tab menu. FIRST tab is the user's own wishlist (with her name and
-// picture on it), LAST tab is "The Gift Edit" (her gift catalog,
-// renamed Oct 26, 2026). The catalog is ONE single flat list
+// picture on it), LAST tab is "Gift Catalog" (her gift catalog,
+// renamed Oct 26, 2026 from its earlier name). The catalog is ONE single flat list
 // (Angelita, Oct 26, 2026): no collections, no phase baskets, so a
 // partner looking at the wishlist just sees the list. Since Oct 26, 2026 the wishlist is always
 // part of the partner experience: a linked partner (and anyone with
@@ -118,7 +119,7 @@ export default function AttunementGifts() {
   const tabs = [
     { id: 'boutique', label: wishlistTitle(user?.name, 'My Wishlist') },
     ...(partnerBoutique ? [{ id: 'partner', label: wishlistTitle(partnerBoutique.name, 'Their Wishlist') }] : []),
-    { id: 'catalog', label: 'The Gift Edit' },
+    { id: 'catalog', label: 'Gift Catalog' },
   ];
 
   return (
@@ -128,10 +129,10 @@ export default function AttunementGifts() {
         <h2 className="text-white text-xl" style={script}>Attuned gifts</h2>
       </div>
       <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
-        HORMOscope approved attuned gifts for you and your partner
+        Make your wishlist
       </p>
 
-      {/* Tab menu: her wishlist first, The Gift Edit last (her spec). */}
+      {/* Tab menu: her wishlist first, Gift Catalog last (her spec). */}
       <div className="flex gap-2 mb-5 flex-wrap" role="tablist" data-testid="gift-tabs">
         {tabs.map((t) => {
           const active = activeTab === t.id;
@@ -168,19 +169,14 @@ export default function AttunementGifts() {
             </div>
           </div>
           <p className="text-[#CFC3CC] text-xs mb-4" style={poppins}>
-            The Gift Edit is in the last tab.
-          </p>
-
-          <p className="text-white text-xs font-medium mb-2" style={poppins}>Your wishlist and your partner</p>
-          <p className="text-[#B4B0C8] text-[11px] mb-4 leading-relaxed" style={poppins}>
-            Your wishlist is part of Attunement, so your linked partner always sees it here, and anyone with your partner link sees it too. You are in charge of what is in it: take a piece off and it is gone from their view too. If nothing is picked, they see an empty list.
+            The Gift Catalog is in the last tab.
           </p>
 
           {myPicks === null ? (
             <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 text-[#f4a7b9] animate-spin" /></div>
           ) : myPicks.length === 0 ? (
             <p className="text-[#b8b8d1] text-sm leading-relaxed py-2" style={poppins} data-testid="boutique-empty">
-              Nothing here yet, and that is perfectly fine. When something in The Gift Edit catches your eye, tap Add to my wishlist and it will be waiting for you right here.
+              Nothing here yet, and that is perfectly fine. When something in the Gift Catalog catches your eye, tap Add to my wishlist and it will be waiting for you right here.
             </p>
           ) : (
             myPicks.filter((a) => PRODUCT_BY_ASIN[a]).map((asin) => {

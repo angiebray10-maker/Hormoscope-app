@@ -358,7 +358,7 @@ export default function AttunementPage() {
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ ...poppins, color: PINK }}>Attunement Mode</p>
           <h1 className="text-3xl text-white mb-3" style={script}>Your people, in tune with you</h1>
           <p className="text-[#b8b8d1] text-sm leading-relaxed" style={poppins}>
-            Nobody who loves you should have to guess how you feel. Attunement lets your people follow your cycle with you, so care lands right on time and home feels close.
+            Attunement lets your people follow your cycle with you, so care lands right on time and home feels close.
           </p>
         </div>
 
@@ -540,7 +540,7 @@ export default function AttunementPage() {
         {inviteBlock}
 
         {/* Attuned gifts (Angelita, Oct 25, 2026): her wishlist and
-            The Gift Edit catalog live here in Attunement, in a
+            the Gift Catalog live here in Attunement, in a
             tabbed section under everything else. */}
         <AttunementGifts />
 

@@ -1,4 +1,4 @@
-// The Gift Edit, her gift catalog (Angelita's picks).
+// Gift Catalog, her gift catalog (Angelita's picks).
 // ONE single flat list (Angelita, Oct 26, 2026): no collections, no
 // phase baskets. A partner looking at her wishlist just sees the list.
 // The original 16 picks keep their order; the Oct 26, 2026 additions

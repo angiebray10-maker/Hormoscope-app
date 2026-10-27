@@ -34,7 +34,7 @@ export default function GuidePage() {
             <h2 className="text-xl sm:text-2xl text-white mb-3">Home</h2>
             <p className="mb-3">Home is your day at a glance. The day circle shows which day of your cycle you are on and which phase you are in. It glows with a slow, pulsing orb in your phase&apos;s colour: rose for your period, pink for follicular, gold around ovulation and lilac for luteal.</p>
             <p className="mb-3">Under it you will see a one-line read of how today may feel, and your Daily Read. Tap See more to open the phase list, food and activity tips for where you are in your cycle.</p>
-            <p className="mb-3">Prefer stillness? Turn off the pulsing orb, or turn on Gentle motion, in Profile. The orb also stays still if your phone is set to reduce motion.</p>
+            <p className="mb-3">The orb also stays still if your phone is set to reduce motion.</p>
           </section>
           <section data-testid="guide-quicklog">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Quick log</h2>
@@ -62,7 +62,7 @@ export default function GuidePage() {
           </section>
           <section data-testid="guide-profile">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Profile</h2>
-            <p className="mb-3">Profile holds your name and photo, My details (optional birthday, cycle situation, conditions like PMDD, PCOS or endometriosis, and partner visibility), motion settings, reminders and your account. You can delete your account and data here at any time.</p>
+            <p className="mb-3">Profile holds your name and photo, My details (optional birthday, cycle situation, conditions like PMDD, PCOS or endometriosis, and partner visibility), reminders and your account. You can delete your account and data here at any time.</p>
             <p className="mb-3">Profile is also where the Founder&apos;s Note, this guide and the App Map live.</p>
           </section>
           <section data-testid="guide-appmap">
