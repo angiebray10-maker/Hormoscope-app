@@ -158,7 +158,7 @@ export default function AuthPage() {
             <ul className="space-y-2 text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
               <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />Sync cycles with your girlfriend: both your phases side by side, with the days you&apos;re in sync highlighted.</li>
               <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />Or invite your boyfriend so he knows what each phase may feel like and how to show up.</li>
-              <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />You choose exactly what they see. Your journal and intimacy log are never shared.</li>
+              <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />You choose exactly what they see. Your intimacy log is never shared, and your journal only if you choose to share it.</li>
             </ul>
           </div>
 
@@ -174,7 +174,7 @@ export default function AuthPage() {
             <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }}>Journal</p>
             <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>A journal that is yours alone</h2>
             <p className="text-sm leading-relaxed mb-3" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
-              Write about your day in a private book, one day per page. Your entries save to that day, so you can look back, compare days, and see your patterns over time. Your journal is never shared, not even with a partner.
+              Write about your day in a private book, one day per page. Your entries save to that day, so you can look back, compare days, and see your patterns over time. Your journal stays private unless you choose to share it with your partner.
             </p>
           </div>
 

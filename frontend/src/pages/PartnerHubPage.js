@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Link } from 'react-router-dom';
-import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2, Camera } from 'lucide-react';
+import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2, Camera, BookOpen } from 'lucide-react';
 import axios from 'axios';
 import { PHASE_COLORS as SHARED_PHASE_COLORS } from '../lib/phases';
 import logger from '../utils/logger';
@@ -200,6 +200,76 @@ function CalendarTab({ markedDays }) {
   );
 }
 
+// v49 (Angelita, Oct 26, 2026): her journal, readable here only
+// because she turned journal sharing on. Read-only. The server
+// refuses the moment she turns it off, and this tab explains that
+// instead of failing quietly.
+function PartnerJournalTab({ token, partnerName }) {
+  const [data, setData] = useState(null);
+  const [state, setState] = useState('loading'); // loading | ok | off | error
+
+  useEffect(() => {
+    let live = true;
+    axios.get(`${API}/partner/journal`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
+      .then((res) => { if (live) { setData(res.data); setState('ok'); } })
+      .catch((err) => {
+        if (!live) return;
+        setState(err.response?.status === 403 ? 'off' : 'error');
+      });
+    return () => { live = false; };
+  }, [token]);
+
+  if (state === 'loading') {
+    return <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#f4a7b9] animate-spin" /></div>;
+  }
+  if (state === 'off') {
+    return (
+      <p className="text-center text-[#CFC3CC] text-sm leading-relaxed py-6" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="partner-journal-off">
+        {partnerName || 'She'} has not chosen to share her journal. It stays hers unless she turns sharing on.
+      </p>
+    );
+  }
+  if (state === 'error') {
+    return (
+      <p className="text-center text-[#CFC3CC] text-sm py-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        Her journal could not be loaded just now. Please try again in a moment.
+      </p>
+    );
+  }
+  const days = data?.days || [];
+  if (!days.length) {
+    return (
+      <p className="text-center text-[#CFC3CC] text-sm py-6" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="partner-journal-empty">
+        Nothing written yet. When she writes in her journal, her pages will appear here.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4" data-testid="partner-journal">
+      <p className="text-center text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        She chose to share her journal with you. These pages are read only.
+      </p>
+      {days.map((d) => (
+        <div key={d.date} className="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03]">
+          <p className="text-lg mb-2" style={{ fontFamily: "'Poiret One', sans-serif", color: '#FF4F9A' }}>
+            {new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+          <div className="space-y-3">
+            {d.entries.map((e) => (
+              <div key={e.id}>
+                {e.title ? (
+                  <p className="text-white text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>{e.title}</p>
+                ) : null}
+                <p className="text-[#E6E0EE] text-sm leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Poppins, sans-serif' }}>{e.content}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function PartnerHubPage() {
   const { token, user } = useAuth();
   const { loading: rcLoading } = usePremium();
@@ -328,7 +398,7 @@ export default function PartnerHubPage() {
           </>
           )}
           <p className="text-[#B4B0C8] text-[10px] mt-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Her journal and private entries are never shared. You only see what she chose to share.
+            Her intimacy log is never shared. You only see what she chose to share.
           </p>
         </div>
       </div>
@@ -375,6 +445,7 @@ export default function PartnerHubPage() {
             { id: 'cycle', label: 'Cycle', icon: Heart },
             { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
             { id: 'notes', label: 'Notes', icon: null },
+            ...(status.partner_shares_journal ? [{ id: 'journal', label: 'Journal', icon: BookOpen }] : []),
           ].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className="flex-1 py-2.5 rounded-full text-sm font-medium relative"
@@ -501,6 +572,8 @@ export default function PartnerHubPage() {
         {tab === 'calendar' && <CalendarTab markedDays={calData?.marked_days} />}
 
         {tab === 'notes' && <NotesTab token={token} currentUserId={user?.id} onUnreadChange={setUnread} />}
+
+        {tab === 'journal' && <PartnerJournalTab token={token} partnerName={status.partner_name} />}
 
       </div>
     </div>

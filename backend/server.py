@@ -120,8 +120,13 @@ class UserLogin(BaseModel):
 # meaningless, so they are switched off for these users.
 CYCLE_STATUSES = {"regular", "unsure", "hormonal_birth_control", "pregnant", "postpartum", "menopause", "no_periods"}
 NO_FERTILITY_STATUSES = {"hormonal_birth_control", "pregnant", "postpartum", "menopause", "no_periods"}
-PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_window", "wishlist")
-DEFAULT_PARTNER_VISIBILITY = {"phase": True, "mood_energy": True, "period_dates": True, "fertile_window": False, "wishlist": True}
+PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_window", "wishlist", "share_journal")
+# share_journal (v49, Angelita, Oct 26, 2026): her journal entries are
+# shared with her linked in-app partner ONLY when she turns this on.
+# Default False for everyone: new users, existing users, existing
+# relationships. It never applies to view links, and entries she
+# marked intimate are never served to a partner either way.
+DEFAULT_PARTNER_VISIBILITY = {"phase": True, "mood_energy": True, "period_dates": True, "fertile_window": False, "wishlist": True, "share_journal": False}
 BOUTIQUE_VISIBILITY_VALUES = ("private", "partner", "public")
 
 
@@ -3226,7 +3231,10 @@ async def get_partner_view(link_code: str):
     tips = _partner_tips_for_phase(phase)
     
     # Only what she chose to share (Profile > partner visibility).
+    # Journal sharing never travels through a view link (v49): the
+    # share_journal choice is not even echoed here.
     vis = {**DEFAULT_PARTNER_VISIBILITY, **(user.get("partner_visibility") or {})}
+    vis.pop("share_journal", None)
     out = {"name": user.get("name", "Her"), "visibility": vis}
     if vis.get("phase"):
         out.update({
@@ -3373,14 +3381,23 @@ async def get_partner_status(current_user: dict = Depends(get_current_user)):
         return {"is_linked": False}
     owner_id, partner_id = _partner_pair(rel)
     other_id = partner_id if current_user["id"] == owner_id else owner_id
-    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1, "profile_photo": 1})
-    return {
+    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1, "profile_photo": 1, "partner_visibility": 1})
+    out = {
         "is_linked": True,
         "role": "owner" if current_user["id"] == owner_id else "partner",
         "partner_name": (other.get("name") if other else None) or "Partner",
         "partner_photo": (other.get("profile_photo") if other else None),
         "linked_since": rel.get("created_at")
     }
+    # v49: the hub shows its Journal tab only when the other person
+    # shares her journal. The field is PRESENT only when sharing is on;
+    # while it is off (the default) the word does not appear here at
+    # all, and no journal data of any kind rides along either way.
+    if other:
+        other_vis = {**DEFAULT_PARTNER_VISIBILITY, **(other.get("partner_visibility") or {})}
+        if other_vis.get("share_journal"):
+            out["partner_shares_journal"] = True
+    return out
 
 def _phase_for_cycle_day(cycle_day: int) -> str:
     """Same day thresholds as calculate_cycle_info, for projecting ahead."""
@@ -3913,6 +3930,45 @@ async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
         "marked_days": marked_days,
         "partner_tips": _partner_tips_for_phase(phase)
     }
+
+@api_router.get("/partner/journal")
+async def get_partner_journal(current_user: dict = Depends(get_current_user)):
+    """Her journal, for her linked in-app partner, ONLY when she turned
+    journal sharing on (partner_visibility.share_journal, v49). While
+    the choice is off (the default for everyone) this refuses, and no
+    journal data appears in any partner payload. Entries she marked
+    intimate are never served here either way: those are her eyes only,
+    a separate promise from sharing. Read-only; nothing here writes.
+    View links never carry journal entries, whatever she chooses."""
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        raise HTTPException(status_code=403, detail="No linked partner account.")
+    owner_id, partner_id = _partner_pair(rel)
+    other_id = partner_id if current_user["id"] == owner_id else owner_id
+    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1, "partner_visibility": 1})
+    if not other:
+        raise HTTPException(status_code=404, detail="Partner account not found")
+    other_vis = {**DEFAULT_PARTNER_VISIBILITY, **(other.get("partner_visibility") or {})}
+    if not other_vis.get("share_journal"):
+        raise HTTPException(status_code=403, detail="Journal sharing is off.")
+    entries = await db.journal_entries.find(
+        {"user_id": other_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(length=None)
+    by_day = {}
+    for e in entries:
+        if e.get("is_intimate"):
+            continue
+        d = _journal_day(e.get("created_at"))
+        if d is None:
+            continue
+        by_day.setdefault(d.isoformat(), []).append({
+            "id": e.get("id"),
+            "title": e.get("title") or "",
+            "content": e.get("content") or "",
+            "created_at": e.get("created_at"),
+        })
+    days = [{"date": d, "entries": by_day[d]} for d in sorted(by_day, reverse=True)]
+    return {"partner_name": other.get("name") or "Partner", "days": days}
 
 # ==================== ATTUNED PARTNER MODE: NOTES ====================
 # A quiet, unadvertised space where the two of them can leave short notes

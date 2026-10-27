@@ -43,8 +43,12 @@ const VIS_OPTIONS = [
   { id: 'mood_energy', label: 'My mood and energy' },
   { id: 'period_dates', label: 'When my next period is due' },
   { id: 'fertile_window', label: 'My fertile window' },
+  // v49 (Angelita, Oct 26, 2026): journal sharing is a choice now.
+  // Off unless she ticks it, and it reaches only a linked partner
+  // inside the app, never a view link.
+  { id: 'share_journal', label: 'My journal entries' },
 ];
-const DEFAULT_VIS = { phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true };
+const DEFAULT_VIS = { phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true, share_journal: false };
 
 // The face beside a partner's name. Falls back to a neutral initial
 // disc for accounts that have no picture (legacy partners).
@@ -81,7 +85,7 @@ function VisibilityChecklist({ vis, onToggle }) {
           </button>
         );
       })}
-      <p className="text-[#E6E0EE] text-xs mt-1" style={poppins}>Your journal and intimacy log are never shared.</p>
+      <p className="text-[#E6E0EE] text-xs mt-1" style={poppins}>Your intimacy log is never shared. Your journal goes only to a linked partner inside the app, and only if you tick it above. It never goes out through a view link.</p>
     </div>
   );
 }
@@ -545,7 +549,7 @@ export default function AttunementPage() {
         <AttunementGifts />
 
         <p className="text-center text-[#B4B0C8] text-[10px] leading-relaxed" style={poppins}>
-          Your journal and private entries are never shared. Your people only see what you chose to share.
+          Your intimacy log is never shared, and your journal only if you chose to share it. Your people only see what you chose to share.
         </p>
       </div>
     </div>

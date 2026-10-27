@@ -42,6 +42,9 @@ const VISIBILITY = [
   { id: 'mood_energy', label: 'My mood and energy' },
   { id: 'period_dates', label: 'When my next period is due' },
   { id: 'fertile_window', label: 'My fertile window' },
+  // v49 (Angelita, Oct 26, 2026): journal sharing by choice, off
+  // unless she ticks it, linked partners in the app only.
+  { id: 'share_journal', label: 'My journal entries' },
 ];
 
 const TIMES = [
@@ -63,7 +66,7 @@ export default function OnboardingPage() {
   const [situation, setSituation] = useState('regular');
   const [cycleLength, setCycleLength] = useState(28);
   const [partnerChoice, setPartnerChoice] = useState('later');
-  const [visibility, setVisibility] = useState({ phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true });
+  const [visibility, setVisibility] = useState({ phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true, share_journal: false });
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [notificationTime, setNotificationTime] = useState('09:00');
   // v49: the two cycle alerts are their own choices on the reminders
@@ -322,7 +325,7 @@ export default function OnboardingPage() {
                   <li>We keep our security updated ahead of the standard, always.</li>
                   <li>Your information is never sold and never shared. Not with advertisers, not with anyone, not even with a partner you link.</li>
                   <li>Your password is stored scrambled, so it cannot be read in plain form, not even by us.</li>
-                  <li>Your journal is yours alone. Even if you link with a partner, your journal stays private.</li>
+                  <li>Your journal stays private unless you choose to share it with your partner.</li>
                 </ul>
               </div>
             </div>
@@ -380,7 +383,7 @@ export default function OnboardingPage() {
             <div className="space-y-5">
               <div>
                 <H>Stay attuned together</H>
-                <Sub>Share your cycle with someone you love. They only see what you tick below. Your journal and intimacy log are never shared.</Sub>
+                <Sub>Share your cycle with someone you love. They only see what you tick below. Your intimacy log is never shared, and your journal only if you tick it.</Sub>
               </div>
               <div className="space-y-2">
                 {[

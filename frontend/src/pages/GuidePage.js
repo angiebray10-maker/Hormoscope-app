@@ -48,7 +48,7 @@ export default function GuidePage() {
           <section data-testid="guide-journal">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Journal</h2>
             <p className="mb-3">Your Journal is a book, one day per page. Write, tap Save, and use Older day, Newer day or the small calendar to move between pages.</p>
-            <p className="mb-3">Your entries are private, saved to your day, and never shared, not even with a partner linked in Attuned Partner Mode.</p>
+            <p className="mb-3">Your entries are private, saved to your day, and shared only if you choose to share them with a partner linked in Attuned Partner Mode.</p>
           </section>
           <section data-testid="guide-attuned">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Attuned Partner Mode</h2>
