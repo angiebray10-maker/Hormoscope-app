@@ -125,6 +125,10 @@ export default function JournalPage() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [showCal, setShowCal] = useState(false);
   const [isIntimate, setIsIntimate] = useState(false);
+  // Which entry is open in the editor for changes (null = a new page).
+  // The save/edit/cancel code read this state for a long time without
+  // it ever being declared; v49 declares it (see handleNewEntryClick).
+  const [editingId, setEditingId] = useState(null);
   // The journal reads like a book: one day per page. Page 0 is the most
   // recent day with entries; turning a page moves one day at a time.
   const [pageIndex, setPageIndex] = useState(0);
@@ -417,12 +421,32 @@ export default function JournalPage() {
     </div>
   );
 
+  // v49 (Angelita, Oct 26: "I pushed the journal plus and nothing
+  // happened"). Root cause: the editor's Save button label and the save
+  // handler read an `editingId` state that was never declared anywhere
+  // in this file, so the moment the editor rendered it threw and the
+  // whole page unmounted to a blank screen: the tap looked like it did
+  // nothing at all. The state is declared now, and opening the editor
+  // for a new page also clears any half-finished edit and scrolls the
+  // editor into view, so the tap always visibly does its job.
   const handleNewEntryClick = () => {
+    setEditingId(null);
+    setCurrentEntry('');
+    setCurrentTitle('');
+    setIsIntimate(false);
+    setSaveError(false);
     setWriting(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <div className="min-h-screen pb-40 lg:ml-64" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="journal-page">
+    <div className="relative min-h-screen pb-40 lg:ml-64" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="journal-page">
+      {/* Her life stages line, baby to old lady, faded to a soft outline
+          behind the journal (Angelita, Oct 26, 2026). Decorative only,
+          kept faint so every word on the page stays easy to read. */}
+      <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true" data-testid="journal-life-stages-backdrop">
+        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.13 }} />
+      </div>
       {/* Decorative flowers */}
       <div className="absolute top-0 left-0 w-full h-64 pointer-events-none overflow-hidden opacity-20">
         <div className="absolute top-4 left-4 text-2xl" style={{ color: '#f4a7b9' }}>✿</div>
@@ -620,7 +644,11 @@ export default function JournalPage() {
           data-no-swipe keeps the tab-swipe handler out while it is open. */}
       {vaultOpen && (
         <div className="fixed inset-0 z-[80] flex flex-col" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-no-swipe="true" data-testid="journal-vault">
-          <div className="flex items-center justify-between px-5 py-4 max-w-2xl mx-auto w-full flex-shrink-0">
+          {/* The same faded life stages line runs behind the vault. */}
+          <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true">
+            <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.10 }} />
+          </div>
+          <div className="relative flex items-center justify-between px-5 py-4 max-w-2xl mx-auto w-full flex-shrink-0">
             <div className="flex items-center gap-2">
               <Lock className="w-5 h-5" style={{ color: GOLD }} />
               <h2 className="text-white text-xl" style={{ fontFamily: "'Poiret One', sans-serif" }}>{firstName ? `${firstName}'s Vault` : 'Your Vault'}</h2>
@@ -630,7 +658,7 @@ export default function JournalPage() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-5 pb-10">
+          <div className="relative flex-1 overflow-y-auto px-5 pb-10">
             <div className="max-w-2xl mx-auto">
               <p className="text-sm leading-relaxed mb-5" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
                 This is yours only. No one else can open this, not even someone linked to your account. When a day ends, everything you wrote and logged seals in here, safe.

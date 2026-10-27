@@ -17,6 +17,13 @@ export const NOTIF_KEYS = {
   enabled: 'hormoscope-notifications-enabled',
   time: 'hormoscope-notification-time',
   permission: 'hormoscope-notifications-permission',
+  // v49: the two cycle alerts became choices of their own (onboarding
+  // step 6 and Profile show all three). Additive keys; when a key was
+  // never written, readPrefs falls back to the server preference, then
+  // to the daily reminder flag, so existing users keep exactly the
+  // alerts they have today.
+  period: 'hormoscope-notifications-period',
+  ovulation: 'hormoscope-notifications-ovulation',
 };
 
 // Stable ids so every reschedule cancels and replaces, never stacks.
@@ -66,11 +73,17 @@ export function parseTimeHHMM(value) {
 export function readPrefs(storage, user) {
   let enabled = null;
   let time = null;
+  let period = null;
+  let ovulation = null;
   try {
     const rawEnabled = storage ? storage.getItem(NOTIF_KEYS.enabled) : null;
     if (rawEnabled !== null && rawEnabled !== undefined) enabled = rawEnabled === 'true';
     const rawTime = storage ? storage.getItem(NOTIF_KEYS.time) : null;
     if (rawTime) time = rawTime;
+    const rawPeriod = storage ? storage.getItem(NOTIF_KEYS.period) : null;
+    if (rawPeriod !== null && rawPeriod !== undefined) period = rawPeriod === 'true';
+    const rawOvulation = storage ? storage.getItem(NOTIF_KEYS.ovulation) : null;
+    if (rawOvulation !== null && rawOvulation !== undefined) ovulation = rawOvulation === 'true';
   } catch (e) {
     // storage unavailable (private mode etc.): fall through to user record
   }
@@ -79,7 +92,14 @@ export function readPrefs(storage, user) {
   }
   if (!time && user && user.notification_time) time = user.notification_time;
   if (!parseTimeHHMM(time)) time = '09:00';
-  return { enabled: enabled === true, time };
+  const serverPrefs = (user && user.notification_preferences) || {};
+  if (period === null && typeof serverPrefs.period_reminder === 'boolean') period = serverPrefs.period_reminder;
+  if (ovulation === null && typeof serverPrefs.ovulation_reminder === 'boolean') ovulation = serverPrefs.ovulation_reminder;
+  // Never chosen anywhere: the alerts follow the daily reminder flag,
+  // which is exactly how every existing install behaves today.
+  if (period === null) period = enabled === true;
+  if (ovulation === null) ovulation = enabled === true;
+  return { enabled: enabled === true, time, period, ovulation };
 }
 
 const DAY_MS = 86400000;
@@ -162,46 +182,58 @@ function clampToToday(at, now) {
 // are plain data: { id, kind, title, body, on } for the repeating
 // daily reminder, { id, kind, title, body, at } for one-shot alerts.
 export function buildNotificationPlan({ user, prefs, headline, now }) {
-  if (!prefs || !prefs.enabled) return [];
+  if (!prefs) return [];
+  // v49: three separate choices. What she chose is what gets scheduled;
+  // nothing she left off is scheduled. Older saved prefs (no per-alert
+  // keys) arrive with the alert flags already resolved by readPrefs.
+  const anyChosen = prefs.enabled || prefs.period || prefs.ovulation;
+  if (!anyChosen) return [];
   const time = parseTimeHHMM(prefs.time) || { hour: 9, minute: 0 };
   const body = (headline && headline.trim()) || fallbackHeadline(user, now);
-  const plan = [{
-    id: DAILY_NOTIFICATION_ID,
-    kind: 'daily',
-    title: 'Your Daily Read',
-    body: body.length > 180 ? body.slice(0, 177).trimEnd() + '...' : body,
-    on: { hour: time.hour, minute: time.minute },
-  }];
+  const plan = [];
+  if (prefs.enabled) {
+    plan.push({
+      id: DAILY_NOTIFICATION_ID,
+      kind: 'daily',
+      title: 'Your Daily Read',
+      body: body.length > 180 ? body.slice(0, 177).trimEnd() + '...' : body,
+      on: { hour: time.hour, minute: time.minute },
+    });
+  }
 
   const info = cycleInfoFor(user, now);
   if (info) {
     // Period tomorrow: evening before the predicted start day.
-    const periodAt = addDays(info.nextPeriodDate, -1);
-    periodAt.setHours(PERIOD_ALERT_HOUR, 0, 0, 0);
-    const periodFire = clampToToday(periodAt, now);
-    if (periodFire) {
-      plan.push({
-        id: PERIOD_NOTIFICATION_ID,
-        kind: 'period',
-        title: 'Your period is estimated to start tomorrow',
-        body: 'A gentle heads-up from HORMOscope: your period is estimated to start tomorrow. Rest up tonight, and keep whatever you need close by.',
-        at: periodFire,
-      });
+    if (prefs.period) {
+      const periodAt = addDays(info.nextPeriodDate, -1);
+      periodAt.setHours(PERIOD_ALERT_HOUR, 0, 0, 0);
+      const periodFire = clampToToday(periodAt, now);
+      if (periodFire) {
+        plan.push({
+          id: PERIOD_NOTIFICATION_ID,
+          kind: 'period',
+          title: 'Your period is estimated to start tomorrow',
+          body: 'A gentle heads-up from HORMOscope: your period is estimated to start tomorrow. Rest up tonight, and keep whatever you need close by.',
+          at: periodFire,
+        });
+      }
     }
 
     // Ovulation week starts today: the morning the fertile window
     // (the app's ovulation window) begins.
-    const ovuAt = new Date(info.fertileStart);
-    ovuAt.setHours(OVULATION_ALERT_HOUR, 0, 0, 0);
-    const ovuFire = clampToToday(ovuAt, now);
-    if (ovuFire) {
-      plan.push({
-        id: OVULATION_NOTIFICATION_ID,
-        kind: 'ovulation',
-        title: 'Your ovulation week is estimated to start today',
-        body: 'Your ovulation week is estimated to start today. Open your Daily Read for what this phase can bring, and how to make the most of it.',
-        at: ovuFire,
-      });
+    if (prefs.ovulation) {
+      const ovuAt = new Date(info.fertileStart);
+      ovuAt.setHours(OVULATION_ALERT_HOUR, 0, 0, 0);
+      const ovuFire = clampToToday(ovuAt, now);
+      if (ovuFire) {
+        plan.push({
+          id: OVULATION_NOTIFICATION_ID,
+          kind: 'ovulation',
+          title: 'Your ovulation week is estimated to start today',
+          body: 'Your ovulation week is estimated to start today. Open your Daily Read for what this phase can bring, and how to make the most of it.',
+          at: ovuFire,
+        });
+      }
     }
   }
   return plan;

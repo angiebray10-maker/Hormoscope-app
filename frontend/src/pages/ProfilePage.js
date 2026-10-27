@@ -167,6 +167,9 @@ function NotificationsSection({ user, token, updateUser }) {
   const prefs = getNotificationPrefs(user);
   const [enabled, setEnabled] = useState(prefs.enabled);
   const [time, setTime] = useState(prefs.time);
+  // v49: the same three choices onboarding offers (Angelita, Oct 26).
+  const [periodAlert, setPeriodAlert] = useState(prefs.period);
+  const [ovulationAlert, setOvulationAlert] = useState(prefs.ovulation);
   const [permDisplay, setPermDisplay] = useState(null);
   const [msg, setMsg] = useState('');
   const native = isNativePlatform();
@@ -177,27 +180,33 @@ function NotificationsSection({ user, token, updateUser }) {
     return () => { live = false; };
   }, []);
 
-  const apply = async (nextEnabled, nextTime) => {
+  const apply = async (nextEnabled, nextTime, nextPeriod = periodAlert, nextOvulation = ovulationAlert) => {
     setEnabled(nextEnabled);
     setTime(nextTime);
+    setPeriodAlert(nextPeriod);
+    setOvulationAlert(nextOvulation);
     setMsg('');
+    const anyOn = nextEnabled || nextPeriod || nextOvulation;
+    const mergedPrefs = { ...(user.notification_preferences || {}), period_reminder: nextPeriod, ovulation_reminder: nextOvulation };
     try {
       localStorage.setItem('hormoscope-notifications-enabled', nextEnabled ? 'true' : 'false');
       localStorage.setItem('hormoscope-notification-time', nextTime);
+      localStorage.setItem('hormoscope-notifications-period', nextPeriod ? 'true' : 'false');
+      localStorage.setItem('hormoscope-notifications-ovulation', nextOvulation ? 'true' : 'false');
     } catch (e) { /* storage unavailable: server fields below still save */ }
     try {
-      const res = await axios.put(`${API}/profile`, { notifications_enabled: nextEnabled, notification_time: nextTime }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.put(`${API}/profile`, { notifications_enabled: nextEnabled, notification_time: nextTime, notification_preferences: mergedPrefs }, { headers: { Authorization: `Bearer ${token}` } });
       updateUser(res.data);
     } catch (err) {
       logger.error('Notification preference save failed:', err);
     }
     const result = await syncLocalNotifications({
-      user: { ...user, notifications_enabled: nextEnabled, notification_time: nextTime },
+      user: { ...user, notifications_enabled: nextEnabled, notification_time: nextTime, notification_preferences: mergedPrefs },
       token,
-      requestPermission: nextEnabled,
+      requestPermission: anyOn,
     });
     if (result && result.permission) setPermDisplay(result.permission);
-    setMsg(nextEnabled ? 'Saved.' : 'Notifications off.');
+    setMsg(anyOn ? 'Saved.' : 'Notifications off.');
   };
 
   const row = 'flex items-center gap-3 py-1.5 text-sm text-[#F7F4FA] cursor-pointer';
@@ -223,7 +232,19 @@ function NotificationsSection({ user, token, updateUser }) {
           {NOTIFICATION_TIMES.map((t) => <option key={t.time} value={t.time} className="bg-[#15152B]">{t.label}</option>)}
         </select>
       </div>
-      {native && enabled && permDisplay === 'denied' && (
+      <label className={row}>
+        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={periodAlert} onChange={(e) => apply(enabled, time, e.target.checked, ovulationAlert)} data-testid="notifications-period-toggle" />
+        <span>Period coming
+          <span className="block text-xs text-[#CFC3CC]">A gentle note the evening before your period is estimated to start.</span>
+        </span>
+      </label>
+      <label className={row}>
+        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={ovulationAlert} onChange={(e) => apply(enabled, time, periodAlert, e.target.checked)} data-testid="notifications-ovulation-toggle" />
+        <span>Ovulation week starting
+          <span className="block text-xs text-[#CFC3CC]">A note the morning your ovulation week is estimated to begin.</span>
+        </span>
+      </label>
+      {native && (enabled || periodAlert || ovulationAlert) && permDisplay === 'denied' && (
         <p className="text-sm text-[#E6E0EE]" data-testid="notifications-denied-line">Notifications are turned off for HORMOscope in your phone settings. Turn them on there to get your Daily Read and cycle alerts.</p>
       )}
       {msg && <p className="text-sm text-[#E6E0EE]" role="status">{msg}</p>}

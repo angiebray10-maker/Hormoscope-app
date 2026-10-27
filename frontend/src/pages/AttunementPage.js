@@ -329,11 +329,11 @@ export default function AttunementPage() {
 
   return (
     <div className="relative min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="attunement-page">
-      {/* Couples wallpaper (Angelita, Oct 25, 2026: swapped on her
-          order): the man-and-woman couple covers the upper part of the
-          page, and the two women sit lower, appearing as she scrolls down.
-          Each is masked at its inner edge so they blend into each
-          other, and a plum veil over both keeps the wording easy to read. */}
+      {/* Couples wallpaper: the man-and-woman couple covers the upper part
+          of the page, and the hallway couple (Angelita's pick, Oct 26, 2026)
+          sits lower, appearing as she scrolls down. Each is masked at its
+          inner edge so they blend into each other, and a plum veil over
+          both keeps the wording easy to read. */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" data-testid="attunement-wallpaper">
         <img
           src="/images/attunement-couple.png"
@@ -342,7 +342,7 @@ export default function AttunementPage() {
           style={{ height: '56%', opacity: 0.28, maskImage: 'linear-gradient(180deg, black 68%, transparent 100%)', WebkitMaskImage: 'linear-gradient(180deg, black 68%, transparent 100%)' }}
         />
         <img
-          src="/images/attunement-two-women.webp"
+          src="/images/backdrop-hallway.webp"
           alt=""
           className="absolute inset-x-0 bottom-0 w-full object-cover"
           style={{ height: '56%', opacity: 0.28, maskImage: 'linear-gradient(180deg, transparent 0%, black 32%)', WebkitMaskImage: 'linear-gradient(180deg, transparent 0%, black 32%)' }}

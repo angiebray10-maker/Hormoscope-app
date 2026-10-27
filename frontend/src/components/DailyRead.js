@@ -63,18 +63,24 @@ export default function DailyRead() {
   const sections = ['body_insight', 'mood_forecast', 'food', 'movement', 'self_care'];
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #C9B8F0', background: 'linear-gradient(135deg, rgba(201,184,240,0.10) 0%, rgba(201,184,240,0.03) 100%)' }} data-testid="daily-read">
+    <div className="relative rounded-xl overflow-hidden" style={{ border: '1.5px solid #C9B8F0', background: 'linear-gradient(135deg, rgba(201,184,240,0.10) 0%, rgba(201,184,240,0.03) 100%)' }} data-testid="daily-read">
+      {/* Her life stages line, faded to a soft outline behind the read
+          (Angelita, Oct 26, 2026), same treatment as the journal. */}
+      <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true" data-testid="daily-read-life-stages-backdrop">
+        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full block" style={{ opacity: 0.12 }} />
+      </div>
+      <div className="relative">
       <div className="px-3 pt-2.5 pb-0.5 flex items-center gap-1.5">
         <span style={{ color: '#C9B8F0', fontSize: '9px' }}>✿</span>
         <span className="text-[10px]" style={{ fontFamily: "'Poiret One', sans-serif", color: '#C9B8F0' }}>HORMOscope</span>
         <span style={{ color: '#C9B8F0', fontSize: '9px' }}>✿</span>
       </div>
       <div className="text-center pt-1 pb-1">
-        <h3 className="text-sm" style={{ fontFamily: "'Poiret One', sans-serif", color: '#FF4F9A' }}>Your Daily Read</h3>
-        <p className="text-white/75 text-[9px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Day {data.cycle_day}</p>
+        <h3 className="text-base" style={{ fontFamily: "'Poiret One', sans-serif", color: '#FF4F9A' }}>Your Daily Read</h3>
+        <p className="text-white/75 text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Day {data.cycle_day}</p>
       </div>
       <div className="px-3 pb-2">
-        <p className="text-white text-[11px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="daily-read-greeting">
+        <p className="text-white text-[12px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="daily-read-greeting">
           {reading.greeting}
         </p>
       </div>
@@ -82,10 +88,10 @@ export default function DailyRead() {
       {/* Body insight — always visible */}
       <div className="px-3 py-2">
         <div className="flex items-center gap-1.5 mb-1">
-          <Flower2 className="w-3 h-3" style={{ color: '#C9B8F0' }} />
-          <span className="text-white/70 text-[9px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif' }}>Your Body Right Now</span>
+          <Flower2 className="w-3.5 h-3.5" style={{ color: '#FF4F9A' }} />
+          <span className="text-[12px] uppercase" style={{ fontFamily: "'Poiret One', sans-serif", color: '#FF4F9A', letterSpacing: '0.08em' }}>Your Body Right Now</span>
         </div>
-        <p className="text-[#d4d4e0] text-[11px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        <p className="text-[#d4d4e0] text-[12px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
           {reading.body_insight}
         </p>
       </div>
@@ -98,10 +104,10 @@ export default function DailyRead() {
         return (
           <div key={key} className="px-3 py-2 border-t border-white/[0.05]" data-testid={`daily-read-${key}`}>
             <div className="flex items-center gap-1.5 mb-1">
-              <Icon className="w-3 h-3" style={{ color: '#C9B8F0' }} />
-              <span className="text-white/70 text-[9px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif' }}>{config.label}</span>
+              <Icon className="w-3.5 h-3.5" style={{ color: '#FF4F9A' }} />
+              <span className="text-[12px] uppercase" style={{ fontFamily: "'Poiret One', sans-serif", color: '#FF4F9A', letterSpacing: '0.08em' }}>{config.label}</span>
             </div>
-            <p className="text-[#d4d4e0] text-[11px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            <p className="text-[#d4d4e0] text-[12px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
               {reading[key]}
             </p>
           </div>
@@ -111,7 +117,7 @@ export default function DailyRead() {
       {/* Affirmation — always visible when expanded */}
       {expanded && reading.affirmation && (
         <div className="px-3 py-2 border-t border-white/[0.05]" style={{ background: `${accent}08` }}>
-          <p className="text-[11px] text-center leading-relaxed" style={{ color: accent, fontFamily: 'Poppins, sans-serif' }} data-testid="daily-read-affirmation">
+          <p className="text-[12px] text-center leading-relaxed" style={{ color: accent, fontFamily: 'Poppins, sans-serif' }} data-testid="daily-read-affirmation">
             {reading.affirmation}
           </p>
         </div>
@@ -124,6 +130,7 @@ export default function DailyRead() {
         <p className="text-[#B4B0C8] text-[8px] text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
           Personalized to your cycle. Not medical advice.
         </p>
+      </div>
       </div>
     </div>
   );

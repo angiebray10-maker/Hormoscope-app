@@ -139,6 +139,10 @@ class UserOnboarding(BaseModel):
     partner_visibility: Optional[Dict[str, bool]] = None
     notifications_enabled: bool = True
     notification_time: str = "09:00"
+    # v49: the period and ovulation alerts are separate choices on the
+    # onboarding reminders step. Optional and additive: older clients
+    # omit it and keep the stored server preferences untouched.
+    notification_preferences: Optional[Dict[str, bool]] = None
 
 class UserResponse(BaseModel):
     id: str
@@ -1962,6 +1966,12 @@ async def complete_onboarding(data: UserOnboarding, current_user: dict = Depends
     # Feature B (v46): "I no longer have periods" stores the durable flag
     # and wipes the period date so no cycle math ever runs for her.
     no_periods = bool(data.no_periods) or data.cycle_status == "no_periods"
+    # v49: merge the reminders step's per-alert choices over whatever
+    # preferences she already has, so nothing else she set is lost.
+    notif_prefs = dict(current_user.get("notification_preferences") or {"period_reminder": True, "daily_tips": True})
+    if data.notification_preferences is not None:
+        for k, v in data.notification_preferences.items():
+            notif_prefs[k] = bool(v)
     await db.users.update_one(
         {"id": current_user["id"]},
         {"$set": {
@@ -1976,6 +1986,7 @@ async def complete_onboarding(data: UserOnboarding, current_user: dict = Depends
             "partner_visibility": visibility,
             "notifications_enabled": data.notifications_enabled,
             "notification_time": data.notification_time,
+            "notification_preferences": notif_prefs,
             "onboarding_complete": True
         }}
     )

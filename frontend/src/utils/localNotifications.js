@@ -86,7 +86,10 @@ export async function syncLocalNotifications({ user, token, requestPermission = 
   try { storage = window.localStorage; } catch (e) { /* no storage: user record only */ }
   const prefs = readPrefs(storage, user);
 
-  if (!prefs.enabled) {
+  // v49: the daily reminder and the two cycle alerts are separate
+  // choices now. Only when she chose none of them is there nothing
+  // to schedule.
+  if (!prefs.enabled && !prefs.period && !prefs.ovulation) {
     await cancelOurs();
     return { status: 'disabled', permission: null, count: 0 };
   }

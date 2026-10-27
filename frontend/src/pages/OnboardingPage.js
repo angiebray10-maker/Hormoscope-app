@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import DateSelect from '../components/DateSelect';
 import VerifyEmailBanner from '../components/VerifyEmailBanner';
-import { ChevronRight, ChevronLeft, Bell, BellOff, Heart, Users, Clock } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Bell, BellOff, Heart, Users, Clock, Shield } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 import { syncLocalNotifications } from '../utils/localNotifications';
@@ -23,7 +23,9 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // Birthday moved to Profile (optional). "I don't remember" is stored as
 // unknown; we never invent a date. "I no longer have periods" (Feature
 // B) stores the no_periods flag and skips every cycle estimate.
-const STEP_BG = { 1: BACKDROPS[0], 2: BACKDROPS[1], 3: BACKDROPS[2], 4: BACKDROPS[0], 5: BACKDROPS[1], 6: BACKDROPS[2] };
+// Backdrop rotation (Angelita's set, Oct 26, 2026): at-home couple first
+// and again at step 4, then hallway, laughing couple, sunset, bed + dog.
+const STEP_BG = { 1: BACKDROPS[0], 2: BACKDROPS[1], 3: BACKDROPS[2], 4: BACKDROPS[0], 5: BACKDROPS[3], 6: BACKDROPS[4] };
 
 const SITUATIONS = [
   { id: 'regular', label: 'I get a period', hint: 'Set my usual length below' },
@@ -64,6 +66,12 @@ export default function OnboardingPage() {
   const [visibility, setVisibility] = useState({ phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true });
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [notificationTime, setNotificationTime] = useState('09:00');
+  // v49: the two cycle alerts are their own choices on the reminders
+  // step, not riders on the daily reminder. Both start ticked, shown
+  // plainly, and she can untick either. What she chooses is what gets
+  // scheduled, nothing else.
+  const [periodAlert, setPeriodAlert] = useState(true);
+  const [ovulationAlert, setOvulationAlert] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   // Invite step state (v46): 'yes' opens the code field; a successful
@@ -156,11 +164,14 @@ export default function OnboardingPage() {
         partner_visibility: visibility,
         notifications_enabled: notificationsEnabled,
         notification_time: notificationTime,
+        notification_preferences: { period_reminder: periodAlert, ovulation_reminder: ovulationAlert },
       }, { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 });
       updateUser(res.data);
       localStorage.setItem('hormoscope-notifications-enabled', notificationsEnabled ? 'true' : 'false');
       localStorage.setItem('hormoscope-notification-time', notificationTime);
-      if (notificationsEnabled) {
+      localStorage.setItem('hormoscope-notifications-period', periodAlert ? 'true' : 'false');
+      localStorage.setItem('hormoscope-notifications-ovulation', ovulationAlert ? 'true' : 'false');
+      if (notificationsEnabled || periodAlert || ovulationAlert) {
         // v43: on-device local notifications replace the old Web Push
         // subscription (which could never deliver inside the Android
         // WebView). Permission is requested here, in context, right
@@ -298,6 +309,22 @@ export default function OnboardingPage() {
                 <label className="block mb-2 text-sm text-white" htmlFor="ob-name">What should we call you?</label>
                 <Input id="ob-name" data-testid="onboarding-name-input" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your first name" className="input-dark text-lg" autoFocus />
               </div>
+              {/* Privacy is the number one promise (Angelita, Oct 26, 2026):
+                  onboarding states ALL of the security measures plainly,
+                  the same promise the front page makes. */}
+              <div className="rounded-2xl p-4 border border-white/10 text-left" style={{ background: 'rgba(255,255,255,0.03)' }} data-testid="onboarding-security">
+                <p className="flex items-center gap-2 text-sm text-white mb-2">
+                  <Shield className="w-4 h-4 flex-shrink-0" style={{ color: BRAND.pink }} />
+                  Your privacy is our first promise
+                </p>
+                <ul className="space-y-1.5 text-[13px] leading-relaxed" style={{ color: BRAND.textMuted }}>
+                  <li>Everything you write and log is encrypted while it travels and while it rests with us.</li>
+                  <li>We keep our security updated ahead of the standard, always.</li>
+                  <li>Your information is never sold and never shared. Not with advertisers, not with anyone, not even with a partner you link.</li>
+                  <li>Your password is stored scrambled, so it cannot be read in plain form, not even by us.</li>
+                  <li>Your journal is yours alone. Even if you link with a partner, your journal stays private.</li>
+                </ul>
+              </div>
             </div>
           )}
 
@@ -384,12 +411,16 @@ export default function OnboardingPage() {
           {step === 6 && (
             <div className="space-y-5">
               <div>
-                <H>Daily reminder</H>
-                <Sub>A short note each day about your phase and how you might feel.</Sub>
+                <H>Your reminders</H>
+                <Sub>Choose the notes you want from us. Only the ones you tick will ever be sent, and you can change your mind any time in Profile.</Sub>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button data-testid="onboarding-notify-yes" onClick={() => setNotificationsEnabled(true)} className={`${choiceClass(notificationsEnabled)} flex items-center gap-2`}><Bell className="w-5 h-5" /> Yes please</button>
-                <button data-testid="onboarding-notify-no" onClick={() => setNotificationsEnabled(false)} className={`${choiceClass(!notificationsEnabled)} flex items-center gap-2`}><BellOff className="w-5 h-5" /> No thanks</button>
+              <div>
+                <p className="text-sm text-white mb-2">Your Daily Read reminder</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button data-testid="onboarding-notify-yes" onClick={() => setNotificationsEnabled(true)} className={`${choiceClass(notificationsEnabled)} flex items-center gap-2`}><Bell className="w-5 h-5" /> Yes please</button>
+                  <button data-testid="onboarding-notify-no" onClick={() => setNotificationsEnabled(false)} className={`${choiceClass(!notificationsEnabled)} flex items-center gap-2`}><BellOff className="w-5 h-5" /> No thanks</button>
+                </div>
+                <p className="text-xs mt-1.5" style={{ color: BRAND.textMuted }}>A short note each day about your phase and how you might feel.</p>
               </div>
               {notificationsEnabled && (
                 <div>
@@ -401,6 +432,20 @@ export default function OnboardingPage() {
                   </div>
                 </div>
               )}
+              <div className="space-y-2">
+                <label className="flex items-start gap-3 rounded-xl border border-white/15 px-4 py-3 cursor-pointer">
+                  <input type="checkbox" data-testid="onboarding-notify-period" checked={periodAlert} onChange={(e) => setPeriodAlert(e.target.checked)} className="w-4 h-4 mt-0.5 accent-[#FF4F9A]" />
+                  <span className="text-sm text-[#E6E0EE]">Period coming
+                    <span className="block text-xs mt-0.5" style={{ color: BRAND.textMuted }}>A gentle note the evening before your period is estimated to start.</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 rounded-xl border border-white/15 px-4 py-3 cursor-pointer">
+                  <input type="checkbox" data-testid="onboarding-notify-ovulation" checked={ovulationAlert} onChange={(e) => setOvulationAlert(e.target.checked)} className="w-4 h-4 mt-0.5 accent-[#FF4F9A]" />
+                  <span className="text-sm text-[#E6E0EE]">Ovulation week starting
+                    <span className="block text-xs mt-0.5" style={{ color: BRAND.textMuted }}>A note the morning your ovulation week is estimated to begin.</span>
+                  </span>
+                </label>
+              </div>
               <p className="text-xs" style={{ color: BRAND.textMuted }}>You can change any of this later in Profile.</p>
             </div>
           )}

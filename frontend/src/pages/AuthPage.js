@@ -16,9 +16,9 @@ const PINK_MUTED = '#a0a0b8';
 const NEW_LOGO = '/images/logo.png';
 const HERO_BG = BACKDROPS[0];
 const SCENARIO_BG = BACKDROPS[1];
-const SCIENCE_BG = BACKDROPS[1];
-const RELATIONSHIP_BG = BACKDROPS[2];
-const TRANSFORM_BG = BACKDROPS[2];
+const SCIENCE_BG = BACKDROPS[2];
+const RELATIONSHIP_BG = BACKDROPS[3];
+const TRANSFORM_BG = BACKDROPS[4];
 
 
 const BrandName = ({ className = '', style = {} }) => (

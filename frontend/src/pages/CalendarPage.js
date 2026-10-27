@@ -725,35 +725,17 @@ export default function CalendarPage() {
               )}
             </div>
 
-            {/* What she logged that day — quick logs save to the day, and
-                this is where she can look back at them (Angelita, Oct 17) */}
-            {(() => {
-              const dayLogs = cycleLogs.filter(l => l.date === selectedDate && !l.is_period);
-              return (
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10" data-testid="day-logs">
-                  <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Logged this day</p>
-                  {dayLogs.length === 0 ? (
-                    <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing logged this day yet.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {dayLogs.map((log) => (
-                        <div key={log.id}>
-                          {log.notes && (
-                            <p className="text-[#FDF8FA] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.notes}</p>
-                          )}
-                          {!log.notes && log.symptoms?.length > 0 && (
-                            <p className="text-[#FDF8FA] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.symptoms.join(', ')}</p>
-                          )}
-                          {log.flow && (
-                            <p className="text-[#CFC3CC] text-[11px] capitalize" style={{ fontFamily: 'Poppins, sans-serif' }}>Flow: {log.flow}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+            {/* Her logged days live in her Vault now, not on the Calendar
+                (Angelita, Oct 26, 2026). Days are no longer "saved on the
+                Calendar": this dialog shows her cycle only (period day,
+                intimacy mark, fertile window). Quick logs still save to
+                the day exactly as before; she reads them back in her
+                Vault, inside her Journal. */}
+            <div className="p-3 rounded-xl bg-white/5 border border-white/10" data-testid="day-logs-note">
+              <p className="text-[#CFC3CC] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                What you log on a day is kept in your Vault, in your Journal, with the rest of your days.
+              </p>
+            </div>
 
             {/* Fertility notice */}
             {isOvulationDay(selectedDate) && (
