@@ -7,6 +7,7 @@ import { Toaster } from './components/ui/sonner';
 import { syncLocalNotifications } from './utils/localNotifications';
 import InstallPrompt from './components/InstallPrompt';
 import AmbientOrb from './components/PhaseOrb';
+import FallingFlowers from './components/FallingFlowers';
 
 // Pages
 import AuthPage from './pages/AuthPage';
@@ -69,9 +70,16 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// The main tab pages get the falling flowers layer (v50). The
+// Devotional the owner speaks of lives inside these tabs in this
+// build (there is no separate devotional route); the layer mounts
+// once here in the shell and only on tab routes.
+const FLOWER_TAB_ROUTES = ['/', '/journal', '/attunement', '/calendar', '/profile'];
+
 // App Content with routing
 const AppContent = () => {
   const { user, token, loading } = useAuth();
+  const location = useLocation();
 
   // v43: on-device local notifications are reconciled once per app
   // open for a signed-in, onboarded user. This is what keeps the
@@ -100,6 +108,7 @@ const AppContent = () => {
   return (
     <div className="min-h-screen noise-overlay">
       <AmbientOrb />
+      {FLOWER_TAB_ROUTES.includes(location.pathname) && <FallingFlowers />}
       {/* Email verification is the hard gate at the start of
           onboarding (v42): ProtectedRoute sends every signed-in
           unverified user there before any app screen. */}

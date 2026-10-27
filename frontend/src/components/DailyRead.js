@@ -64,11 +64,8 @@ export default function DailyRead() {
 
   return (
     <div className="relative rounded-xl overflow-hidden" style={{ border: '1.5px solid #C9B8F0', background: 'linear-gradient(135deg, rgba(201,184,240,0.10) 0%, rgba(201,184,240,0.03) 100%)' }} data-testid="daily-read">
-      {/* Her life stages line, faded to a soft outline behind the read
-          (Angelita, Oct 26, 2026), same treatment as the journal. */}
-      <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true" data-testid="daily-read-life-stages-backdrop">
-        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full block" style={{ opacity: 0.12 }} />
-      </div>
+      {/* v50 (Angelita, Oct 26, 2026): the life stages line no longer
+          sits behind the Daily Read. It belongs to the Journal only. */}
       <div className="relative">
       <div className="px-3 pt-2.5 pb-0.5 flex items-center gap-1.5">
         <span style={{ color: '#C9B8F0', fontSize: '9px' }}>✿</span>

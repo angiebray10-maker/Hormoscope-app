@@ -5,6 +5,8 @@ import { Droplet, X, Check } from 'lucide-react';
 import axios from 'axios';
 import DailyRead from '../components/DailyRead';
 import FloatingCarousel from '../components/FloatingCarousel';
+import TabFooter from '../components/TabFooter';
+import RemindersCard from '../components/RemindersCard';
 import logger from '../utils/logger';
 import { PHASE_COLORS } from '../lib/phases';
 
@@ -96,7 +98,7 @@ const summarizeOwnLogs = (logs) => {
 };
 
 export default function HomePage() {
-  const { user, token } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const { refreshCustomerInfo, companionEntitled } = usePremium();
   const [data, setData] = useState(null);
   const [cycleLogs, setCycleLogs] = useState(null);
@@ -321,6 +323,10 @@ export default function HomePage() {
           <p className="text-white text-base italic leading-relaxed">&ldquo;{wisdom}&rdquo;</p>
         </div>
 
+        {/* v50: one gentle invitation to set reminders (dismissible,
+            never nags) for anyone who has not set them yet. */}
+        <RemindersCard user={user} token={token} updateUser={updateUser} />
+
         {/* Her recent days, from what she logged */}
         {recentDays.length > 0 && (
           <div className="card p-5" data-testid="noperiods-recent">
@@ -340,6 +346,9 @@ export default function HomePage() {
             </p>
           </div>
         )}
+
+        {/* v50: our logo rests at the very bottom of Home. */}
+        <TabFooter />
       </div>
     );
   }
@@ -429,6 +438,10 @@ export default function HomePage() {
           <span className="text-[#E6E0EE]">{(mood.emotional_state || '').split('. ')[0].replace(/\.$/, '')}.</span>
         </p>
       )}
+
+      {/* v50: one gentle invitation to set reminders (dismissible,
+          never nags) for anyone who has not set them yet. */}
+      <RemindersCard user={user} token={token} updateUser={updateUser} />
 
       {/* Quick log: static row of five buttons */}
       <FloatingCarousel token={token} />
@@ -618,6 +631,8 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* v50: our logo rests at the very bottom of Home. */}
+      <TabFooter />
     </div>
   );
 }

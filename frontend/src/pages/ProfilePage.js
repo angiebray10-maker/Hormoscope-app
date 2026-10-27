@@ -9,6 +9,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
 import DateSelect from '../components/DateSelect';
+import TabFooter from '../components/TabFooter';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const APP_URL = process.env.REACT_APP_BACKEND_URL?.replace('/api', '') || window.location.origin;
@@ -546,6 +547,9 @@ export default function ProfilePage() {
         <Trash2 className="w-4 h-4" />
         Delete My Account
       </button>
+
+      {/* v50: our logo rests at the very bottom of Profile. */}
+      <TabFooter />
 
       {showDelete && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-6" data-no-swipe="true" style={{ background: 'rgba(10,6,18,0.88)' }}>

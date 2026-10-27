@@ -5,51 +5,50 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import DateSelect from '../components/DateSelect';
 import VerifyEmailBanner from '../components/VerifyEmailBanner';
-import { ChevronRight, ChevronLeft, Bell, BellOff, Heart, Users, Clock, Shield } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ChevronDown, Heart, BookOpen, Lock, Gift, Shield, KeyRound } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
-import { syncLocalNotifications } from '../utils/localNotifications';
 import { BRAND, HEADING_FONT, BODY_FONT } from '../lib/phases';
 import { BACKDROPS, BACKDROP_OVERLAY } from '../lib/backdrops';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Onboarding redesign (Orio launch fixes), extended in v46: 6 steps.
-// invite -> name -> last period -> cycle -> partner -> reminders.
-// The invite step is new in v46 (Angelita, Oct 26, 2026): a woman who
-// was invited by her partner enters the sync code here and links
-// before her own questions begin. View invites are links, not codes,
-// and never reach this step.
-// Birthday moved to Profile (optional). "I don't remember" is stored as
-// unknown; we never invent a date. "I no longer have periods" (Feature
-// B) stores the no_periods flag and skips every cycle estimate.
-// Backdrop rotation (Angelita's set, Oct 26, 2026): at-home couple first
-// and again at step 4, then hallway, laughing couple, sunset, bed + dog.
-const STEP_BG = { 1: BACKDROPS[0], 2: BACKDROPS[1], 3: BACKDROPS[2], 4: BACKDROPS[0], 5: BACKDROPS[3], 6: BACKDROPS[4] };
+// Slim onboarding (Angelita, Oct 26, 2026, v50): fewer questions, show
+// what the app does, and get her to her cycle day fast. Three steps:
+// welcome (what HORMOscope does, her name, the privacy promise in one
+// proud line with the full text a tap away, an optional partner code)
+// -> last period (approximate is fine, no penalty) -> cycle ("I'm not
+// sure" first; the estimate starts at 28 and her logging makes it
+// exact). Then she lands on Home on her cycle day.
+//
+// What moved OUT, by her order: the standalone security step (folded
+// into step 1 above), the sharing checklist step (the checklist lives
+// ONLY in Attunement now, where it runs before invite creation), and
+// the reminders step (Home carries one dismissible reminders card
+// instead; the backend fields stay optional and are simply no longer
+// collected here). "I no longer have periods" keeps its off-ramp on
+// the period step exactly as before. Birthday stays in Profile.
+const STEP_BG = { 1: BACKDROPS[0], 2: BACKDROPS[1], 3: BACKDROPS[2] };
 
+const WHAT_IT_DOES = [
+  { icon: BookOpen, text: 'Your Daily Read, written for your exact cycle day' },
+  { icon: Heart, text: 'Attuned Partner Mode: share your cycle, only what you choose' },
+  { icon: Lock, text: 'Your private Journal and Vault: your words, yours alone' },
+  { icon: Gift, text: 'A gift catalog, so you can build a wishlist your partner can see' },
+];
+
+// "I'm not sure" sits FIRST and equal (Angelita, Oct 26, 2026): she
+// starts on a 28 day estimate and the app gets exact from her logging.
+// The other situations still switch fertility predictions off, exactly
+// as before.
 const SITUATIONS = [
+  { id: 'unsure', label: "I'm not sure", hint: "We'll start with a 28 day estimate, and your logging makes it exact" },
   { id: 'regular', label: 'I get a period', hint: 'Set my usual length below' },
-  { id: 'unsure', label: "Not sure how long my cycle is", hint: "We'll start at 28 days and learn as you log" },
   { id: 'hormonal_birth_control', label: "I'm on hormonal birth control", hint: 'Fertility predictions stay off' },
   { id: 'pregnant', label: "I'm pregnant", hint: 'Fertility predictions stay off' },
   { id: 'postpartum', label: 'Postpartum / breastfeeding', hint: 'Fertility predictions stay off' },
   { id: 'menopause', label: 'Perimenopause or menopause', hint: 'Fertility predictions stay off' },
   { id: 'no_periods', label: 'I no longer have periods', hint: 'Your days are built from what you log' },
-];
-
-const VISIBILITY = [
-  { id: 'phase', label: 'My phase and cycle day' },
-  { id: 'mood_energy', label: 'My mood and energy' },
-  { id: 'period_dates', label: 'When my next period is due' },
-  { id: 'fertile_window', label: 'My fertile window' },
-  // v49 (Angelita, Oct 26, 2026): journal sharing by choice, off
-  // unless she ticks it, linked partners in the app only.
-  { id: 'share_journal', label: 'My journal entries' },
-];
-
-const TIMES = [
-  { time: '07:00', label: '7 AM' }, { time: '09:00', label: '9 AM' }, { time: '12:00', label: '12 PM' },
-  { time: '18:00', label: '6 PM' }, { time: '20:00', label: '8 PM' }, { time: '22:00', label: '10 PM' },
 ];
 
 const choiceClass = (active) =>
@@ -60,33 +59,24 @@ const choiceClass = (active) =>
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
+  const [showSecurity, setShowSecurity] = useState(false);
   const [lastPeriodDate, setLastPeriodDate] = useState('');
   const [dontRemember, setDontRemember] = useState(false);
   const [noPeriods, setNoPeriods] = useState(false);
-  const [situation, setSituation] = useState('regular');
+  const [situation, setSituation] = useState('unsure');
   const [cycleLength, setCycleLength] = useState(28);
-  const [partnerChoice, setPartnerChoice] = useState('later');
-  const [visibility, setVisibility] = useState({ phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true, share_journal: false });
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [notificationTime, setNotificationTime] = useState('09:00');
-  // v49: the two cycle alerts are their own choices on the reminders
-  // step, not riders on the daily reminder. Both start ticked, shown
-  // plainly, and she can untick either. What she chooses is what gets
-  // scheduled, nothing else.
-  const [periodAlert, setPeriodAlert] = useState(true);
-  const [ovulationAlert, setOvulationAlert] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  // Invite step state (v46): 'yes' opens the code field; a successful
-  // accept records who she linked with and unlocks Next.
-  const [invitedChoice, setInvitedChoice] = useState(null); // 'yes' | 'no'
+  // Optional partner code on the welcome step (v50): closed unless
+  // she opens it; a successful accept records who she linked with.
+  const [showCode, setShowCode] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [inviteLinked, setInviteLinked] = useState(null); // partner name
   const { token, user, updateUser } = useAuth();
   const navigate = useNavigate();
-  const totalSteps = 6;
+  const totalSteps = 3;
 
   const effSituation = noPeriods ? 'no_periods' : situation;
   const pickSituation = (id) => {
@@ -95,8 +85,8 @@ export default function OnboardingPage() {
     setSituation(id);
   };
 
-  // Already linked? The invite step has nothing to ask her: record
-  // the link for the confirmation line and move her to the name step.
+  // Already linked? Nothing to ask her: the welcome step simply shows
+  // who she is linked with.
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
@@ -104,8 +94,6 @@ export default function OnboardingPage() {
       .then((res) => {
         if (!cancelled && res.data?.is_linked) {
           setInviteLinked(res.data.partner_name || 'your partner');
-          setInvitedChoice('yes');
-          setStep((s) => (s === 1 ? 2 : s));
         }
       })
       .catch(() => {});
@@ -148,41 +136,29 @@ export default function OnboardingPage() {
   }, [user, navigate]);
 
   const canNext =
-    (step === 1 && (invitedChoice === 'no' || !!inviteLinked)) ||
-    (step === 2 && name.trim().length > 0) ||
-    (step === 3 && (noPeriods || dontRemember || !!lastPeriodDate)) ||
-    step >= 4;
+    (step === 1 && name.trim().length > 0) ||
+    (step === 2 && (noPeriods || dontRemember || !!lastPeriodDate)) ||
+    step >= 3;
 
   const handleComplete = async () => {
     setLoading(true);
     setError('');
     try {
+      // Only the essentials are sent. partner_visibility and the
+      // notification fields stay OPTIONAL in the backend contract:
+      // the checklist lives in Attunement, and reminders are set from
+      // the Home card or Profile, so nothing is collected here.
       const res = await axios.post(`${API}/onboarding`, {
         name: name.trim(),
         last_period_date: noPeriods || dontRemember ? null : lastPeriodDate,
         cycle_status: effSituation,
         no_periods: effSituation === 'no_periods',
         cycle_length: effSituation === 'regular' ? cycleLength : 28,
-        partner_choice: partnerChoice,
-        partner_visibility: visibility,
-        notifications_enabled: notificationsEnabled,
-        notification_time: notificationTime,
-        notification_preferences: { period_reminder: periodAlert, ovulation_reminder: ovulationAlert },
+        partner_choice: 'later',
       }, { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 });
       updateUser(res.data);
-      localStorage.setItem('hormoscope-notifications-enabled', notificationsEnabled ? 'true' : 'false');
-      localStorage.setItem('hormoscope-notification-time', notificationTime);
-      localStorage.setItem('hormoscope-notifications-period', periodAlert ? 'true' : 'false');
-      localStorage.setItem('hormoscope-notifications-ovulation', ovulationAlert ? 'true' : 'false');
-      if (notificationsEnabled || periodAlert || ovulationAlert) {
-        // v43: on-device local notifications replace the old Web Push
-        // subscription (which could never deliver inside the Android
-        // WebView). Permission is requested here, in context, right
-        // after she chose her reminder time. No-op on web builds.
-        try { await syncLocalNotifications({ user: res.data, token, requestPermission: true }); } catch (notifErr) { logger.error('Local notification setup failed during onboarding:', notifErr); }
-      }
       localStorage.setItem('hormoscope-show-welcome', 'true');
-      navigate(partnerChoice === 'later' ? '/' : '/attunement');
+      navigate('/');
     } catch (err) {
       logger.error('Onboarding error:', err);
       const detail = err.response?.data?.detail;
@@ -243,61 +219,14 @@ export default function OnboardingPage() {
       </div>
       <div className="w-full max-w-md relative">
         <div className="flex items-center justify-center gap-2 mb-8" aria-label={`Step ${step} of ${totalSteps}`}>
-          {[1, 2, 3, 4, 5, 6].map((s) => (
+          {[1, 2, 3].map((s) => (
             <div key={s} className="h-2 rounded-full transition-all" style={{ width: s <= step ? 36 : 20, background: s <= step ? BRAND.pink : 'rgba(255,255,255,0.15)' }} />
           ))}
         </div>
 
         <div className="rounded-3xl p-7 border border-white/10" style={{ background: 'rgba(21,21,43,0.92)' }}>
           {step === 1 && (
-            <div className="space-y-6" data-testid="onboarding-invite-step">
-              <div>
-                <H>Were you invited by your partner?</H>
-                <Sub>If she sent you an invite code, enter it here and you will be linked before anything else. If nobody sent you one, just say no and continue.</Sub>
-              </div>
-              {inviteLinked ? (
-                <div className="rounded-xl p-4 border border-[#FF4F9A]/40 text-center" style={{ background: 'rgba(255,79,154,0.08)' }} data-testid="onboarding-invite-linked">
-                  <p className="text-white text-[15px]">You're linked with {inviteLinked}.</p>
-                  <p className="text-xs mt-1" style={{ color: BRAND.textMuted }}>Now let's set up your own side.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <button data-testid="onboarding-invited-yes" onClick={() => { setInvitedChoice('yes'); setInviteError(''); }} className={choiceClass(invitedChoice === 'yes')}>
-                      {invitedChoice === 'yes' ? '✓ ' : ''}Yes, I have a code
-                    </button>
-                    <button data-testid="onboarding-invited-no" onClick={() => { setInvitedChoice('no'); setInviteError(''); }} className={choiceClass(invitedChoice === 'no')}>
-                      {invitedChoice === 'no' ? '✓ ' : ''}No, I'm starting on my own
-                    </button>
-                  </div>
-                  {invitedChoice === 'yes' && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block mb-2 text-sm text-white" htmlFor="ob-invite-code">Her invite code</label>
-                        <Input id="ob-invite-code" data-testid="onboarding-invite-code" type="text" value={inviteCode}
-                          onChange={(e) => setInviteCode(e.target.value.toUpperCase().slice(0, 8))}
-                          placeholder="8 characters" className="input-dark text-lg uppercase" autoFocus />
-                      </div>
-                      <Button data-testid="onboarding-invite-accept" onClick={acceptInvite} disabled={inviteBusy || inviteCode.trim().length < 4} className="w-full rounded-full text-white" style={{ background: BRAND.pink }}>
-                        {inviteBusy ? 'Linking…' : 'Link us'}
-                      </Button>
-                      {inviteError && (
-                        <div role="alert" data-testid="onboarding-invite-error" className="rounded-xl p-3 text-sm border border-red-400/40 bg-red-500/10 text-red-200">
-                          {inviteError}
-                        </div>
-                      )}
-                      <button data-testid="onboarding-invite-skip" onClick={() => { setInvitedChoice('no'); setInviteError(''); }} className="w-full text-center text-sm underline" style={{ color: BRAND.textMuted }}>
-                        Continue without linking
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-6">
+            <div className="space-y-6" data-testid="onboarding-welcome-step">
               <div className="text-center">
                 <div className="mx-auto mb-5 w-24 h-24 rounded-full overflow-hidden flex items-center justify-center" style={{ background: '#000', border: '1px solid rgba(255,79,154,0.5)' }} data-testid="onboarding-logo">
                   <img src="/images/logo.png" alt="HORMOscope" className="w-full h-full object-contain" style={{ padding: 10 }} />
@@ -306,43 +235,112 @@ export default function OnboardingPage() {
                   style={{ fontFamily: BODY_FONT, color: 'rgba(255,79,154,0.12)', WebkitTextStroke: '1.4px #FF4F9A', textShadow: '0 0 18px rgba(255,79,154,0.45)' }}>
                   Welcome to your true HORMOscope
                 </h1>
-                <Sub>Your cycle, decoded daily, and shared only with the people you choose.</Sub>
+                <Sub>Science, not stars. Your day, read from your own cycle.</Sub>
               </div>
+
+              {/* What HORMOscope does: the glimpse comes before the
+                  questions (Angelita, Oct 26, 2026). */}
+              <div className="space-y-2" data-testid="onboarding-what-it-does">
+                {WHAT_IT_DOES.map(({ icon: Icon, text }) => (
+                  <div key={text} className="flex items-center gap-3 rounded-xl px-4 py-2.5 border border-white/10" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <Icon className="w-4 h-4 flex-shrink-0" style={{ color: BRAND.pink }} />
+                    <p className="text-[13px] leading-snug text-[#E6E0EE]">{text}</p>
+                  </div>
+                ))}
+              </div>
+
               <div>
                 <label className="block mb-2 text-sm text-white" htmlFor="ob-name">What should we call you?</label>
                 <Input id="ob-name" data-testid="onboarding-name-input" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your first name" className="input-dark text-lg" autoFocus />
               </div>
-              {/* Privacy is the number one promise (Angelita, Oct 26, 2026):
-                  onboarding states ALL of the security measures plainly,
-                  the same promise the front page makes. */}
-              <div className="rounded-2xl p-4 border border-white/10 text-left" style={{ background: 'rgba(255,255,255,0.03)' }} data-testid="onboarding-security">
-                <p className="flex items-center gap-2 text-sm text-white mb-2">
-                  <Shield className="w-4 h-4 flex-shrink-0" style={{ color: BRAND.pink }} />
-                  Your privacy is our first promise
+
+              {/* Privacy is the number one promise (Angelita, Oct 26,
+                  2026): ONE proud line up front, the full five points
+                  a single tap away. */}
+              <div>
+                <p className="flex items-start gap-2 text-[13px] leading-relaxed text-[#E6E0EE]" data-testid="onboarding-privacy-line">
+                  <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: BRAND.pink }} />
+                  Your data is encrypted, never sold, never shared, not even with a partner. Your journal is yours.
                 </p>
-                <ul className="space-y-1.5 text-[13px] leading-relaxed" style={{ color: BRAND.textMuted }}>
-                  <li>Everything you write and log is encrypted while it travels and while it rests with us.</li>
-                  <li>We keep our security updated ahead of the standard, always.</li>
-                  <li>Your information is never sold and never shared. Not with advertisers, not with anyone, not even with a partner you link.</li>
-                  <li>Your password is stored scrambled, so it cannot be read in plain form, not even by us.</li>
-                  <li>Your journal stays private unless you choose to share it with your partner.</li>
-                </ul>
+                <button
+                  type="button"
+                  onClick={() => setShowSecurity(!showSecurity)}
+                  className="mt-2 inline-flex items-center gap-1 text-[13px] underline"
+                  style={{ color: BRAND.pink }}
+                  data-testid="onboarding-security-toggle"
+                  aria-expanded={showSecurity}
+                >
+                  See how we protect you
+                  <ChevronDown className="w-3.5 h-3.5" style={{ transform: showSecurity ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                </button>
+                {showSecurity && (
+                  <div className="rounded-2xl p-4 border border-white/10 text-left mt-3" style={{ background: 'rgba(255,255,255,0.03)' }} data-testid="onboarding-security">
+                    <p className="text-sm text-white mb-2">Your privacy is our first promise</p>
+                    <ul className="space-y-1.5 text-[13px] leading-relaxed" style={{ color: BRAND.textMuted }}>
+                      <li>Everything you write and log is encrypted while it travels and while it rests with us.</li>
+                      <li>We keep our security updated ahead of the standard, always.</li>
+                      <li>Your information is never sold and never shared. Not with advertisers, not with anyone, not even with a partner you link.</li>
+                      <li>Your password is stored scrambled, so it cannot be read in plain form, not even by us.</li>
+                      <li>Your journal stays private unless you choose to share it with your partner.</li>
+                    </ul>
+                  </div>
+                )}
               </div>
+
+              {/* Optional partner code: there if she was invited,
+                  invisible pressure if she was not. */}
+              {inviteLinked ? (
+                <div className="rounded-xl p-4 border border-[#FF4F9A]/40 text-center" style={{ background: 'rgba(255,79,154,0.08)' }} data-testid="onboarding-invite-linked">
+                  <p className="text-white text-[15px]">You're linked with {inviteLinked}.</p>
+                  <p className="text-xs mt-1" style={{ color: BRAND.textMuted }}>Now let's set up your own side.</p>
+                </div>
+              ) : showCode ? (
+                <div className="space-y-3" data-testid="onboarding-invite-block">
+                  <div>
+                    <label className="block mb-2 text-sm text-white" htmlFor="ob-invite-code">Her invite code</label>
+                    <Input id="ob-invite-code" data-testid="onboarding-invite-code" type="text" value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value.toUpperCase().slice(0, 8))}
+                      placeholder="8 characters" className="input-dark text-lg uppercase" autoFocus />
+                  </div>
+                  <Button data-testid="onboarding-invite-accept" onClick={acceptInvite} disabled={inviteBusy || inviteCode.trim().length < 4} className="w-full rounded-full text-white" style={{ background: BRAND.pink }}>
+                    {inviteBusy ? 'Linking…' : 'Link us'}
+                  </Button>
+                  {inviteError && (
+                    <div role="alert" data-testid="onboarding-invite-error" className="rounded-xl p-3 text-sm border border-red-400/40 bg-red-500/10 text-red-200">
+                      {inviteError}
+                    </div>
+                  )}
+                  <button data-testid="onboarding-invite-skip" onClick={() => { setShowCode(false); setInviteError(''); }} className="w-full text-center text-sm underline" style={{ color: BRAND.textMuted }}>
+                    Continue without linking
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCode(true)}
+                  className="w-full inline-flex items-center justify-center gap-2 text-[13px]"
+                  style={{ color: BRAND.textMuted }}
+                  data-testid="onboarding-invite-open"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span className="underline">I have a partner invite code</span>
+                </button>
+              )}
             </div>
           )}
 
-          {step === 3 && (
-            <div className="space-y-6">
+          {step === 2 && (
+            <div className="space-y-6" data-testid="onboarding-period-step">
               <div>
                 <H>Your last period</H>
-                <Sub>When did your most recent period start?</Sub>
+                <Sub>When did your most recent period start? Your best guess is fine: approximate still starts your cycle, and your logging makes it exact.</Sub>
               </div>
               {!dontRemember && !noPeriods && (
                 <DateSelect testId="onboarding-date-input" value={lastPeriodDate} onChange={setLastPeriodDate} minYear={new Date().getFullYear() - 1} maxYear={new Date().getFullYear()} />
               )}
               <button data-testid="onboarding-dont-remember" onClick={() => { setDontRemember(!dontRemember); setLastPeriodDate(''); setNoPeriods(false); }} className={choiceClass(dontRemember)}>
-                {dontRemember ? '✓ ' : ''}I don't remember
-                <span className="block text-xs mt-1" style={{ color: BRAND.textMuted }}>No problem. Log your next period when it starts and your predictions will begin then.</span>
+                {dontRemember ? '✓ ' : ''}I don't remember exactly
+                <span className="block text-xs mt-1" style={{ color: BRAND.textMuted }}>No penalty either way. A rough guess above works, or choose this and log your next period when it starts: your predictions begin then.</span>
               </button>
               <button data-testid="onboarding-noperiods" onClick={() => { setNoPeriods(!noPeriods); setLastPeriodDate(''); setDontRemember(false); }} className={choiceClass(noPeriods)}>
                 {noPeriods ? '✓ ' : ''}I no longer have periods
@@ -351,11 +349,11 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {step === 4 && (
-            <div className="space-y-5">
+          {step === 3 && (
+            <div className="space-y-5" data-testid="onboarding-cycle-step">
               <div>
                 <H>Your cycle</H>
-                <Sub>Pick what's true for you right now.</Sub>
+                <Sub>Pick what's true for you right now. Not knowing is a perfectly good answer here.</Sub>
               </div>
               <div className="space-y-2">
                 {SITUATIONS.map((o) => (
@@ -376,80 +374,6 @@ export default function OnboardingPage() {
                   <p className="text-xs mt-2" style={{ color: BRAND.textMuted }}>From the first day of one period to the day before the next. Most are 24 to 35 days.</p>
                 </div>
               )}
-            </div>
-          )}
-
-          {step === 5 && (
-            <div className="space-y-5">
-              <div>
-                <H>Stay attuned together</H>
-                <Sub>Share your cycle with someone you love. They only see what you tick below. Your intimacy log is never shared, and your journal only if you tick it.</Sub>
-              </div>
-              <div className="space-y-2">
-                {[
-                  { id: 'invite_partner', icon: Heart, label: 'Invite my partner', hint: 'They follow your cycle and get tips for each phase' },
-                  { id: 'sync_girlfriend', icon: Users, label: 'Sync cycles with my girlfriend', hint: 'You both track and see each other side by side' },
-                  { id: 'later', icon: ChevronRight, label: 'Maybe later', hint: 'You can do this any time from Profile' },
-                ].map(({ id, icon: Icon, label, hint }) => (
-                  <button key={id} data-testid={`onboarding-partner-${id}`} onClick={() => setPartnerChoice(id)} className={`${choiceClass(partnerChoice === id)} flex items-start gap-3`}>
-                    <Icon className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: BRAND.pink }} />
-                    <span>{label}<span className="block text-xs mt-0.5" style={{ color: BRAND.textMuted }}>{hint}</span></span>
-                  </button>
-                ))}
-              </div>
-              {partnerChoice !== 'later' && (
-                <div className="rounded-xl p-4 border border-white/10" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                  <p className="text-sm text-white mb-3">What can they see?</p>
-                  {VISIBILITY.map((v) => (
-                    <label key={v.id} className="flex items-center gap-3 py-1.5 text-sm text-[#E6E0EE] cursor-pointer">
-                      <input type="checkbox" data-testid={`onboarding-vis-${v.id}`} checked={!!visibility[v.id]} onChange={(e) => setVisibility({ ...visibility, [v.id]: e.target.checked })} className="w-4 h-4 accent-[#FF4F9A]" />
-                      {v.label}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {step === 6 && (
-            <div className="space-y-5">
-              <div>
-                <H>Your reminders</H>
-                <Sub>Choose the notes you want from us. Only the ones you tick will ever be sent, and you can change your mind any time in Profile.</Sub>
-              </div>
-              <div>
-                <p className="text-sm text-white mb-2">Your Daily Read reminder</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button data-testid="onboarding-notify-yes" onClick={() => setNotificationsEnabled(true)} className={`${choiceClass(notificationsEnabled)} flex items-center gap-2`}><Bell className="w-5 h-5" /> Yes please</button>
-                  <button data-testid="onboarding-notify-no" onClick={() => setNotificationsEnabled(false)} className={`${choiceClass(!notificationsEnabled)} flex items-center gap-2`}><BellOff className="w-5 h-5" /> No thanks</button>
-                </div>
-                <p className="text-xs mt-1.5" style={{ color: BRAND.textMuted }}>A short note each day about your phase and how you might feel.</p>
-              </div>
-              {notificationsEnabled && (
-                <div>
-                  <p className="text-sm text-white mb-2 flex items-center gap-2"><Clock className="w-4 h-4" style={{ color: BRAND.pink }} /> What time?</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {TIMES.map(({ time, label }) => (
-                      <button key={time} onClick={() => setNotificationTime(time)} className="py-2 rounded-lg text-sm" style={notificationTime === time ? { background: BRAND.pink, color: '#fff' } : { background: 'rgba(255,255,255,0.06)', color: BRAND.textMuted }}>{label}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="space-y-2">
-                <label className="flex items-start gap-3 rounded-xl border border-white/15 px-4 py-3 cursor-pointer">
-                  <input type="checkbox" data-testid="onboarding-notify-period" checked={periodAlert} onChange={(e) => setPeriodAlert(e.target.checked)} className="w-4 h-4 mt-0.5 accent-[#FF4F9A]" />
-                  <span className="text-sm text-[#E6E0EE]">Period coming
-                    <span className="block text-xs mt-0.5" style={{ color: BRAND.textMuted }}>A gentle note the evening before your period is estimated to start.</span>
-                  </span>
-                </label>
-                <label className="flex items-start gap-3 rounded-xl border border-white/15 px-4 py-3 cursor-pointer">
-                  <input type="checkbox" data-testid="onboarding-notify-ovulation" checked={ovulationAlert} onChange={(e) => setOvulationAlert(e.target.checked)} className="w-4 h-4 mt-0.5 accent-[#FF4F9A]" />
-                  <span className="text-sm text-[#E6E0EE]">Ovulation week starting
-                    <span className="block text-xs mt-0.5" style={{ color: BRAND.textMuted }}>A note the morning your ovulation week is estimated to begin.</span>
-                  </span>
-                </label>
-              </div>
-              <p className="text-xs" style={{ color: BRAND.textMuted }}>You can change any of this later in Profile.</p>
             </div>
           )}
 

@@ -3664,7 +3664,7 @@ async def _partner_view_payload(token: str):
     docs = await cursor.to_list(length=500)
     docs.sort(key=lambda d: d.get("created_at") or "")
     payload["wishlist"] = [
-        {"name": CATALOG_PRODUCTS[d["product_id"]],
+        {"name": CATALOG_PRODUCTS[d["product_id"]]["name"],
          "url": f"https://www.amazon.com/dp/{d['product_id']}?tag=hormoscope20-20"}
         for d in docs if d.get("product_id") in CATALOG_PRODUCTS
     ]
@@ -4125,7 +4125,8 @@ async def get_partner_mood(current_user: dict = Depends(get_current_user)):
 # and a linked partner can see them only when she shares (below).
 
 CATALOG_PRODUCT_IDS = {
-    # One single flat list (Angelita, Oct 26, 2026); no collections.
+    # One catalog (Angelita, Oct 26, 2026); the app groups it under
+    # section headings, but server-side it is one validated list.
     "B0FHBXCCLM", "B0C1YG33PD", "B0C9LCM3HW", "B07NLSLP9K", "B093LVS21D", "B083C6BYG9",
     "B0FGB2NS3C", "B07M5X4D3P",
     "B0CNC67C8B",
@@ -4135,6 +4136,9 @@ CATALOG_PRODUCT_IDS = {
     # Added Oct 26, 2026, in the order she sent them.
     "B0BX78DC84", "B0BLSVBMVY", "B0DS1MRGBY", "B00LWE69NU", "B07YQBWVGF", "B06XKP5Z1X",
     "B07JK78TM7", "B0DZ2J1GS1", "B09PTGQ4CK", "B0CFPRZHYM", "B005F1ATJQ",
+    # Added Oct 27, 2026 (v50): her late-night picks that research
+    # could identify. The unidentified ones stay out until named.
+    "B098TV9THH", "B000LQJKI6", "B00KWX688S",
 }
 
 
@@ -4178,37 +4182,44 @@ async def remove_wishlist_item(product_id: str, current_user: dict = Depends(get
     return {"ok": True, "removed": result.deleted_count}
 
 
-# Names for the server-rendered partner link view's wishlist section.
-# Mirrors frontend/src/data/catalog.js (same picks; links are built
-# with her Associates tag, hormoscope20-20).
+# Catalog details for the server-rendered partner link view's
+# wishlist section. Mirrors frontend/src/data/catalog.js (same picks;
+# links are built with her Associates tag, hormoscope20-20). v50:
+# each entry carries the product image URL and the checked price
+# (October 27, 2026) alongside the name; image/price are None where
+# research could not verify them, and the app then shows its peach
+# placeholder tile / no price rather than inventing one.
 CATALOG_PRODUCTS = {
-    "B0FHBXCCLM": "Dona Tea Library",
-    "B0C1YG33PD": "BouZaFoFa Portable Heating Pad for Cramps",
-    "B0C9LCM3HW": "FLEX Reusable Menstrual Disc Starter Bundle",
-    "B07NLSLP9K": "Always Radiant Pads, Size 5 Extra Heavy Overnight, 54 Count",
-    "B093LVS21D": "Tampax Pearl Tampons, Regular, 50 Count x 2",
-    "B083C6BYG9": "Rael Slim Applicator Tampons, Organic Cotton, 40 Count",
-    "B0FGB2NS3C": "Philips Lumea 9000 Series IPL Hair Removal Device",
-    "B07M5X4D3P": "iRESTORE Professional Laser Hair Growth System",
-    "B0CNC67C8B": "Diamond Tennis Bracelet, 20 Carat Lab Grown, Platinum, 7 Inch",
-    "B07VTDXFDC": "Aromatherapy Associates Ultimate Wellbeing Bath & Shower Oil Set",
-    "B0D7N2KWLH": "iRestore LED Face Mask",
-    "B09Y8SV5RY": "KARMAPLEDGE Chakra Tree of Life",
-    "B0F8J3GJDQ": "Survival Kit Advent Calendar for Men",
-    "B0FY7R1TQ3": "LOVERY Luxury Perfume Advent Calendar for Women",
-    "B0FQFMDMDC": "Evvy Vaginal Health Test, 2 Pack",
-    "B0B75T46L8": "Viome Full Body Intelligence Test",
-    "B0BX78DC84": "Pixie Menstrual Cup & Disc Boiler Sterilizer",
-    "B0BLSVBMVY": "Pixie Menstrual Disc Kit",
-    "B0DS1MRGBY": "Pixie Disc + Applicator Bundle (2 discs)",
-    "B00LWE69NU": "Flex Reusable Disc",
-    "B07YQBWVGF": "Cora Overnight Pads, 72 count",
-    "B06XKP5Z1X": "Cora Organic Tampons, 36 Super",
-    "B07JK78TM7": "Cora Organic Tampons Multipack, 36 count",
-    "B0DZ2J1GS1": "Comfytemp Cordless Heating Belt",
-    "B09PTGQ4CK": "Menstruation Crustacean Lobster Heating Plush",
-    "B0CFPRZHYM": "OQQ 3 Piece Bodysuits",
-    "B005F1ATJQ": "Ancient Minerals Magnesium Bath Flakes",
+    "B0FHBXCCLM": {"name": "Dona Tea Library", "image": "https://m.media-amazon.com/images/I/718HP8ZB13L._SX569_.jpg", "price": 79},
+    "B0C1YG33PD": {"name": "BouZaFoFa Portable Heating Pad for Cramps", "image": "https://m.media-amazon.com/images/I/41iqdbVzm+L.jpg", "price": 19.99},
+    "B0C9LCM3HW": {"name": "FLEX Reusable Menstrual Disc Starter Bundle", "image": None, "price": 49.97},
+    "B07NLSLP9K": {"name": "Always Radiant Pads, Size 5 Extra Heavy Overnight, 54 Count", "image": "https://m.media-amazon.com/images/I/51YQCkH1eWL.jpg", "price": 24.84},
+    "B093LVS21D": {"name": "Tampax Pearl Tampons, Regular, 50 Count x 2", "image": "https://m.media-amazon.com/images/I/51Jh8uiyKsL.jpg", "price": 22.71},
+    "B083C6BYG9": {"name": "Rael Slim Applicator Tampons, Organic Cotton, 40 Count", "image": "https://m.media-amazon.com/images/I/41LOZTBQoKL.jpg", "price": 18.99},
+    "B0FGB2NS3C": {"name": "Philips Lumea 9000 Series IPL Hair Removal Device", "image": None, "price": 579.95},
+    "B07M5X4D3P": {"name": "iRESTORE Professional Laser Hair Growth System", "image": "https://m.media-amazon.com/images/I/31nSdU7iWZL.jpg", "price": 899},
+    "B0CNC67C8B": {"name": "Diamond Tennis Bracelet, 20 Carat Lab Grown, Platinum, 7 Inch", "image": None, "price": None},
+    "B07VTDXFDC": {"name": "Aromatherapy Associates Ultimate Wellbeing Bath & Shower Oil Set", "image": None, "price": 199.99},
+    "B0D7N2KWLH": {"name": "iRestore LED Face Mask", "image": "https://m.media-amazon.com/images/I/41N6YT4V+xL.jpg", "price": 379},
+    "B09Y8SV5RY": {"name": "KARMAPLEDGE Chakra Tree of Life", "image": None, "price": 32.65},
+    "B0F8J3GJDQ": {"name": "Survival Kit Advent Calendar for Men", "image": None, "price": None},
+    "B0FY7R1TQ3": {"name": "LOVERY Luxury Perfume Advent Calendar for Women", "image": None, "price": None},
+    "B0FQFMDMDC": {"name": "Evvy Vaginal Health Test, 2 Pack", "image": None, "price": None},
+    "B0B75T46L8": {"name": "Viome Full Body Intelligence Test", "image": None, "price": 299},
+    "B0BX78DC84": {"name": "Pixie Menstrual Cup & Disc Boiler Sterilizer", "image": None, "price": None},
+    "B0BLSVBMVY": {"name": "Pixie Menstrual Disc Kit", "image": None, "price": 39.95},
+    "B0DS1MRGBY": {"name": "Pixie Disc + Applicator Bundle (2 discs)", "image": "https://m.media-amazon.com/images/I/41q9jytlCRL.jpg", "price": 39.95},
+    "B00LWE69NU": {"name": "Flex Reusable Disc", "image": None, "price": 34.95},
+    "B07YQBWVGF": {"name": "Cora Overnight Pads, 72 count", "image": None, "price": None},
+    "B06XKP5Z1X": {"name": "Cora Organic Tampons, 36 Super", "image": "https://m.media-amazon.com/images/I/513g9-iXWuL.jpg", "price": 15.72},
+    "B07JK78TM7": {"name": "Cora Organic Tampons Multipack, 36 count", "image": "https://m.media-amazon.com/images/I/51xnyUNlRLL.jpg", "price": 18.49},
+    "B0DZ2J1GS1": {"name": "Comfytemp Cordless Heating Belt", "image": None, "price": None},
+    "B09PTGQ4CK": {"name": "Menstruation Crustacean Lobster Heating Plush", "image": "https://m.media-amazon.com/images/I/415wJ3X6BsL.jpg", "price": 22.96},
+    "B0CFPRZHYM": {"name": "OQQ 3 Piece Bodysuits", "image": None, "price": 24.85},
+    "B005F1ATJQ": {"name": "Ancient Minerals Magnesium Bath Flakes", "image": "https://m.media-amazon.com/images/I/81iSrDwN9zL.jpg", "price": 13},
+    "B098TV9THH": {"name": "Arabella Bouquets, 25 Pink Roses, Fresh Flowers for Delivery", "image": None, "price": None},
+    "B000LQJKI6": {"name": "GuyLian Belgian Chocolate Seashells, 8.82 oz, 22 pc", "image": None, "price": 17.99},
+    "B00KWX688S": {"name": "Benchmark Bouquets Flowering Fields, With Vase (Fresh Cut Flowers)", "image": "https://m.media-amazon.com/images/I/51qWQlCf7DL.jpg", "price": 44.95},
 }
 
 

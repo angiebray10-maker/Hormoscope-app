@@ -256,7 +256,9 @@ async def main():
         c, _ = await add(PARTNER, pid)
         if c == "ok":
             accepted += 1
-    results.append(("all server catalog ASINs accepted", accepted == len(server.CATALOG_PRODUCT_IDS) == 27))
+    # v50: the catalog grew from 27 to 30 (three newly identified
+    # picks added Oct 27, 2026); the shipped-size literal follows it.
+    results.append(("all server catalog ASINs accepted", accepted == len(server.CATALOG_PRODUCT_IDS) == 30))
 
     failed = [name for name, ok in results if not ok]
     for name, ok in results:

@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
+import TabFooter from '../components/TabFooter';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -869,6 +870,8 @@ export default function CalendarPage() {
         </DialogContent>
       </Dialog>
 
+      {/* v50: our logo rests at the very bottom of the Calendar. */}
+      <TabFooter />
     </div>
   );
 }

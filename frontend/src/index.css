@@ -668,3 +668,24 @@ html.hs-orb-off .hs-orb-pulse { animation: none !important; }
   border-radius: 9999px; pointer-events: none; z-index: 0; filter: blur(8px);
 }
 @media (prefers-reduced-motion: reduce) { .hs-orb-pulse { animation: none !important; } }
+
+/* Falling flowers (Angelita, Oct 26, 2026, v50): the Journal page's
+   little ✿ flowers drifting down the tabs like cherry blossoms.
+   Transform-only keyframes so they stay cheap in the WebView. A tap
+   anywhere adds .flowers-paused to the layer and freezes them; they
+   resume after a few quiet seconds or on scroll. */
+@keyframes flowerFall {
+  0% { transform: translate3d(0, -6vh, 0) rotate(0deg); }
+  25% { transform: translate3d(2.5vw, 22vh, 0) rotate(95deg); }
+  50% { transform: translate3d(-2vw, 48vh, 0) rotate(180deg); }
+  75% { transform: translate3d(2vw, 74vh, 0) rotate(265deg); }
+  100% { transform: translate3d(-1vw, 106vh, 0) rotate(350deg); }
+}
+.falling-flower {
+  animation-name: flowerFall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.flowers-paused .falling-flower { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .falling-flower { animation: none !important; } }

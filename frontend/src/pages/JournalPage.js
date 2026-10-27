@@ -394,8 +394,11 @@ export default function JournalPage() {
   const fmtTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
   if (loading && !loadTimedOut && !loadError) return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }}>
-      <div className="max-w-2xl mx-auto px-5 pt-6">
+    <div className="relative min-h-screen" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }}>
+      <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center" aria-hidden="true">
+        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full block" style={{ opacity: 0.12 }} />
+      </div>
+      <div className="relative max-w-2xl mx-auto px-5 pt-6">
         <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Yours only</p>
         <h1 className="text-3xl text-white mb-10" style={{ fontFamily: "'Poiret One', sans-serif" }}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
         <div className="flex flex-col items-center pt-10">
@@ -408,12 +411,15 @@ export default function JournalPage() {
   );
 
   if (loadTimedOut || loadError) return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
-      <p className="text-white/80 text-sm mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Couldn&apos;t load your journal.</p>
-      <p className="text-white/70 text-xs mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>The server might be waking up. Try again in a moment.</p>
+    <div className="relative flex flex-col items-center justify-center min-h-screen px-6 text-center overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center" aria-hidden="true">
+        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full block" style={{ opacity: 0.12 }} />
+      </div>
+      <p className="relative text-white/80 text-sm mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Couldn&apos;t load your journal.</p>
+      <p className="relative text-white/70 text-xs mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>The server might be waking up. Try again in a moment.</p>
       <button
         onClick={handleRetry}
-        className="px-6 py-3 rounded-full text-white text-sm font-medium"
+        className="relative px-6 py-3 rounded-full text-white text-sm font-medium"
         style={{ background: '#FF4F9A', fontFamily: 'Poppins, sans-serif' }}
       >
         Try Again
@@ -441,11 +447,13 @@ export default function JournalPage() {
 
   return (
     <div className="relative min-h-screen pb-40 lg:ml-64" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="journal-page">
-      {/* Her life stages line, baby to old lady, faded to a soft outline
-          behind the journal (Angelita, Oct 26, 2026). Decorative only,
-          kept faint so every word on the page stays easy to read. */}
-      <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true" data-testid="journal-life-stages-backdrop">
-        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.13 }} />
+      {/* Her life stages line, baby to old lady, is the backdrop of the
+          WHOLE Journal now (Angelita, Oct 26, 2026, v50): one faded
+          layer spanning the entire page, behind the book, the editor,
+          everything. Decorative only, kept faint so every word on the
+          page stays easy to read. */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center" aria-hidden="true" data-testid="journal-life-stages-backdrop">
+        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full block" style={{ opacity: 0.12 }} />
       </div>
       {/* Decorative flowers */}
       <div className="absolute top-0 left-0 w-full h-64 pointer-events-none overflow-hidden opacity-20">
@@ -644,9 +652,10 @@ export default function JournalPage() {
           data-no-swipe keeps the tab-swipe handler out while it is open. */}
       {vaultOpen && (
         <div className="fixed inset-0 z-[80] flex flex-col" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-no-swipe="true" data-testid="journal-vault">
-          {/* The same faded life stages line runs behind the vault. */}
-          <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true">
-            <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.10 }} />
+          {/* The same faded life stages line fills the whole vault
+              backdrop too (v50), so the Journal feels like one place. */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center" aria-hidden="true">
+            <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full block" style={{ opacity: 0.12 }} />
           </div>
           <div className="relative flex items-center justify-between px-5 py-4 max-w-2xl mx-auto w-full flex-shrink-0">
             <div className="flex items-center gap-2">

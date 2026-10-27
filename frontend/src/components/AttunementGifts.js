@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
 import { PartnerAvatar } from '../pages/AttunementPage';
-import { CATALOG_PRODUCTS, PRODUCT_BY_ASIN, amazonUrl, CATALOG_DISCLOSURE } from '../data/catalog';
+import { CATALOG_PRODUCTS, PRODUCT_BY_ASIN, amazonUrl, CATALOG_DISCLOSURE, CATALOG_SECTIONS, CATALOG_PRICES_LINE, formatPrice } from '../data/catalog';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const PINK = '#f4a7b9';
@@ -17,9 +17,10 @@ const script = { fontFamily: "'Poiret One', sans-serif" };
 // 2026: the long explanation is gone) with a
 // tab menu. FIRST tab is the user's own wishlist (with her name and
 // picture on it), LAST tab is "Gift Catalog" (her gift catalog,
-// renamed Oct 26, 2026 from its earlier name). The catalog is ONE single flat list
-// (Angelita, Oct 26, 2026): no collections, no phase baskets, so a
-// partner looking at the wishlist just sees the list. Since Oct 26, 2026 the wishlist is always
+// renamed Oct 26, 2026 from its earlier name). The catalog is ONE
+// catalog (Angelita, Oct 26, 2026), grouped under her section
+// headings in her order since v50: no collections, no phase baskets.
+// Since Oct 26, 2026 the wishlist is always
 // part of the partner experience: a linked partner (and anyone with
 // her partner view link) always sees it, so there is no visibility
 // switch here anymore. Her control is the contents of the list.
@@ -36,27 +37,61 @@ function openAmazon(asin) {
   window.open(amazonUrl(asin), '_system');
 }
 
+// v50 (Angelita, Oct 26, 2026): every row shows the product's
+// picture and its price UP FRONT, no tap needed. The picture sits at
+// the left (about 64px, rounded); where research could not verify an
+// image, a soft placeholder tile carries our peach logo at low
+// opacity. The price sits under the name; where no price could be
+// verified, no price shows at all. The same row serves the catalog
+// and both wishlists.
 function ProductCard({ product, children }) {
+  const price = formatPrice(product.price);
   return (
     <div className="rounded-2xl p-4 mb-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }} data-testid={`product-${product.asin}`}>
-      {/* The product NAME is the Amazon link (Angelita, Oct 26, 2026):
-          no buy wording, no view wording, no button label at all
-          until she picks a word she likes. Same tagged link, same
-          outside-the-WebView open as before. */}
-      <h4 className="text-white text-sm font-medium leading-snug mb-1" style={poppins}>
-        <a
-          href={amazonUrl(product.asin)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => { e.preventDefault(); openAmazon(product.asin); }}
-          className="underline decoration-[rgba(244,167,185,0.55)] underline-offset-2"
-          data-testid={`amazon-${product.asin}`}
-        >
-          {product.name}
-        </a>
-      </h4>
-      <p className="text-[#b8b8d1] text-xs leading-relaxed mb-3" style={poppins}>{product.blurb}</p>
-      {children && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
+      <div className="flex gap-3">
+        {product.image ? (
+          <img
+            src={product.image}
+            alt=""
+            loading="lazy"
+            className="rounded-xl shrink-0"
+            style={{ width: 64, height: 64, objectFit: 'cover', background: 'rgba(255,255,255,0.05)' }}
+            data-testid={`image-${product.asin}`}
+          />
+        ) : (
+          <div
+            className="rounded-xl shrink-0 flex items-center justify-center"
+            style={{ width: 64, height: 64, background: 'rgba(255,79,154,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}
+            data-testid={`image-placeholder-${product.asin}`}
+            aria-hidden="true"
+          >
+            <img src="/images/logo.png" alt="" style={{ width: 40, height: 40, objectFit: 'contain', opacity: 0.35 }} />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          {/* The product NAME is the Amazon link (Angelita, Oct 26, 2026):
+              no buy wording, no view wording, no button label at all
+              until she picks a word she likes. Same tagged link, same
+              outside-the-WebView open as before. */}
+          <h4 className="text-white text-sm font-medium leading-snug mb-1" style={poppins}>
+            <a
+              href={amazonUrl(product.asin)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => { e.preventDefault(); openAmazon(product.asin); }}
+              className="underline decoration-[rgba(244,167,185,0.55)] underline-offset-2"
+              data-testid={`amazon-${product.asin}`}
+            >
+              {product.name}
+            </a>
+          </h4>
+          {price && (
+            <p className="text-sm font-medium mb-1" style={{ ...poppins, color: PINK }} data-testid={`price-${product.asin}`}>{price}</p>
+          )}
+          <p className="text-[#b8b8d1] text-xs leading-relaxed mb-3" style={poppins}>{product.blurb}</p>
+          {children && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
+        </div>
+      </div>
     </div>
   );
 }
@@ -224,28 +259,40 @@ export default function AttunementGifts() {
       {activeTab === 'catalog' && (
         <div data-testid="catalog-tab">
           <p className="text-[#B4B0C8] text-[11px] leading-relaxed mb-4" style={poppins}>{CATALOG_DISCLOSURE}</p>
-          {CATALOG_PRODUCTS.map((p) => {
-            const inBoutique = (myPicks || []).includes(p.asin);
+          {/* v50: grouped under her section headings, in her order.
+              A section with no products does not show. */}
+          {CATALOG_SECTIONS.map((section) => {
+            const items = CATALOG_PRODUCTS.filter((p) => p.section === section);
+            if (items.length === 0) return null;
             return (
-              <ProductCard key={p.asin} product={p}>
-                {inBoutique ? (
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium" style={{ ...poppins, color: '#9fd8b4', border: '1px solid rgba(159,216,180,0.45)' }} data-testid={`in-boutique-${p.asin}`}>
-                    <Heart className="w-3.5 h-3.5" fill="currentColor" /> In your wishlist
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => addPick(p.asin)}
-                    disabled={busyAsin === p.asin}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium text-white disabled:opacity-50"
-                    style={{ ...poppins, background: HOT }}
-                    data-testid={`add-${p.asin}`}
-                  >
-                    <Heart className="w-3.5 h-3.5" /> Add to my wishlist
-                  </button>
-                )}
-              </ProductCard>
+              <div key={section} data-testid={`catalog-section-${section}`}>
+                <h3 className="text-base mt-5 mb-3" style={{ ...script, color: HOT }}>{section}</h3>
+                {items.map((p) => {
+                  const inBoutique = (myPicks || []).includes(p.asin);
+                  return (
+                    <ProductCard key={p.asin} product={p}>
+                      {inBoutique ? (
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium" style={{ ...poppins, color: '#9fd8b4', border: '1px solid rgba(159,216,180,0.45)' }} data-testid={`in-boutique-${p.asin}`}>
+                          <Heart className="w-3.5 h-3.5" fill="currentColor" /> In your wishlist
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => addPick(p.asin)}
+                          disabled={busyAsin === p.asin}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium text-white disabled:opacity-50"
+                          style={{ ...poppins, background: HOT }}
+                          data-testid={`add-${p.asin}`}
+                        >
+                          <Heart className="w-3.5 h-3.5" /> Add to my wishlist
+                        </button>
+                      )}
+                    </ProductCard>
+                  );
+                })}
+              </div>
             );
           })}
+          <p className="text-[#B4B0C8] text-[11px] leading-relaxed mt-4" style={poppins}>{CATALOG_PRICES_LINE}</p>
           <p className="text-[#B4B0C8] text-[11px] leading-relaxed" style={poppins}>{CATALOG_DISCLOSURE}</p>
         </div>
       )}
