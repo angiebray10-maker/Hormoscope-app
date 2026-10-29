@@ -451,6 +451,18 @@ export default function HomePage() {
         <DailyRead />
       </div>
 
+      {/* Partner Daily Note preview: the exact line her partner sees
+          today. The server only sends it while she shares her phase,
+          so nothing renders here while sharing is off. */}
+      {data?.partner_daily_note && (
+        <div className="card p-5 mb-4" data-testid="partner-note-preview">
+          <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-1">For your partner</p>
+          <h3 className="text-lg mb-2" style={{ fontFamily: "'Poiret One', sans-serif", color: '#f4a7b9' }}>What your partner sees today</h3>
+          <p className="text-white text-sm leading-relaxed mb-2">{data.partner_daily_note.text}</p>
+          <p className="text-[#E6E0EE] text-sm leading-relaxed">{data.partner_daily_note.prompt}</p>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => setShowMore(!showMore)}

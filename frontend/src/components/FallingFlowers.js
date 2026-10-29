@@ -1,23 +1,33 @@
 import React, { useState, useEffect } from 'react';
 
-// Falling flowers (Angelita, Oct 26, 2026, v50): the same little ✿
-// flowers that decorate the Journal page, sprinkled across every tab,
-// a few only, soft and powdery, drifting down slowly like cherry
-// blossoms in the wind. Pure decoration: pointer-events none, painted
-// above the page backgrounds, and they never touch any data.
+// Tiny peaches (Angelita, Oct 28, 2026): the flowers are gone. In
+// their place, a few tiny copies of the app peach (the sunglasses
+// peach, the identical art, just smaller) sit here and there on the
+// page, each one spinning slowly in place and fading in and out on
+// its own staggered cycle, appearing and disappearing. Once in a
+// while one slightly bigger peach shows up with a soft glow, stays
+// a few seconds, then is gone for a long stretch.
+// Pure decoration: pointer-events none, transform and opacity only,
+// so the phone's graphics chip handles them for almost free.
 //
-// Her motion rule: the flowers fall while she is browsing or sitting
-// inactive on a tab, and they FREEZE the moment she taps or clicks
-// anything. Scrolling counts as browsing (they keep falling); a tap
-// pauses them, and they drift again after about 4 quiet seconds.
-const FLOWERS = [
-  { left: '6%', size: 18, color: '#f4a7b9', duration: 17, delay: -3, opacity: 0.5 },
-  { left: '22%', size: 14, color: '#c9b8f0', duration: 21, delay: -11, opacity: 0.42 },
-  { left: '41%', size: 22, color: '#f4a7b9', duration: 19, delay: -7, opacity: 0.38 },
-  { left: '58%', size: 15, color: '#74b9ff', duration: 23, delay: -15, opacity: 0.4 },
-  { left: '76%', size: 19, color: '#c9b8f0', duration: 18, delay: -5, opacity: 0.46 },
-  { left: '90%', size: 14, color: '#f4a7b9', duration: 22, delay: -13, opacity: 0.42 },
+// Her motion rule from v50 still holds: a tap anywhere freezes the
+// peaches, and they move again after about 4 quiet seconds or on
+// scroll. The component keeps its FallingFlowers name and mount
+// points so App.js and OnboardingPage.js do not change.
+const PEACH_SRC = '/images/peach-mini.png';
+
+const PEACHES = [
+  { top: '11%', left: '7%', size: 26, peak: 0.7, spin: 19, spinDelay: -4, fade: 9, fadeDelay: -2, reverse: false },
+  { top: '27%', left: '86%', size: 22, peak: 0.6, spin: 23, spinDelay: -11, fade: 11, fadeDelay: -6, reverse: true },
+  { top: '55%', left: '13%', size: 30, peak: 0.55, spin: 21, spinDelay: -7, fade: 10, fadeDelay: -4, reverse: false },
+  { top: '72%', left: '80%', size: 24, peak: 0.65, spin: 17, spinDelay: -13, fade: 8, fadeDelay: -1, reverse: true },
+  { top: '88%', left: '38%', size: 22, peak: 0.6, spin: 25, spinDelay: -2, fade: 12, fadeDelay: -8, reverse: false },
 ];
+
+// The special one: a bit bigger, full strength with a soft pink
+// glow, on a long 52 second cycle where it is only visible for a
+// short slice in the middle.
+const RARE_PEACH = { top: '40%', left: '60%', size: 44, spin: 10, spinDelay: -3, cycle: 52, cycleDelay: -18 };
 
 export default function FallingFlowers() {
   const [paused, setPaused] = useState(false);
@@ -57,29 +67,47 @@ export default function FallingFlowers() {
 
   return (
     <div
-      className={`fixed inset-0 overflow-hidden pointer-events-none${paused ? ' flowers-paused' : ''}`}
+      className={`fixed inset-0 overflow-hidden pointer-events-none${paused ? ' peaches-paused' : ''}`}
       style={{ zIndex: 3 }}
       aria-hidden="true"
       data-testid="falling-flowers"
     >
-      {FLOWERS.map((f, i) => (
-        <span
+      {PEACHES.map((p, i) => (
+        <img
           key={i}
-          className={reducedMotion ? undefined : 'falling-flower'}
+          src={PEACH_SRC}
+          alt=""
+          className={reducedMotion ? undefined : 'tiny-peach'}
           style={{
             position: 'absolute',
-            top: reducedMotion ? `${8 + i * 14}%` : '-40px',
-            left: f.left,
-            fontSize: f.size,
-            color: f.color,
-            opacity: f.opacity,
-            animationDuration: `${f.duration}s`,
-            animationDelay: `${f.delay}s`,
+            top: p.top,
+            left: p.left,
+            width: p.size,
+            height: 'auto',
+            opacity: reducedMotion ? p.peak : 0,
+            '--peak': p.peak,
+            animationDuration: `${p.spin}s, ${p.fade}s`,
+            animationDelay: `${p.spinDelay}s, ${p.fadeDelay}s`,
+            animationDirection: p.reverse ? 'reverse, normal' : undefined,
           }}
-        >
-          ✿
-        </span>
+        />
       ))}
+      <img
+        src={PEACH_SRC}
+        alt=""
+        className={reducedMotion ? undefined : 'rare-peach'}
+        style={{
+          position: 'absolute',
+          top: RARE_PEACH.top,
+          left: RARE_PEACH.left,
+          width: RARE_PEACH.size,
+          height: 'auto',
+          filter: 'drop-shadow(0 0 6px rgba(255,93,162,0.95)) drop-shadow(0 0 16px rgba(255,20,147,0.5))',
+          opacity: reducedMotion ? 0.8 : 0,
+          animationDuration: `${RARE_PEACH.spin}s, ${RARE_PEACH.cycle}s`,
+          animationDelay: `${RARE_PEACH.spinDelay}s, ${RARE_PEACH.cycleDelay}s`,
+        }}
+      />
     </div>
   );
 }

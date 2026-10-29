@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PremiumProvider } from './context/PremiumContext';
 import { BottomNav } from './components/BottomNav';
@@ -80,6 +82,37 @@ const FLOWER_TAB_ROUTES = ['/', '/journal', '/attunement', '/calendar', '/profil
 const AppContent = () => {
   const { user, token, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // v54 (Angelita, Oct 29, 2026): "when I push the back button it
+  // goes back to my email." There was NO Android back handler at
+  // all, so the system default finished the app whenever the
+  // WebView history ran out, and because she had arrived from her
+  // mail app the phone landed her back in her email mid-flow. The
+  // standard Capacitor fix: own the backButton event. Inside the
+  // app, back walks back through her screens; from a main tab it
+  // takes her Home; only on Home (or the sign-in page) does back
+  // minimize the app like any other Android app. No-op on web.
+  const pathnameRef = useRef(location.pathname);
+  pathnameRef.current = location.pathname;
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return undefined;
+    let handle = null;
+    let removed = false;
+    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+      const path = pathnameRef.current;
+      const ROOT_ROUTES = ['/', '/journal', '/attunement', '/calendar', '/profile', '/auth'];
+      if (!ROOT_ROUTES.includes(path)) {
+        if (canGoBack) navigate(-1);
+        else navigate('/');
+      } else if (path !== '/' && path !== '/auth') {
+        navigate('/');
+      } else {
+        CapacitorApp.minimizeApp();
+      }
+    }).then((h) => { if (removed) h.remove(); else handle = h; }).catch(() => {});
+    return () => { removed = true; if (handle) handle.remove(); };
+  }, [navigate]);
 
   // v43: on-device local notifications are reconciled once per app
   // open for a signed-in, onboarded user. This is what keeps the

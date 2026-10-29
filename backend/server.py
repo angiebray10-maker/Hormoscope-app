@@ -2274,7 +2274,7 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
     # Everything on Home is free (Angelita, Oct 21, 2026, reversing the
     # short-lived Daily Read paywall from earlier that night). The one
     # paid feature in the app is the Journal Companion.
-    return {
+    out = {
         "user_name": current_user.get("name", "Beautiful"),
         "age": age,
         "age_group": age_group,
@@ -2290,6 +2290,16 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
         "vitamins": daily_content.get("vitamins"),
         "is_premium": current_user.get("is_premium", False),
     }
+    # Owner preview of the Partner Daily Note (Oct 29, 2026): Home
+    # shows her the exact line her partner sees today, but only while
+    # her phase sharing is on. While it is off her partner receives no
+    # note, so there is no note here to preview either.
+    _vis = {**DEFAULT_PARTNER_VISIBILITY, **(current_user.get("partner_visibility") or {})}
+    if _vis.get("phase") and not _is_no_periods(current_user):
+        _note = _partner_daily_note(cycle_info.get("phase"), cycle_info.get("cycle_day", 1))
+        if _note:
+            out["partner_daily_note"] = _note
+    return out
 
 # ==================== JOURNAL ====================
 
@@ -3207,6 +3217,92 @@ def _partner_tips_for_phase(phase: str):
     }
     return partner_tips.get(phase, partner_tips["menstrual"])
 
+# Partner Daily Note (Angelita, Oct 29, 2026): ONE partner-facing line
+# for today, built ONLY from her phase and cycle day: what she likely
+# needs today in plain words, plus one small prompt a partner can act
+# on. Variants rotate by cycle day so consecutive days in the same
+# phase do not repeat. The wording speaks to the partner without
+# gendering them, so any couple can use it. This is phase-level data
+# only: it never reads journal, vault, intimacy, log, or note content,
+# and payload builders may only attach it where her phase sharing
+# choice is on (unchecked checklist items are never sent).
+PARTNER_DAILY_NOTES = {
+    "menstrual": [
+        {"text": "Today may be a tender, low energy day for her. Comfort and quiet company mean more than big plans.",
+         "prompt": "Bring her something warm to drink and ask what would feel good tonight."},
+        {"text": "Her body is doing hard work today. She may need extra rest and a little more patience than usual.",
+         "prompt": "Take one small chore off her plate without being asked."},
+        {"text": "Cramps and tiredness can make the world feel louder today. A calm, cozy space helps.",
+         "prompt": "Set up a soft spot with a blanket and let her settle in."},
+        {"text": "She may be feeling sensitive and close to the surface today. Gentle words land best.",
+         "prompt": "Tell her one true thing you appreciate about her."},
+        {"text": "Her energy is still low, but the heaviest part of her period is passing. Warmth and steadiness help.",
+         "prompt": "Cook something simple and nourishing, or order in her favorite comfort food."},
+    ],
+    "follicular": [
+        {"text": "Her energy is coming back. She may feel lighter, curious, and ready to do more together.",
+         "prompt": "Suggest one fun plan for this week and let her pick the day."},
+        {"text": "Her body is rebuilding now and her mood is likely brighter. New ideas come easily in this stretch.",
+         "prompt": "Ask what she has been wanting to try lately, and help make it happen."},
+        {"text": "She may feel more outgoing and playful today. Shared laughter goes a long way.",
+         "prompt": "Send her something during the day that will make her smile."},
+        {"text": "Focus and motivation tend to rise in this stretch. She may love feeling cheered on.",
+         "prompt": "Ask about a goal she is working on and celebrate one small win together."},
+        {"text": "Her confidence is growing day by day. Today is a good day to dream a little bigger together.",
+         "prompt": "Plan something you both look forward to, even something small."},
+    ],
+    "ovulatory": [
+        {"text": "She is near her peak energy and glow today. She may feel social, warm, and fully herself.",
+         "prompt": "Tell her she looks beautiful, and take your time saying it."},
+        {"text": "Conversations tend to flow easily for her today. Bigger talks feel safer in this window.",
+         "prompt": "Bring up something you have been meaning to discuss, kindly and clearly."},
+        {"text": "She may be feeling magnetic and playful today. Flirting lands well right about now.",
+         "prompt": "Plan a small surprise that makes her feel chosen."},
+        {"text": "Her body is at its most fertile point of the cycle, and her energy is running high.",
+         "prompt": "Make time to be close, in whatever way feels right for both of you."},
+        {"text": "Confidence runs high today. She may love being seen, celebrated, and included.",
+         "prompt": "Invite her to something social she enjoys, and stay by her side."},
+    ],
+    "luteal": [
+        {"text": "Her energy is turning inward now. She may need more quiet and fewer demands.",
+         "prompt": "Give her an unhurried evening and keep plans simple."},
+        {"text": "Small things can feel bigger in this part of her cycle. Extra softness from you helps a lot.",
+         "prompt": "Listen first, and hold off on fixing anything unless she asks."},
+        {"text": "She may feel more tired or tender today as her body prepares for her period.",
+         "prompt": "Handle dinner tonight so she does not have to think about it."},
+        {"text": "Cravings and comfort matter more right now. Cozy beats impressive.",
+         "prompt": "Pick up a favorite snack of hers on your way home."},
+        {"text": "She may be more reflective today, and honest about what she needs.",
+         "prompt": "Ask her, gently, what would help her feel cared for this week."},
+    ],
+    "late": [
+        {"text": "Her period is on its way and her body knows it. She may feel heavy, tired, or on edge.",
+         "prompt": "Keep comforts close: snacks, warmth, and a calm home."},
+        {"text": "Waiting can be its own kind of tired. Patience from you makes the wait easier.",
+         "prompt": "There is no need to ask if it has started. Just be steady and kind."},
+        {"text": "She may need reassurance that slowing down is allowed right now.",
+         "prompt": "Tell her there is nothing she needs to push through tonight."},
+        {"text": "Her period could arrive any time now. A little preparation is a quiet kind of love.",
+         "prompt": "Make sure her comfort supplies are stocked, without making a fuss."},
+    ],
+}
+
+
+def _partner_daily_note(phase: str, cycle_day):
+    """Today's Partner Daily Note for a phase and cycle day, or None
+    when the phase is unknown. Pure function of (phase, cycle_day):
+    the variant rotates by cycle day, so the note changes day to day
+    inside a phase instead of repeating."""
+    variants = PARTNER_DAILY_NOTES.get(phase)
+    if not variants:
+        return None
+    try:
+        day = int(cycle_day or 1)
+    except (TypeError, ValueError):
+        day = 1
+    note = variants[(day - 1) % len(variants)]
+    return {"text": note["text"], "prompt": note["prompt"]}
+
 @api_router.get("/partner/view/{link_code}")
 async def get_partner_view(link_code: str):
     link = await db.partner_links.find_one({"link_code": link_code, "active": True}, {"_id": 0})
@@ -3243,6 +3339,7 @@ async def get_partner_view(link_code: str):
             "phase": phase,
             "phase_info": cycle_info.get("phase_info", ""),
             "partner_tips": tips,
+            "partner_daily_note": _partner_daily_note(phase, cycle_info.get("cycle_day", 1)),
         })
     if vis.get("mood_energy"):
         out.update({
@@ -3520,6 +3617,13 @@ def _sync_person(u: dict, is_self: bool, days: int = 28):
     info = calculate_cycle_info(lp, L)
     out.update({"tracking": True, "cycle_day": info.get("cycle_day"), "phase": info.get("phase"),
                 "cycle_length": L})
+    # Partner Daily Note rides with the phase: this line is reached
+    # for the other person's side only when her phase sharing is on
+    # (the phase-off case returned early above), so the note is absent
+    # from the payload whenever she has not shared her phase.
+    _note = _partner_daily_note(info.get("phase"), info.get("cycle_day"))
+    if _note:
+        out["partner_daily_note"] = _note
     if is_self or vis.get("period_dates"):
         out["next_period_date"] = info.get("next_period_date")
     start = date.fromisoformat(str(lp)[:10])
@@ -3646,6 +3750,9 @@ async def _partner_view_payload(token: str):
             if vis.get("phase"):
                 payload["phase"] = info.get("phase")
                 payload["cycle_day"] = info.get("cycle_day")
+                _note = _partner_daily_note(info.get("phase"), info.get("cycle_day"))
+                if _note:
+                    payload["partner_daily_note"] = _note
             if vis.get("period_dates"):
                 payload["next_period_date"] = info.get("next_period_date")
                 payload["days_until_period"] = info.get("days_until_period")
@@ -3715,6 +3822,12 @@ def _render_partner_view_html(payload):
             parts.append(
                 f'<div class="card"><p class="label">Where she is in her cycle</p>'
                 f'<p class="big">{esc(phase_title)}{day_txt}</p></div>')
+        if payload.get("partner_daily_note"):
+            _note = payload["partner_daily_note"]
+            parts.append(
+                f'<div class="card"><p class="label">A note for today</p>'
+                f'<p class="big">{esc(str(_note.get("text", "")))}</p>'
+                f'<p class="note">{esc(str(_note.get("prompt", "")))}</p></div>')
         if payload.get("feeling_today"):
             parts.append(
                 f'<div class="card"><p class="label">How she is feeling today</p>'
@@ -3915,7 +4028,7 @@ async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
                 except ValueError:
                     pass
 
-    return {
+    out = {
         "name": owner.get("name", "Her"),
         "profile_photo": owner.get("profile_photo"),
         "cycle_day": cycle_info.get("cycle_day", 1),
@@ -3930,6 +4043,14 @@ async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
         "marked_days": marked_days,
         "partner_tips": _partner_tips_for_phase(phase)
     }
+    # Partner Daily Note: gated on her phase sharing choice like every
+    # partner payload, even though this endpoint predates the checklist
+    # for its older fields. Off means the key is absent, not hidden.
+    if _vis.get("phase"):
+        _note = _partner_daily_note(phase, cycle_info.get("cycle_day", 1))
+        if _note:
+            out["partner_daily_note"] = _note
+    return out
 
 @api_router.get("/partner/journal")
 async def get_partner_journal(current_user: dict = Depends(get_current_user)):

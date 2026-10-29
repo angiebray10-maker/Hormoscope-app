@@ -527,6 +527,16 @@ export default function PartnerHubPage() {
               )}
             </div>
 
+            {/* Partner Daily Note: today's one line for the partner,
+                present only while she shares her phase. */}
+            {calData.partner_daily_note && (
+              <div className="rounded-2xl p-5 mb-4 border border-white/[0.06] bg-white/[0.03]" data-testid="partner-daily-note">
+                <h3 className="text-lg mb-2" style={{ fontFamily: "'Poiret One', sans-serif", color: '#f4a7b9' }}>For you, today</h3>
+                <p className="text-white text-sm leading-relaxed mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>{calData.partner_daily_note.text}</p>
+                <p className="text-[#E6E0EE] text-sm leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{calData.partner_daily_note.prompt}</p>
+              </div>
+            )}
+
             {tips && (
               <>
                 <div className="rounded-2xl p-5 mb-4 text-center" style={{ background: `${phaseColor}10`, border: `1px solid ${phaseColor}25` }}>

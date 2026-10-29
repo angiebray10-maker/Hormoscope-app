@@ -95,6 +95,16 @@ export default function PartnerViewPage() {
           <p className="text-white text-base font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>{tips.headline}</p>
         </div>
 
+        {/* Partner Daily Note: one line for today, from her phase only.
+            The server only sends it while she shares her phase. */}
+        {data.partner_daily_note && (
+          <div className="rounded-2xl p-5 mb-4 border border-white/[0.06] bg-white/[0.03]" data-testid="partner-daily-note">
+            <h3 className="text-lg mb-2" style={{ fontFamily: "'Poiret One', sans-serif", color: '#f4a7b9' }}>For you, today</h3>
+            <p className="text-white text-sm leading-relaxed mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>{data.partner_daily_note.text}</p>
+            <p className="text-[#E6E0EE] text-sm leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{data.partner_daily_note.prompt}</p>
+          </div>
+        )}
+
         {/* Energy & Mood */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03]">

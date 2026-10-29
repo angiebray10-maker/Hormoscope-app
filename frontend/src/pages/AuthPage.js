@@ -124,6 +124,12 @@ export default function AuthPage() {
               See How It Works
             </button>
           </div>
+          {/* Bonus mention, inside the app only (Angelita, Oct 29,
+              2026): the logo keeps its ONE tagline, so the partner mode
+              rides here on the front page as a small extra line. */}
+          <p className="text-xs mb-2 text-center sm:text-left" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }} data-testid="hero-bonus-line">
+            Bonus: includes Attuned Partner Mode
+          </p>
           <p className="text-xs flex items-center justify-center sm:justify-start gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
             <Shield className="w-3.5 h-3.5" /> HTTPS, hashed passwords, never sold.
           </p>

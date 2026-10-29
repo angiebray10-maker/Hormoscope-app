@@ -669,23 +669,42 @@ html.hs-orb-off .hs-orb-pulse { animation: none !important; }
 }
 @media (prefers-reduced-motion: reduce) { .hs-orb-pulse { animation: none !important; } }
 
-/* Falling flowers (Angelita, Oct 26, 2026, v50): the Journal page's
-   little ✿ flowers drifting down the tabs like cherry blossoms.
-   Transform-only keyframes so they stay cheap in the WebView. A tap
-   anywhere adds .flowers-paused to the layer and freezes them; they
-   resume after a few quiet seconds or on scroll. */
-@keyframes flowerFall {
-  0% { transform: translate3d(0, -6vh, 0) rotate(0deg); }
-  25% { transform: translate3d(2.5vw, 22vh, 0) rotate(95deg); }
-  50% { transform: translate3d(-2vw, 48vh, 0) rotate(180deg); }
-  75% { transform: translate3d(2vw, 74vh, 0) rotate(265deg); }
-  100% { transform: translate3d(-1vw, 106vh, 0) rotate(350deg); }
+/* Tiny peaches (Angelita, Oct 28, 2026): the flowers are OUT. A few
+   tiny copies of the app peach (the sunglasses peach, identical art,
+   just smaller) sit here and there on the page, each spinning slowly
+   in place and fading in and out on its own staggered cycle. Once in
+   a while one slightly bigger peach appears with a soft glow, stays
+   a few seconds, then is gone for a long stretch.
+   Transform and opacity only, so they stay cheap in the WebView. A
+   tap anywhere adds .peaches-paused to the layer and freezes them;
+   they resume after a few quiet seconds or on scroll. */
+@keyframes peachSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
-.falling-flower {
-  animation-name: flowerFall;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  will-change: transform;
+@keyframes peachFadeSoft {
+  0% { opacity: 0; }
+  38% { opacity: var(--peak, 0.65); }
+  62% { opacity: var(--peak, 0.65); }
+  100% { opacity: 0; }
 }
-.flowers-paused .falling-flower { animation-play-state: paused; }
-@media (prefers-reduced-motion: reduce) { .falling-flower { animation: none !important; } }
+@keyframes peachFadeRare {
+  0%, 58% { opacity: 0; }
+  72% { opacity: 1; }
+  84% { opacity: 1; }
+  97%, 100% { opacity: 0; }
+}
+.tiny-peach {
+  animation-name: peachSpin, peachFadeSoft;
+  animation-timing-function: linear, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  will-change: transform, opacity;
+}
+.rare-peach {
+  animation-name: peachSpin, peachFadeRare;
+  animation-timing-function: linear, linear;
+  animation-iteration-count: infinite, infinite;
+  will-change: transform, opacity;
+}
+.peaches-paused .tiny-peach, .peaches-paused .rare-peach { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .tiny-peach, .rare-peach { animation: none !important; } }
