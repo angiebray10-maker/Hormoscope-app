@@ -8,54 +8,64 @@ import logger from '../utils/logger';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Tiny peaches (Angelita, Oct 28, 2026; cycle day version Oct 30,
-// 2026, fix list item 26): the flowers are gone. In their place, a
-// few tiny copies of the app peach (the sunglasses peach, the
-// identical art, just smaller) sit here and there on the page. They
-// NEVER fall or drift: each one stays in place, spins slowly, and
-// fades in and out on its own staggered cycle, appearing and
-// disappearing at different times, scattered all over the screen,
-// faded in the background behind the content. Their sizes are all
-// different on purpose, noticeably varied, not near uniform. Once in
-// a while one bigger peach shows up with a soft glow, stays a few
-// seconds, then is gone for a long stretch.
+// 2026, fix list item 26; v56 corrections Oct 30, 2026): a few tiny
+// copies of the app peach (the sunglasses peach, the identical art,
+// just smaller) sit here and there on the Home page and the
+// Calendar tab ONLY (v56: removed from Journal, Devotional,
+// Attunement, Profile, Auth, and Onboarding). They NEVER fall or
+// drift: each one stays in place, spins slowly, and fades in and
+// out on its own staggered cycle, scattered all over the screen,
+// faded in the background behind the content.
 //
-// Item 26: every peach carries her CURRENT cycle day number, the
-// same number the dashboard cycle_info reports (if she is on day
-// 24, the peaches show 24). The number sits small on the peach, in
-// the same faded treatment, and updates on its own when her day
-// changes (the dashboard is re-read on mount, on window focus, and
-// every 10 minutes). When there is no current cycle day (the no
-// periods path, or no cycle data yet), the peaches show NO number
-// rather than a wrong or placeholder one.
+// v56 FADED ALWAYS: at her word after the v55 phone check, every
+// peach's peak opacity is capped at PEACH_CAP (0.3). Even at its
+// brightest moment a peach stays background decoration, clearly
+// below the content. The staggered fade in and out, the slow spin
+// in place, the varied sizes, tap to freeze, and reduced motion
+// behavior are all unchanged.
 //
-// Pure decoration: pointer-events none, transform and opacity only,
-// so the phone's graphics chip handles them for almost free.
+// v56 PHASE AURA: every peach shines with a bright soft aura in
+// the CURRENT phase color pair (PHASE_PAIRS), made clearly visible
+// as a glow around the peach while the peach itself stays faded.
+// The peach art is never tinted; the color is aura only. No
+// current phase (no periods path / placeholder): no aura and no
+// number, as before.
 //
+// v56 NUMBER SPINS WITH THE PEACH: the rotating element now
+// CONTAINS both the peach image and its cycle day number, so the
+// number turns along with the peach instead of sitting still
+// under it. The number is the dashboard's current cycle day; when
+// there is no current cycle day the peaches show NO number.
+//
+// Pure decoration: pointer-events none, transform and opacity only.
 // Her motion rule from v50 still holds: a tap anywhere freezes the
 // peaches, and they move again after about 4 quiet seconds or on
-// scroll. The component keeps its FallingFlowers name and mount
-// points so App.js and OnboardingPage.js do not change.
+// scroll. The component keeps its FallingFlowers name.
 const PEACH_SRC = '/images/peach-mini.png';
 
-// All different sizes, noticeably varied (item 26): 16 to 52 px.
+// v56: the peak opacity cap for EVERY peach, rare one included.
+const PEACH_CAP = 0.3;
+
+// All different sizes, noticeably varied: 16 to 52 px. Peaks all
+// sit at or below PEACH_CAP.
 const PEACHES = [
-  { top: '11%', left: '7%', size: 30, peak: 0.7, spin: 19, spinDelay: -4, fade: 9, fadeDelay: -2, reverse: false },
-  { top: '27%', left: '86%', size: 16, peak: 0.6, spin: 23, spinDelay: -11, fade: 11, fadeDelay: -6, reverse: true },
-  { top: '55%', left: '13%', size: 44, peak: 0.5, spin: 21, spinDelay: -7, fade: 10, fadeDelay: -4, reverse: false },
-  { top: '72%', left: '80%', size: 22, peak: 0.65, spin: 17, spinDelay: -13, fade: 8, fadeDelay: -1, reverse: true },
-  { top: '88%', left: '38%', size: 52, peak: 0.45, spin: 25, spinDelay: -2, fade: 12, fadeDelay: -8, reverse: false },
-  { top: '38%', left: '30%', size: 18, peak: 0.55, spin: 27, spinDelay: -9, fade: 13, fadeDelay: -5, reverse: false },
+  { top: '11%', left: '7%', size: 30, peak: 0.3, spin: 19, spinDelay: -4, fade: 9, fadeDelay: -2, reverse: false },
+  { top: '27%', left: '86%', size: 16, peak: 0.24, spin: 23, spinDelay: -11, fade: 11, fadeDelay: -6, reverse: true },
+  { top: '55%', left: '13%', size: 44, peak: 0.27, spin: 21, spinDelay: -7, fade: 10, fadeDelay: -4, reverse: false },
+  { top: '72%', left: '80%', size: 22, peak: 0.21, spin: 17, spinDelay: -13, fade: 8, fadeDelay: -1, reverse: true },
+  { top: '88%', left: '38%', size: 52, peak: 0.29, spin: 25, spinDelay: -2, fade: 12, fadeDelay: -8, reverse: false },
+  { top: '38%', left: '30%', size: 18, peak: 0.25, spin: 27, spinDelay: -9, fade: 13, fadeDelay: -5, reverse: false },
 ];
 
-// The special one: bigger, full strength with a soft pink glow, on
-// a long 52 second cycle where it is only visible for a short slice
-// in the middle.
+// The special one: bigger, with a soft glow, on a long 52 second
+// cycle where it is only visible for a short slice in the middle.
+// v56: its peak is capped at PEACH_CAP like every other peach.
 const RARE_PEACH = { top: '40%', left: '60%', size: 64, spin: 10, spinDelay: -3, cycle: 52, cycleDelay: -18 };
 
-// The day number rides on the peach itself, low and centered, small
-// and faded with it (the wrapper fades, so the number fades too).
-// v55: the number takes the current phase pair's primary color, with
-// a strong dark shadow so it stays readable over the peach art.
+// The day number rides INSIDE the spinning element (v56), low and
+// centered on the peach, so it spins along with the peach. It takes
+// the current phase pair's primary color, with a strong dark shadow
+// so it stays readable over the peach art.
 function PeachDayNumber({ day, size, color }) {
   if (day == null) return null;
   return (
@@ -80,10 +90,12 @@ function PeachDayNumber({ day, size, color }) {
   );
 }
 
-// v55: the phase halo. A soft glow in the CURRENT phase's pair sits
-// BEHIND each peach (primary at the heart, secondary at the edge).
-// The peach art itself is never tinted, recolored, or restyled; the
-// color goes around it. No phase, no halo.
+// v56: the phase AURA, made brighter and wider than the v55 halo
+// so it reads as shining: a soft glowing aura in the CURRENT
+// phase's pair sits BEHIND each peach (primary strong at the
+// heart, secondary carrying it outward). The peach art itself is
+// never tinted, recolored, or restyled; the color goes around it.
+// No phase, no aura.
 function PeachHalo({ pair }) {
   if (!pair) return null;
   return (
@@ -92,9 +104,9 @@ function PeachHalo({ pair }) {
       data-testid="peach-phase-halo"
       style={{
         position: 'absolute',
-        inset: '-35%',
+        inset: '-60%',
         borderRadius: '50%',
-        background: `radial-gradient(circle, ${pair.primary}59 0%, ${pair.secondary}30 55%, ${pair.secondary}00 72%)`,
+        background: `radial-gradient(circle, ${pair.primary}8C 0%, ${pair.primary}59 34%, ${pair.secondary}40 58%, ${pair.secondary}00 78%)`,
         pointerEvents: 'none',
       }}
     />
@@ -118,10 +130,10 @@ export default function FallingFlowers() {
     }
   }, []);
 
-  // Item 26: read the current cycle day from the dashboard, the way
-  // the Journal MiniCalendar does, and keep it current. The no
-  // periods path never gets a number: her stored flags settle that
-  // before the dashboard is even asked.
+  // Read the current cycle day from the dashboard, and keep it
+  // current (re-read on mount, on window focus, and every 10
+  // minutes). The no periods path never gets a number: her stored
+  // flags settle that before the dashboard is even asked.
   useEffect(() => {
     if (!token) { setCycleDay(null); setPhase(null); return undefined; }
     if (user?.no_periods || user?.cycle_status === 'no_periods') { setCycleDay(null); setPhase(null); return undefined; }
@@ -193,21 +205,32 @@ export default function FallingFlowers() {
           }}
         >
           <PeachHalo pair={pair} />
-          <img
-            src={PEACH_SRC}
-            alt=""
+          {/* v56: the spinning element contains the peach AND its
+              number, so the number spins with the peach. */}
+          <span
             className={reducedMotion ? undefined : 'peach-spin'}
             style={{
-              width: '100%',
-              height: 'auto',
               display: 'block',
               position: 'relative',
+              width: '100%',
+              height: '100%',
               animationDuration: `${p.spin}s`,
               animationDelay: `${p.spinDelay}s`,
               animationDirection: p.reverse ? 'reverse' : undefined,
             }}
-          />
-          <PeachDayNumber day={cycleDay} size={p.size} color={pair ? pair.primary : undefined} />
+          >
+            <img
+              src={PEACH_SRC}
+              alt=""
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block',
+                position: 'relative',
+              }}
+            />
+            <PeachDayNumber day={cycleDay} size={p.size} color={pair ? pair.primary : undefined} />
+          </span>
         </div>
       ))}
       <div
@@ -218,31 +241,40 @@ export default function FallingFlowers() {
           left: RARE_PEACH.left,
           width: RARE_PEACH.size,
           height: RARE_PEACH.size,
-          opacity: reducedMotion ? 0.8 : 0,
+          opacity: reducedMotion ? PEACH_CAP : 0,
           animationDuration: `${RARE_PEACH.cycle}s`,
           animationDelay: `${RARE_PEACH.cycleDelay}s`,
         }}
       >
         <PeachHalo pair={pair} />
-        <img
-          src={PEACH_SRC}
-          alt=""
+        <span
           className={reducedMotion ? undefined : 'peach-spin'}
           style={{
-            width: '100%',
-            height: 'auto',
             display: 'block',
             position: 'relative',
-            // v55: the rare peach's glow wears the phase pair too;
-            // the fixed pink below is only the no-phase fallback.
-            filter: pair
-              ? `drop-shadow(0 0 6px ${pair.primary}) drop-shadow(0 0 16px ${pair.secondary}80)`
-              : 'drop-shadow(0 0 6px rgba(255,93,162,0.95)) drop-shadow(0 0 16px rgba(255,20,147,0.5))',
+            width: '100%',
+            height: '100%',
             animationDuration: `${RARE_PEACH.spin}s`,
             animationDelay: `${RARE_PEACH.spinDelay}s`,
           }}
-        />
-        <PeachDayNumber day={cycleDay} size={RARE_PEACH.size} color={pair ? pair.primary : undefined} />
+        >
+          <img
+            src={PEACH_SRC}
+            alt=""
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block',
+              position: 'relative',
+              // The rare peach's glow wears the phase pair too;
+              // the fixed pink below is only the no-phase fallback.
+              filter: pair
+                ? `drop-shadow(0 0 6px ${pair.primary}) drop-shadow(0 0 16px ${pair.secondary}80)`
+                : 'drop-shadow(0 0 6px rgba(255,93,162,0.95)) drop-shadow(0 0 16px rgba(255,20,147,0.5))',
+            }}
+          />
+          <PeachDayNumber day={cycleDay} size={RARE_PEACH.size} color={pair ? pair.primary : undefined} />
+        </span>
       </div>
     </div>
   );

@@ -15,7 +15,7 @@
 // verified the row uses a soft peach placeholder tile, and where no
 // price could be verified the row shows no price at all. We never
 // invent either. Prices are checked again each catalog update; the
-// catalog carries the line "Prices checked October 27, 2026."
+// catalog carries the line "Prices checked October 30, 2026."
 // The backend validates wishlist picks against this same ASIN list.
 // Picks that are still unidentified (B0FHWWCDJ2, B0H6J6LYLX,
 // B09ZFP9XLC; her screenshots pending) are NOT in this list and must
@@ -25,7 +25,7 @@ export const AMAZON_TAG = 'hormoscope20-20';
 
 export const amazonUrl = (asin) => `https://www.amazon.com/dp/${asin}?tag=${AMAZON_TAG}`;
 
-export const CATALOG_PRICES_LINE = 'Prices checked October 27, 2026. Amazon shows the live price when you tap through.';
+export const CATALOG_PRICES_LINE = 'Prices checked October 30, 2026. Amazon shows the live price when you tap through.';
 
 // Her section order. Sections with no products are skipped.
 export const CATALOG_SECTIONS = [
@@ -60,6 +60,13 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0F8J3GJDQ', name: 'Survival Kit Advent Calendar for Men', blurb: 'A 24 day countdown with 24 survival tools. A partner gift pick.', image: null, price: null, section: 'Advent Calendars' },
   { asin: 'B0FY7R1TQ3', name: 'LOVERY Luxury Perfume Advent Calendar for Women', blurb: '24 mini fragrances in a gold gift box.', image: null, price: null, section: 'Advent Calendars' },
   { asin: 'B0FQFMDMDC', name: 'Evvy Vaginal Health Test, 2 Pack', blurb: 'At home vaginal microbiome test with a clinician reviewed report.', image: null, price: null, section: "HORMOscope Picks" },
+  // Added Oct 30, 2026 (v56): three picks she sent that day.
+  // B0HF6S81XH could not be identified from outside Amazon (her
+  // share link only); it goes in with the placeholder tile and no
+  // price until she names it from her Amazon app.
+  { asin: 'B0HF6S81XH', name: "Angelita's Pick", blurb: '', image: null, price: null, section: 'HORMOscope Picks' },
+  { asin: 'B07GY22VLW', name: 'Live Conscious Collagen Peptides Powder', blurb: 'Hydrolyzed Type I and III collagen from grass fed, pasture raised sources. 16 oz, 41 servings.', image: 'https://m.media-amazon.com/images/I/719PP+XVu1L._AC_SL128_.jpg', price: 34.00, section: 'HORMOscope Picks' },
+  { asin: 'B0D5FZGY8W', name: 'O Positiv URO Vaginal Probiotics for Women, 60 Count', blurb: 'Prebiotics and Lactobacillus for healthy vaginal pH balance, odor, and flora. 1 month supply.', image: 'https://m.media-amazon.com/images/I/41Bj7UNMcZL.jpg', price: 28.97, section: 'HORMOscope Picks' },
   { asin: 'B0B75T46L8', name: 'Viome Full Body Intelligence Test', blurb: '3 in 1 kit (blood, saliva, stool) with 50+ health scores, gut microbiome and biological age.', image: null, price: 299, section: "HORMOscope Picks" },
   { asin: 'B0BX78DC84', name: 'Pixie Menstrual Cup & Disc Boiler Sterilizer', blurb: 'Electric boiler sterilizer that cleans cups and discs in 3 minutes, no chemicals.', image: null, price: null, section: "HORMOscope Picks" },
   { asin: 'B0BLSVBMVY', name: 'Pixie Menstrual Disc Kit', blurb: 'Two medical grade silicone discs with wash, wipes, lube and a sterilizing carry cup.', image: null, price: 39.95, section: "HORMOscope Picks" },

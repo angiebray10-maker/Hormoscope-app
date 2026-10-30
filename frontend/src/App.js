@@ -76,7 +76,10 @@ const ProtectedRoute = ({ children }) => {
 // Devotional the owner speaks of lives inside these tabs in this
 // build (there is no separate devotional route); the layer mounts
 // once here in the shell and only on tab routes.
-const FLOWER_TAB_ROUTES = ['/', '/journal', '/attunement', '/calendar', '/profile'];
+// v56: the fading peaches live on Home and Calendar ONLY (her word,
+// Oct 30, 2026). They were removed from Journal, Attunement,
+// Profile, and everywhere else.
+const FLOWER_TAB_ROUTES = ['/', '/calendar'];
 
 // App Content with routing
 const AppContent = () => {

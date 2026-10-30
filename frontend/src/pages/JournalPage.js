@@ -74,8 +74,12 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
   const ovulationWindow = () => {
     const npd = getNextPeriodDate();
     if (!npd) return null;
+    // v56: ovulation anchors to the period START + 14 days, so
+    // from the next period date that is minus (cycle length - 14),
+    // not minus 14.
+    const cycleLen = user?.cycle_length || 28;
     const ov = new Date(npd + 'T00:00:00');
-    ov.setDate(ov.getDate() - 14);
+    ov.setDate(ov.getDate() - (cycleLen - 14));
     const start = new Date(ov);
     start.setDate(start.getDate() - 5);
     const end = new Date(ov);

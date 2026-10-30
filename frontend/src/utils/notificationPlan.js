@@ -8,7 +8,7 @@
 //
 // Cycle math mirrors what the Calendar already uses (and what the
 // server computes): next period = last period start + cycle_length,
-// rolled forward cycle by cycle; ovulation = next period - 14 days;
+// rolled forward cycle by cycle; ovulation = period start + 14 days (v56 anchor);
 // fertile window = ovulation - 5 days through ovulation day.
 // Predictions are always labelled "estimated", matching the wording
 // rule used across the app (Calendar: "Fertile window (estimated)").
@@ -180,10 +180,12 @@ export function cycleInfoFor(user, refDate) {
   // Next period start: the first start + n*L that is strictly after ref.
   const cyclesElapsed = Math.floor(diff / L);
   const nextPeriodDate = addDays(start, (cyclesElapsed + 1) * L);
-  // Ovulation for the cycle that ends at nextPeriodDate, then the
-  // first fertile-window start that is today or later (roll one cycle
-  // forward when this window has already begun).
-  const ovulationDate = addDays(nextPeriodDate, -14);
+  // v56: ovulation anchors to the period START + 14 days. The
+  // current cycle's start is nextPeriodDate minus one cycle length,
+  // so the anchor is start + 14. Then the first fertile-window
+  // start that is today or later (roll one cycle forward when this
+  // window has already begun).
+  const ovulationDate = addDays(nextPeriodDate, 14 - L);
   let fertileStart = addDays(ovulationDate, -5);
   if (fertileStart < ref) fertileStart = addDays(fertileStart, L);
 

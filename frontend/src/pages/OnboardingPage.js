@@ -10,7 +10,6 @@ import axios from 'axios';
 import logger from '../utils/logger';
 import { BRAND, HEADING_FONT, BODY_FONT } from '../lib/phases';
 import { BACKDROP_OVERLAY, ONBOARDING_BG } from '../lib/backdrops';
-import FallingFlowers from '../components/FallingFlowers';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -192,8 +191,7 @@ export default function OnboardingPage() {
           <img src={STEP_BG[1]} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
-        <FallingFlowers />
-        <div className="w-full max-w-md relative">
+          <div className="w-full max-w-md relative">
           <div className="rounded-3xl p-7 border border-white/10" style={{ background: 'rgba(21,21,43,0.92)' }} data-testid="verify-gate">
             <div className="text-center mb-2">
               <div className="mx-auto mb-5 w-24 h-24 rounded-full overflow-hidden flex items-center justify-center" style={{ background: '#000', border: '1px solid rgba(255,79,154,0.5)' }}>
@@ -226,7 +224,6 @@ export default function OnboardingPage() {
         <img key={step} src={STEP_BG[step]} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
       </div>
-      <FallingFlowers />
       <div className="w-full max-w-md relative">
         <div className="flex items-center justify-center gap-2 mb-8" aria-label={`Step ${step} of ${totalSteps}`}>
           {[1, 2, 3].map((s) => (

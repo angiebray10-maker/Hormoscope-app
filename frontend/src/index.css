@@ -135,6 +135,45 @@ h1, h2, h3, .heading {
     position: relative;
 }
 
+/* v56: the Home day sphere is a PEACH now (her peach-mini art at
+   feature size), carrying the cycle day over the art, with the
+   current phase pair as a bright soft aura behind it. The aura is
+   a separate layer (.day-peach-aura) so the peach art itself is
+   never tinted. The orb pulse/breathing wrapper (.hs-orb-pulse)
+   still wraps it, so it breathes like the sphere did. */
+.day-peach {
+  width: 168px;
+  height: 168px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.day-peach-aura {
+  position: absolute;
+  inset: -38%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.day-peach-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  position: relative;
+}
+.day-peach-day {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  transform: translate(-50%, -50%);
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  color: #FFFFFF;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.55);
+  line-height: 1;
+  pointer-events: none;
+}
+
 .cycle-orb::before {
     content: '';
     position: absolute;
@@ -718,16 +757,20 @@ html.hs-orb-off .hs-orb-pulse { animation: none !important; }
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+/* v56 FADED ALWAYS: the soft fade peaks at var(--peak), and every
+   peach sets --peak at or below the 0.3 cap, so even at its
+   brightest a peach stays background decoration. The rare peach
+   peaks at the same 0.3 cap (it used to reach full opacity). */
 @keyframes peachFadeSoft {
   0% { opacity: 0; }
-  38% { opacity: var(--peak, 0.65); }
-  62% { opacity: var(--peak, 0.65); }
+  38% { opacity: var(--peak, 0.3); }
+  62% { opacity: var(--peak, 0.3); }
   100% { opacity: 0; }
 }
 @keyframes peachFadeRare {
   0%, 58% { opacity: 0; }
-  72% { opacity: 1; }
-  84% { opacity: 1; }
+  72% { opacity: 0.3; }
+  84% { opacity: 0.3; }
   97%, 100% { opacity: 0; }
 }
 .tiny-peach {
@@ -736,9 +779,10 @@ html.hs-orb-off .hs-orb-pulse { animation: none !important; }
   animation-iteration-count: infinite, infinite;
   will-change: transform, opacity;
 }
-/* Cycle day peaches (Oct 30, 2026, item 26): the fade lives on the
-   wrapper so the day number fades in and out together with its
-   peach, and the spin lives on the image alone, in place. */
+/* Cycle day peaches (Oct 30, 2026, item 26; v56 restructure): the
+   fade lives on the outer wrapper, and the spin lives on an inner
+   element that contains BOTH the peach image and its day number,
+   so the number spins along with the peach. */
 .peach-fade {
   animation-name: peachFadeSoft;
   animation-timing-function: ease-in-out;

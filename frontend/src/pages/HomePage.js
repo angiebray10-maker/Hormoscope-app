@@ -105,6 +105,7 @@ export default function HomePage() {
   const { refreshCustomerInfo, companionEntitled } = usePremium();
   const [data, setData] = useState(null);
   const [cycleLogs, setCycleLogs] = useState(null);
+  const [cycleStats, setCycleStats] = useState(null);
   const [openPhaseCard, setOpenPhaseCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentBanner, setPaymentBanner] = useState(null); // 'pending' | 'success' | 'failed'
@@ -155,12 +156,20 @@ export default function HomePage() {
   const fetchData = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [dashRes, logsRes] = await Promise.all([
-        axios.get(`${API}/dashboard`, { headers }),
-        axios.get(`${API}/cycle-logs`, { headers }).catch(() => null),
+      // v56: cache-busting timestamp on every read, so after she
+      // logs a period start in Calendar, Home shows the recalculated
+      // dates, phase, and cycle day on the next view instead of a
+      // stale cached dashboard. Home also refetches on window focus
+      // (below), which is how returning to the tab is seen.
+      const bust = { _t: Date.now() };
+      const [dashRes, logsRes, statsRes] = await Promise.all([
+        axios.get(`${API}/dashboard`, { headers, params: bust }),
+        axios.get(`${API}/cycle-logs`, { headers, params: bust }).catch(() => null),
+        axios.get(`${API}/cycle-stats`, { headers, params: bust }).catch(() => null),
       ]);
       setData(dashRes.data);
       if (logsRes) setCycleLogs(logsRes.data);
+      if (statsRes) setCycleStats(statsRes.data);
     } catch (err) {
       logger.error(err);
     } finally {
@@ -171,6 +180,14 @@ export default function HomePage() {
   /* eslint-disable */
   useEffect(() => {
     fetchData();
+  }, [fetchData]);
+
+  // v56: refetch when she comes back to the app or the tab, so a
+  // period logged moments ago in Calendar is already reflected.
+  useEffect(() => {
+    const onFocus = () => fetchData();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, [fetchData]);
 
   /* eslint-enable */
@@ -196,6 +213,14 @@ export default function HomePage() {
   const firstName = rawName && rawName !== 'Beautiful' ? rawName.split(/\s+/)[0] : null;
   const hourNow = new Date().getHours();
   const dayGreeting = hourNow < 12 ? 'Good morning' : hourNow < 18 ? 'Good afternoon' : 'Good evening';
+  // v56: while her cycle length is still an estimate (the estimate
+  // flag, or fewer than 2 logged period starts for older accounts,
+  // the same test the Calendar explainer uses), Home labels the
+  // next period date as an estimate and explains why. Once learning
+  // lands, both come off on their own.
+  const isEstimateState = !user?.no_periods && user?.cycle_status !== 'no_periods'
+    && (!!user?.cycle_length_is_estimate || (cycleStats ? cycleStats.cycles_tracked < 2 : false));
+
   const periodIsLate = cycle.period_is_late || false;
   const daysLate = cycle.days_late || 0;
 
@@ -410,14 +435,28 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Cycle Orb */}
+      {/* Cycle Day Peach (v56): the day sphere is a peach now. Her
+          peach-mini art at feature size carries the cycle day, with
+          a bright soft aura in the current phase pair behind it
+          (the art itself is never tinted). No current phase: no
+          number and no aura, as before. */}
       <div className="flex flex-col items-center mb-8">
+        <span className="text-[#E6E0EE] text-xs tracking-widest uppercase font-semibold mb-3">
+          {phase === 'unknown' ? 'CYCLE DAY' : 'YOU ARE ON DAY'}
+        </span>
         <div className="hs-orb-pulse rounded-full" style={{ boxShadow: `0 0 48px ${config.color}77, 0 0 96px ${config.color2}44` }}>
-        <div className={`cycle-orb ${config.orb}`} data-testid="day-circle">
-          <span className="text-[#1B1030] text-xs tracking-widest uppercase font-semibold">
-            {phase === 'unknown' ? 'CYCLE DAY' : periodIsLate ? 'CYCLE DAY' : 'YOU ARE ON DAY'}
-          </span>
-          <span className="text-7xl font-bold text-[#1B1030]">{phase === 'unknown' ? '–' : (cycle.cycle_day || '?')}</span>
+        <div className="day-peach" data-testid="day-circle">
+          {phase !== 'unknown' && (
+            <span
+              className="day-peach-aura"
+              data-testid="day-peach-aura"
+              style={{ background: `radial-gradient(circle, ${config.color}8C 0%, ${config.color}59 34%, ${config.color2}40 58%, ${config.color2}00 78%)` }}
+            />
+          )}
+          <img src="/images/peach-mini.png" alt="" className="day-peach-img" />
+          {phase !== 'unknown' && (
+            <span className="day-peach-day" style={{ fontSize: 60 }}>{cycle.cycle_day || '?'}</span>
+          )}
         </div>
         </div>
         <h2 className="mt-5 text-2xl font-script" style={{ color: config.color }}>
@@ -429,10 +468,21 @@ export default function HomePage() {
             : periodIsLate
               ? `Expected ${cycle.cycle_length}-day cycle`
               : cycle.days_until_period > 0
-                ? `${cycle.days_until_period} days until next period`
+                ? `${cycle.days_until_period} days until next period${isEstimateState ? ' (estimate)' : ''}`
                 : ''}
         </p>
       </div>
+
+      {/* v56: the estimate explanation, in the fix file's own
+          words. It shows only while her cycle length is still an
+          estimate, and leaves on its own once learning lands. */}
+      {phase !== 'unknown' && isEstimateState && cycle.next_period_date && (
+        <div className="card p-4 mb-6" data-testid="home-estimate-note">
+          <p className="text-[#E6E0EE] text-sm leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            Estimated next period: {new Date(`${cycle.next_period_date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. This is an estimate based on a 28 day cycle because we do not know your exact cycle length yet. Log in the Calendar tab when your period starts and when it finishes. Once you log your period and how long it lasts, HORMOscope will start learning your own cycle. We will know your cycle length for sure after you log your next period start.
+          </p>
+        </div>
+      )}
 
       {/* One line for today */}
       {mood.mood && phase !== 'unknown' && (

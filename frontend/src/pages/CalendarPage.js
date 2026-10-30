@@ -50,8 +50,8 @@ export default function CalendarPage() {
   const fetchLogs = useCallback(async () => {
     try {
       const [cycleRes, intimacyRes] = await Promise.all([
-        axios.get(`${API}/cycle-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }),
-        axios.get(`${API}/intimacy-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
+        axios.get(`${API}/cycle-logs`, { headers: { Authorization: `Bearer ${token}` }, params: { _t: Date.now() }, timeout: 15000 }),
+        axios.get(`${API}/intimacy-logs`, { headers: { Authorization: `Bearer ${token}` }, params: { _t: Date.now() }, timeout: 15000 })
       ]);
       setCycleLogs(cycleRes.data);
       setIntimacyLogs(intimacyRes.data || []);
@@ -66,6 +66,8 @@ export default function CalendarPage() {
     try {
       const res = await axios.get(`${API}/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
+        // v56: never a stale cached dashboard after a period log.
+        params: { _t: Date.now() },
         timeout: 15000
       });
       setDashboard(res.data);
@@ -76,10 +78,29 @@ export default function CalendarPage() {
 
   // Fetch cycle stats to get the real average period length calculated
   // from consecutive logged period days (not just the static user setting).
+  // v56: after a period start is logged or removed, the backend
+  // learning may have updated her user record (cycle length,
+  // estimate flag). Pull the fresh record so this page, and Home
+  // through the shared auth state, reflect the recalculation at
+  // once instead of the copy from before the log.
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { _t: Date.now() },
+        timeout: 15000
+      });
+      if (res.data) updateUser(res.data);
+    } catch (err) {
+      logger.error('Refresh user error:', err);
+    }
+  }, [token, updateUser]);
+
   const fetchCycleStats = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/cycle-stats`, {
         headers: { Authorization: `Bearer ${token}` },
+        params: { _t: Date.now() },
         timeout: 15000
       });
       setCycleStats(res.data);
@@ -204,33 +225,54 @@ export default function CalendarPage() {
   // Off for birth control / pregnancy / postpartum / menopause.
   const fertilityOn = user?.fertility_predictions_enabled !== false;
 
+  // v56 OVULATION ANCHOR: ovulation day = the period start of the
+  // cycle a date belongs to + 14 days (replacing next period minus
+  // 14 everywhere). Projected period starts are her last logged
+  // start walked by whole cycle lengths, so any grid date's cycle
+  // start can be found the same way the expected-period projection
+  // already walks. The fertile window keeps its relative shape
+  // around the anchor: 5 days before through 1 day after, peak the
+  // day before and the day of.
+  const getCycleStartFor = (dateStr) => {
+    if (!user?.last_period_date) return null;
+    const cycleLen = user.cycle_length || 28;
+    const start = new Date(user.last_period_date + 'T00:00:00');
+    const check = new Date(dateStr + 'T00:00:00');
+    if (isNaN(start) || isNaN(check) || cycleLen <= 0) return null;
+    const diffDays = Math.floor((check - start) / 86400000);
+    const k = Math.floor(diffDays / cycleLen);
+    const cycleStart = new Date(start);
+    cycleStart.setDate(cycleStart.getDate() + k * cycleLen);
+    return cycleStart;
+  };
+
+  const getOvulationFor = (dateStr) => {
+    const cycleStart = getCycleStartFor(dateStr);
+    if (!cycleStart) return null;
+    const ov = new Date(cycleStart);
+    ov.setDate(ov.getDate() + 14);
+    return ov;
+  };
+
   const isOvulationDay = (dateStr) => {
     if (!fertilityOn) return false;
-    const npd = getNextPeriodDate();
-    if (!npd) return false;
-    const nextPeriod = new Date(npd + 'T00:00:00');
+    const ovulationDate = getOvulationFor(dateStr);
+    if (!ovulationDate) return false;
     const checkDate = new Date(dateStr + 'T00:00:00');
-
-    const ovulationDate = new Date(nextPeriod);
-    ovulationDate.setDate(ovulationDate.getDate() - 14);
 
     const fertileStart = new Date(ovulationDate);
     fertileStart.setDate(fertileStart.getDate() - 5);
-    // Fertile window = 5 days before ovulation + ovulation day (matches
-    // the Fertile Window card; previously one day longer on the grid).
     const fertileEnd = new Date(ovulationDate);
+    fertileEnd.setDate(fertileEnd.getDate() + 1);
 
     return checkDate >= fertileStart && checkDate <= fertileEnd;
   };
 
   const isPeakOvulation = (dateStr) => {
     if (!fertilityOn) return false;
-    const npd = getNextPeriodDate();
-    if (!npd) return false;
-    const nextPeriod = new Date(npd + 'T00:00:00');
+    const ovulationDate = getOvulationFor(dateStr);
+    if (!ovulationDate) return false;
     const checkDate = new Date(dateStr + 'T00:00:00');
-    const ovulationDate = new Date(nextPeriod);
-    ovulationDate.setDate(ovulationDate.getDate() - 14);
 
     const diffDays = Math.floor((checkDate - ovulationDate) / (1000 * 60 * 60 * 24));
     return diffDays >= -1 && diffDays <= 0;
@@ -261,7 +303,7 @@ export default function CalendarPage() {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      await Promise.all([fetchLogs(), fetchDashboard()]);
+      await Promise.all([fetchLogs(), fetchDashboard(), fetchCycleStats(), refreshUser()]);
       setShowDialog(false);
     } catch (err) {
       logger.error('Log period error:', err);
@@ -346,7 +388,7 @@ export default function CalendarPage() {
         await axios.delete(`${API}/cycle-logs/${log.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        await Promise.all([fetchLogs(), fetchDashboard()]);
+        await Promise.all([fetchLogs(), fetchDashboard(), fetchCycleStats(), refreshUser()]);
         setShowDialog(false);
       } catch (err) {
         logger.error('Remove period error:', err);
@@ -708,9 +750,9 @@ export default function CalendarPage() {
 
             >
               {(() => {
-                const nextPeriod = new Date(getNextPeriodDate() + 'T00:00:00');
-                const ovulationDate = new Date(nextPeriod);
-                ovulationDate.setDate(ovulationDate.getDate() - 14);
+                // v56: anchored to this cycle's period start + 14.
+                const ovulationDate = getOvulationFor(todayStr) || getOvulationFor(getNextPeriodDate());
+                if (!ovulationDate) return '';
                 const fertileStart = new Date(ovulationDate);
                 fertileStart.setDate(fertileStart.getDate() - 5);
                 return fertileStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' - ' + ovulationDate.toLocaleDateString('en-US', { day: 'numeric' });
@@ -783,6 +825,11 @@ export default function CalendarPage() {
                 );
               })}
             </div>
+          )}
+          {cycleRows.length === 0 && (
+            <p className="text-[#CFC3CC] text-xs leading-relaxed mt-4" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="cycle-length-estimate-note">
+              Your cycle length is an estimate for now. We will know it for sure once you log your next period start.
+            </p>
           )}
           {(cycleStats.cycles_tracked >= 1 || cycleRows.length >= 1) && (
             <p className="text-[#E6E0EE] text-xs leading-relaxed mt-4" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="cycle-chart-summary">

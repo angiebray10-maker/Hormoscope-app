@@ -207,7 +207,7 @@ export default function AuthPage() {
           {/* How the prediction works */}
           <div className="space-y-4 mb-10">
             {[
-              { num: '1', title: 'Your cycle length anchors the timeline', desc: 'A 28-day cycle means ovulation is around Day 14. A 32-day cycle shifts it to Day 18. Your number tells us your map.' },
+              { num: '1', title: 'Your period start anchors the timeline', desc: 'Ovulation lands about 14 days after your period starts. Log the day your period starts, and HORMOscope counts forward from there to map your cycle.' },
               { num: '2', title: 'Your last period date tells us where you are today', desc: 'If your period started 11 days ago, you are likely in the part of the cycle when energy often builds. Knowing where you are helps the hard days make sense.' },
               { num: '3', title: 'Known cycle patterns do the rest', desc: 'Hormones follow a familiar pattern across the cycle, rising and falling in a rhythm researchers know well. HORMOscope uses that pattern, together with what you log, to offer guidance that fits where you are. It works from your dates, so it is thoughtful guidance, never a measurement.' }
             ].map((step) => (

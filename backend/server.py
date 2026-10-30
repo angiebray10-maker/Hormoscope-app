@@ -950,6 +950,7 @@ def calculate_cycle_info(last_period_date: str, cycle_length: int):
             days_until_next = cycle_length - days_since
             next_period_date = today + timedelta(days=days_until_next)
         
+        _cycle_start = projected if 'projected' in locals() else last_period
         return {
             "cycle_day": cycle_day,
             "cycle_length": cycle_length,
@@ -963,7 +964,21 @@ def calculate_cycle_info(last_period_date: str, cycle_length: int):
             "energy_level": energy_level,
             "pain_threshold": pain_threshold,
             "period_is_late": period_is_late,
-            "days_late": days_late
+            "days_late": days_late,
+            # v56: ovulation anchors to the period START (start + 14
+            # days), replacing next period minus 14. The fertile
+            # window keeps its relative shape around the anchor:
+            # 5 days before through 1 day after, peak the day before
+            # and the day of. The cycle start is the projected start
+            # of the cycle today falls in, so the anchor tracks her
+            # real logged start whenever she logs one.
+            "ovulation_date": ((_cycle_start + timedelta(days=14)).strftime("%Y-%m-%d")),
+            "fertile_window": {
+                "start": ((_cycle_start + timedelta(days=9)).strftime("%Y-%m-%d")),
+                "end": ((_cycle_start + timedelta(days=15)).strftime("%Y-%m-%d")),
+                "peak_start": ((_cycle_start + timedelta(days=13)).strftime("%Y-%m-%d")),
+                "peak_end": ((_cycle_start + timedelta(days=14)).strftime("%Y-%m-%d")),
+            }
         }
     except:
         return {
@@ -979,7 +994,9 @@ def calculate_cycle_info(last_period_date: str, cycle_length: int):
             "energy_level": 50,
             "pain_threshold": 50,
             "period_is_late": False,
-            "days_late": 0
+            "days_late": 0,
+            "ovulation_date": None,
+            "fertile_window": None
         }
 
 def get_daily_content(phase: str, cycle_day: int, user_id: str, age_group: str) -> dict:
@@ -3951,7 +3968,9 @@ async def _partner_view_payload(token: str):
             if vis.get("fertile_window") and owner.get("cycle_status", "regular") not in NO_FERTILITY_STATUSES:
                 npd = info.get("next_period_date")
                 if npd:
-                    ov = date.fromisoformat(str(npd)[:10]) - timedelta(days=14)
+                    # v56: ovulation anchors to the period start
+                    # (start + 14), not next period minus 14.
+                    ov = date.fromisoformat(str(npd)[:10]) - timedelta(days=int(owner.get("cycle_length") or 28) - 14)
                     payload["ovulation_date"] = ov.isoformat()
                     payload["fertile_window"] = {
                         "start": (ov - timedelta(days=5)).isoformat(),
@@ -4151,7 +4170,9 @@ async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
     _share_fertile = _vis.get("fertile_window") and owner.get("cycle_status", "regular") not in NO_FERTILITY_STATUSES
     if npd and _share_fertile:
         np = date.fromisoformat(npd)
-        ov = np - timedelta(days=14)
+        # v56: ovulation anchors to the period start (start + 14 days),
+        # which is next period minus (cycle_length - 14), not minus 14.
+        ov = np - timedelta(days=int(cycle_length or 28) - 14)
         ovulation_date = ov.isoformat()
         # Fertile window = the 5 days before ovulation plus ovulation day.
         fertile_start = (ov - timedelta(days=5)).isoformat()
@@ -4475,6 +4496,8 @@ CATALOG_PRODUCT_IDS = {
     "B0FHBXCCLM", "B0C1YG33PD", "B0C9LCM3HW", "B07NLSLP9K", "B093LVS21D", "B083C6BYG9",
     "B0FGB2NS3C", "B07M5X4D3P",
     "B0CNC67C8B",
+    # Added Oct 30, 2026 (v56): her picks sent that day.
+    "B0HF6S81XH", "B07GY22VLW", "B0D5FZGY8W",
     "B07VTDXFDC", "B0D7N2KWLH", "B09Y8SV5RY",
     "B0F8J3GJDQ", "B0FY7R1TQ3",
     "B0FQFMDMDC", "B0B75T46L8",
@@ -4544,6 +4567,9 @@ CATALOG_PRODUCTS = {
     "B0FGB2NS3C": {"name": "Philips Lumea 9000 Series IPL Hair Removal Device", "image": None, "price": 579.95},
     "B07M5X4D3P": {"name": "iRESTORE Professional Laser Hair Growth System", "image": "https://m.media-amazon.com/images/I/31nSdU7iWZL.jpg", "price": 899},
     "B0CNC67C8B": {"name": "Diamond Tennis Bracelet, 20 Carat Lab Grown, Platinum, 7 Inch", "image": None, "price": None},
+    "B0HF6S81XH": {"name": "Angelita's Pick", "image": None, "price": None},
+    "B07GY22VLW": {"name": "Live Conscious Collagen Peptides Powder", "image": "https://m.media-amazon.com/images/I/719PP+XVu1L._AC_SL128_.jpg", "price": 34.00},
+    "B0D5FZGY8W": {"name": "O Positiv URO Vaginal Probiotics for Women, 60 Count", "image": "https://m.media-amazon.com/images/I/41Bj7UNMcZL.jpg", "price": 28.97},
     "B07VTDXFDC": {"name": "Aromatherapy Associates Ultimate Wellbeing Bath & Shower Oil Set", "image": None, "price": 199.99},
     "B0D7N2KWLH": {"name": "iRestore LED Face Mask", "image": "https://m.media-amazon.com/images/I/41N6YT4V+xL.jpg", "price": 379},
     "B09Y8SV5RY": {"name": "KARMAPLEDGE Chakra Tree of Life", "image": None, "price": 32.65},
