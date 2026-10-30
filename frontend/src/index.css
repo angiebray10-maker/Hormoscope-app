@@ -147,11 +147,14 @@ h1, h2, h3, .heading {
     filter: blur(4px);
 }
 
-/* Per-phase colours: keep in sync with src/lib/phases.js */
-.orb-menstrual { --orb-color: #E85A6B; background: linear-gradient(135deg, #F07C8A 0%, #E85A6B 100%); }
-.orb-follicular { --orb-color: #FF9EC7; background: linear-gradient(135deg, #FFC0DA 0%, #FF9EC7 100%); }
-.orb-ovulatory { --orb-color: #F5C26B; background: linear-gradient(135deg, #F8D493 0%, #F5C26B 100%); }
-.orb-luteal { --orb-color: #A98BEA; background: linear-gradient(135deg, #C2AAF2 0%, #A98BEA 100%); }
+/* Per-phase colour PAIRS (v55): keep in sync with PHASE_PAIRS in
+   src/lib/phases.js. Menstrual runs orange to red (the logo colors);
+   follicular, ovulatory and luteal run her bright pink into blue,
+   green and purple. */
+.orb-menstrual { --orb-color: #E85A6B; background: linear-gradient(135deg, #FF7A29 0%, #E85A6B 100%); }
+.orb-follicular { --orb-color: #F74093; background: linear-gradient(135deg, #F74093 0%, #4FA8FF 100%); }
+.orb-ovulatory { --orb-color: #F74093; background: linear-gradient(135deg, #F74093 0%, #5DBB8A 100%); }
+.orb-luteal { --orb-color: #F74093; background: linear-gradient(135deg, #F74093 0%, #A98BEA 100%); }
 .orb-unknown { --orb-color: #9C9CB8; background: linear-gradient(135deg, #B5B5CC 0%, #9C9CB8 100%); }
 
 /* =============================================

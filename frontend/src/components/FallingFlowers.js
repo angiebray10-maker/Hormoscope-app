@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { cycleDayFromDashboard } from '../utils/cycleDay';
+import { cycleDayFromDashboard, phaseFromDashboard } from '../utils/cycleDay';
+import { phasePair } from '../lib/phases';
 import logger from '../utils/logger';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -53,7 +54,9 @@ const RARE_PEACH = { top: '40%', left: '60%', size: 64, spin: 10, spinDelay: -3,
 
 // The day number rides on the peach itself, low and centered, small
 // and faded with it (the wrapper fades, so the number fades too).
-function PeachDayNumber({ day, size }) {
+// v55: the number takes the current phase pair's primary color, with
+// a strong dark shadow so it stays readable over the peach art.
+function PeachDayNumber({ day, size, color }) {
   if (day == null) return null;
   return (
     <span
@@ -67,8 +70,8 @@ function PeachDayNumber({ day, size }) {
         fontWeight: 600,
         fontSize: Math.max(9, Math.round(size * 0.34)),
         lineHeight: 1,
-        color: '#FFFFFF',
-        textShadow: '0 1px 3px rgba(0,0,0,0.75)',
+        color: color || '#FFFFFF',
+        textShadow: '0 1px 3px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.55)',
         pointerEvents: 'none',
       }}
     >
@@ -77,11 +80,33 @@ function PeachDayNumber({ day, size }) {
   );
 }
 
+// v55: the phase halo. A soft glow in the CURRENT phase's pair sits
+// BEHIND each peach (primary at the heart, secondary at the edge).
+// The peach art itself is never tinted, recolored, or restyled; the
+// color goes around it. No phase, no halo.
+function PeachHalo({ pair }) {
+  if (!pair) return null;
+  return (
+    <span
+      aria-hidden="true"
+      data-testid="peach-phase-halo"
+      style={{
+        position: 'absolute',
+        inset: '-35%',
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${pair.primary}59 0%, ${pair.secondary}30 55%, ${pair.secondary}00 72%)`,
+        pointerEvents: 'none',
+      }}
+    />
+  );
+}
+
 export default function FallingFlowers() {
   const { token, user } = useAuth();
   const [paused, setPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [cycleDay, setCycleDay] = useState(null);
+  const [phase, setPhase] = useState(null);
 
   useEffect(() => {
     const mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
@@ -98,16 +123,19 @@ export default function FallingFlowers() {
   // periods path never gets a number: her stored flags settle that
   // before the dashboard is even asked.
   useEffect(() => {
-    if (!token) { setCycleDay(null); return undefined; }
-    if (user?.no_periods || user?.cycle_status === 'no_periods') { setCycleDay(null); return undefined; }
+    if (!token) { setCycleDay(null); setPhase(null); return undefined; }
+    if (user?.no_periods || user?.cycle_status === 'no_periods') { setCycleDay(null); setPhase(null); return undefined; }
     let live = true;
     const fetchDay = async () => {
       try {
         const res = await axios.get(`${API}/dashboard`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-        if (live) setCycleDay(cycleDayFromDashboard(res.data));
+        if (live) {
+          setCycleDay(cycleDayFromDashboard(res.data));
+          setPhase(phaseFromDashboard(res.data));
+        }
       } catch (err) {
         logger.error('Peach cycle day fetch failed:', err);
-        if (live) setCycleDay(null);
+        if (live) { setCycleDay(null); setPhase(null); }
       }
     };
     fetchDay();
@@ -139,6 +167,8 @@ export default function FallingFlowers() {
     };
   }, []);
 
+  const pair = phase ? phasePair(phase) : null;
+
   return (
     <div
       className={`fixed inset-0 overflow-hidden pointer-events-none${paused ? ' peaches-paused' : ''}`}
@@ -162,6 +192,7 @@ export default function FallingFlowers() {
             animationDelay: `${p.fadeDelay}s`,
           }}
         >
+          <PeachHalo pair={pair} />
           <img
             src={PEACH_SRC}
             alt=""
@@ -170,12 +201,13 @@ export default function FallingFlowers() {
               width: '100%',
               height: 'auto',
               display: 'block',
+              position: 'relative',
               animationDuration: `${p.spin}s`,
               animationDelay: `${p.spinDelay}s`,
               animationDirection: p.reverse ? 'reverse' : undefined,
             }}
           />
-          <PeachDayNumber day={cycleDay} size={p.size} />
+          <PeachDayNumber day={cycleDay} size={p.size} color={pair ? pair.primary : undefined} />
         </div>
       ))}
       <div
@@ -191,6 +223,7 @@ export default function FallingFlowers() {
           animationDelay: `${RARE_PEACH.cycleDelay}s`,
         }}
       >
+        <PeachHalo pair={pair} />
         <img
           src={PEACH_SRC}
           alt=""
@@ -199,12 +232,17 @@ export default function FallingFlowers() {
             width: '100%',
             height: 'auto',
             display: 'block',
-            filter: 'drop-shadow(0 0 6px rgba(255,93,162,0.95)) drop-shadow(0 0 16px rgba(255,20,147,0.5))',
+            position: 'relative',
+            // v55: the rare peach's glow wears the phase pair too;
+            // the fixed pink below is only the no-phase fallback.
+            filter: pair
+              ? `drop-shadow(0 0 6px ${pair.primary}) drop-shadow(0 0 16px ${pair.secondary}80)`
+              : 'drop-shadow(0 0 6px rgba(255,93,162,0.95)) drop-shadow(0 0 16px rgba(255,20,147,0.5))',
             animationDuration: `${RARE_PEACH.spin}s`,
             animationDelay: `${RARE_PEACH.spinDelay}s`,
           }}
         />
-        <PeachDayNumber day={cycleDay} size={RARE_PEACH.size} />
+        <PeachDayNumber day={cycleDay} size={RARE_PEACH.size} color={pair ? pair.primary : undefined} />
       </div>
     </div>
   );

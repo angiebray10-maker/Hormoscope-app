@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { PHASE_COLORS, PHASE_NAMES } from '../lib/phases';
+import { PHASE_COLORS, PHASE_PAIRS, PHASE_NAMES } from '../lib/phases';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -114,8 +114,8 @@ export default function CycleSync({ token }) {
             {data.days.map((d) => (
               <div key={d.date} className="rounded-lg overflow-hidden text-center" style={{ outline: d.same_phase ? '2px solid #FF4F9A' : 'none' }} title={d.same_phase ? 'Same phase' : ''}>
                 <div className="text-[10px] text-white/90 py-0.5" style={{ background: 'rgba(255,255,255,0.06)' }}>{new Date(d.date + 'T00:00:00').getDate()}</div>
-                <div className="h-2.5" style={{ background: PHASE_COLORS[d.me.phase] }} />
-                <div className="h-2.5" style={{ background: PHASE_COLORS[d.them.phase] }} />
+                <div className="h-2.5" style={{ background: `linear-gradient(90deg, ${(PHASE_PAIRS[d.me.phase] || PHASE_PAIRS.unknown).primary}, ${(PHASE_PAIRS[d.me.phase] || PHASE_PAIRS.unknown).secondary})` }} />
+                <div className="h-2.5" style={{ background: `linear-gradient(90deg, ${(PHASE_PAIRS[d.them.phase] || PHASE_PAIRS.unknown).primary}, ${(PHASE_PAIRS[d.them.phase] || PHASE_PAIRS.unknown).secondary})` }} />
               </div>
             ))}
           </div>

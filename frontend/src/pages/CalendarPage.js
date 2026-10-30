@@ -8,8 +8,19 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
 import TabFooter from '../components/TabFooter';
+import { PHASE_PAIRS } from '../lib/phases';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// v55: Calendar colors come from the phase pair system
+// (lib/phases.js PHASE_PAIRS), never hard coded hexes that can drift.
+// Period days wear the menstrual pair's red; fertile days the
+// ovulatory pair's green, with the pair's pink marking the peak so
+// peak days stay clearly distinguishable inside the window.
+const MENSTRUAL_COLOR = PHASE_PAIRS.menstrual.primary;
+const MENSTRUAL_COLOR_2 = PHASE_PAIRS.menstrual.secondary;
+const FERTILE_COLOR = PHASE_PAIRS.ovulatory.secondary;
+const PEAK_COLOR = PHASE_PAIRS.ovulatory.primary;
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -31,7 +42,7 @@ export default function CalendarPage() {
   const [resetting, setResetting] = useState(false);
   const [dashboard, setDashboard] = useState(null);
   const [cycleStats, setCycleStats] = useState(null);
-  const [newCycleLength, setNewCycleLength] = useState(user?.cycle_length || 28);
+  const [learnMessage, setLearnMessage] = useState('');
   const [newPeriodLength, setNewPeriodLength] = useState(user?.period_length || 5);
   const [newPeriodDate, setNewPeriodDate] = useState(new Date().toISOString().split('T')[0]);
   const navigate = useNavigate();
@@ -365,19 +376,39 @@ export default function CalendarPage() {
     }
     setResetting(true);
     try {
+      // v55: no cycle_length is sent anymore. The dialog stopped
+      // asking, and the server ignores one anyway: her logged starts
+      // teach the app her real length (the old payload re-asserted
+      // parseInt(newCycleLength) || 28 on every reset).
       const res = await axios.post(`${API}/period/reset`, {
         new_period_date: newPeriodDate,
-        cycle_length: parseInt(newCycleLength) || 28,
         period_length: parseInt(newPeriodLength) || 5
       }, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 15000
       });
       if (res.data) {
-        updateUser(res.data);
+        const { learning, ...userData } = res.data;
+        updateUser(userData);
+        // Tell her what the app learned, in her pattern, with the
+        // parts that exist: "You bled 5 days. Your cycle was 30
+        // days. Your usual is now 5 days of bleeding and a 30 day
+        // cycle." Nothing about her numbers changes silently.
+        if (learning) {
+          const parts = [];
+          if (learning.last_period_length) parts.push(`You bled ${learning.last_period_length} day${learning.last_period_length !== 1 ? 's' : ''}.`);
+          if (learning.gap_days) parts.push(`Your cycle was ${learning.gap_days} days.`);
+          if (learning.learned_period_length || learning.learned_cycle_length) {
+            const usualBleed = learning.learned_period_length || userData.period_length;
+            const usualCycle = learning.learned_cycle_length || userData.cycle_length;
+            parts.push(`Your usual is now ${usualBleed} days of bleeding and a ${usualCycle} day cycle.`);
+          }
+          if (parts.length) setLearnMessage(parts.join(' '));
+        }
       }
       setShowResetDialog(false);
-      window.location.reload();
+      setResetting(false);
+      await Promise.all([fetchLogs(), fetchDashboard(), fetchCycleStats()]);
     } catch (err) {
       logger.error('Reset error:', err);
       setResetting(false);
@@ -388,6 +419,31 @@ export default function CalendarPage() {
   const { firstDay, daysInMonth } = getDaysInMonth(currentDate);
   const today = new Date();
   const todayStr = formatDateString(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // Progression chart (v55): BOTH lengths, month to month, from the
+  // cycle-stats this page already fetches. recent_cycles arrives
+  // oldest first; the chart reads newest first. A period counts as
+  // completed when a later one has started, or when its own days
+  // have all passed. Bleeding bars wear the menstrual pair, cycle
+  // bars the luteal pair, both from lib/phases.js.
+  const chartCycles = (cycleStats?.recent_cycles || []).slice().reverse();
+  const periodCompleted = (c, i) => {
+    if (i > 0) return true;
+    const end = new Date(c.start + 'T00:00:00');
+    end.setDate(end.getDate() + (c.period_length || 1) - 1);
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    return end < t;
+  };
+  const cycleRows = chartCycles.filter((c) => c.cycle_length);
+  const bleedMax = Math.max(10, ...chartCycles.map((c) => c.period_length || 0));
+  const cycleMax = Math.max(40, ...cycleRows.map((c) => c.cycle_length || 0));
+  const monthLabel = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  // The estimate explanation (fix list item E) stays until her first
+  // full cycle is truly logged: the placeholder estimate flag clears
+  // when learning lands, and two tracked cycles mean the same thing
+  // for accounts from before the flag existed.
+  const showEstimateExplainer = !user?.no_periods && user?.cycle_status !== 'no_periods'
+    && (user?.cycle_length_is_estimate || (cycleStats && cycleStats.cycles_tracked < 2));
 
   if (loading) {
     return (
@@ -412,7 +468,7 @@ export default function CalendarPage() {
         <button
           data-testid="reset-period-btn"
           onClick={() => setShowResetDialog(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-[#E85A6B] hover:bg-white/10 transition-all text-xs tracking-wider"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-xs tracking-wider" style={{ color: MENSTRUAL_COLOR }}
         >
           <RotateCcw className="w-4 h-4" />
           Reset Period
@@ -422,13 +478,13 @@ export default function CalendarPage() {
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs">
-          <Droplet className="w-3 h-3 text-[#E85A6B]" fill="#E85A6B" /> Confirmed
+          <Droplet className="w-3 h-3" style={{ color: MENSTRUAL_COLOR }} fill={MENSTRUAL_COLOR} /> Confirmed
         </span>
         <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs">
-          <span className="w-3.5 h-3.5 rounded bg-[#E85A6B]/10 border border-dashed border-[#E85A6B]/40" /> Expected
+          <span className="w-3.5 h-3.5 rounded" style={{ background: `${MENSTRUAL_COLOR}1A`, border: `1px dashed ${MENSTRUAL_COLOR}66` }} /> Expected
         </span>
         <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs">
-          <span className="w-3 h-3 rounded bg-[#5DBB8A]/30" /> Fertile (estimated)
+          <span className="w-3 h-3 rounded" style={{ background: `linear-gradient(135deg, ${PEAK_COLOR}, ${FERTILE_COLOR})` }} /> Fertile (estimated)
         </span>
         <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs">
           <Heart className="w-3 h-3" style={{ color: '#FF4F9A' }} fill="#FF4F9A" strokeWidth={2.5} /> Intimacy
@@ -437,18 +493,26 @@ export default function CalendarPage() {
 
       {/* Help Card - Period Late/Early */}
       {dashboard?.cycle_info?.period_is_late && (
-        <div className="glass-card p-4 mb-4 border border-[#E85A6B]/30 bg-[#E85A6B]/5">
+        <div className="glass-card p-4 mb-4" style={{ border: `1px solid ${MENSTRUAL_COLOR}4D`, background: `${MENSTRUAL_COLOR}0D` }}>
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#E85A6B]/20 flex items-center justify-center flex-shrink-0">
-              <HelpCircle className="w-5 h-5 text-[#E85A6B]" />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${MENSTRUAL_COLOR}33` }}>
+              <HelpCircle className="w-5 h-5" style={{ color: MENSTRUAL_COLOR }} />
             </div>
             <div className="flex-1">
-              <p className="text-[#E85A6B] text-sm font-medium mb-2">{dashboard.cycle_info.days_late === 0 ? 'Period expected today' : `Period is ${dashboard.cycle_info.days_late} day${dashboard.cycle_info.days_late !== 1 ? 's' : ''} late`}</p>
+              <p className="text-sm font-medium mb-2" style={{ color: MENSTRUAL_COLOR }}>{dashboard.cycle_info.days_late === 0 ? 'Period expected today' : `Period is ${dashboard.cycle_info.days_late} day${dashboard.cycle_info.days_late !== 1 ? 's' : ''} late`}</p>
               <p className="text-[#CFC3CC] text-xs leading-relaxed mb-3">
                 When your period starts, tap the <strong className="text-[#F4D3DC]">&ldquo;Reset Period&rdquo;</strong> button below to reset your cycle to Day 1.
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Learned confirmation (v55): after a Reset that taught the
+          app something, she sees exactly what it learned. */}
+      {learnMessage && (
+        <div className="glass-card p-4 mb-4" style={{ border: `1px solid ${MENSTRUAL_COLOR}4D` }} data-testid="learn-message">
+          <p className="text-[#FDF8FA] text-sm leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{learnMessage}</p>
         </div>
       )}
 
@@ -519,43 +583,58 @@ export default function CalendarPage() {
                 onMouseLeave={handleLongPressEnd}
                 className={`
                   aspect-square rounded-xl flex flex-col items-center justify-center relative transition-all duration-300
-                  ${showExpectedPeriod
-                    ? 'bg-[#E85A6B]/10 border border-dashed border-[#E85A6B]/40'
-                    : showConfirmedPeriod
-                      ? 'bg-[#E85A6B]/20 border border-[#E85A6B]/50'
-                      : isOvulation
-                        ? isPeak 
-                          ? 'bg-[#5DBB8A]/15 border border-[#5DBB8A]/40'
-                          : 'bg-[#5DBB8A]/10 border border-[#5DBB8A]/25'
-                        : 'bg-white/[0.02] hover:bg-white/[0.06]'
-                  }
                   ${isToday ? 'ring-2 ring-[#F4D3DC] ring-offset-1 ring-offset-[#0A0508]' : ''}
                   ${isIntimacy && !isToday ? 'ring-2 ring-[#F4D3DC]' : ''}
                 `}
+                style={{
+                  // v55: day colors from the phase pairs. Period wears
+                  // menstrual red, fertile wears ovulatory green, and
+                  // the peak day gets an extra ring in the ovulatory
+                  // pair's pink so it stays unmistakable.
+                  background: showExpectedPeriod
+                    ? `${MENSTRUAL_COLOR}1A`
+                    : showConfirmedPeriod
+                      ? `${MENSTRUAL_COLOR}33`
+                      : isOvulation
+                        ? (isPeak ? `${FERTILE_COLOR}26` : `${FERTILE_COLOR}1A`)
+                        : 'rgba(255,255,255,0.02)',
+                  border: showExpectedPeriod
+                    ? `1px dashed ${MENSTRUAL_COLOR}66`
+                    : showConfirmedPeriod
+                      ? `1px solid ${MENSTRUAL_COLOR}80`
+                      : isOvulation
+                        ? `1px solid ${FERTILE_COLOR}${isPeak ? '66' : '40'}`
+                        : '1px solid transparent',
+                  boxShadow: isPeak && !showConfirmedPeriod ? `inset 0 0 0 2px ${PEAK_COLOR}` : undefined,
+                }}
               >
-                <span className={`text-lg font-semibold tracking-wide z-10 ${
-                  showConfirmedPeriod ? 'text-[#E85A6B]' : 
-                  showExpectedPeriod ? 'text-[#E85A6B]/70' :
-                  isOvulation ? 'text-[#5DBB8A]' :
-                  isToday ? 'text-[#F4D3DC]' : 
-                  'text-[#C9B8C1]'
-                }`}>
+                <span className="text-lg font-semibold tracking-wide z-10" style={{
+                  color: showConfirmedPeriod
+                    ? MENSTRUAL_COLOR
+                    : showExpectedPeriod
+                      ? `${MENSTRUAL_COLOR}B3`
+                      : isOvulation
+                        ? FERTILE_COLOR
+                        : isToday ? '#F4D3DC' : '#C9B8C1'
+                }}>
                   {day}
                 </span>
-                
+
                 {/* Confirmed period - filled droplet */}
                 {showConfirmedPeriod && (
-                  <Droplet 
-                    className="w-2.5 h-2.5 text-[#E85A6B] absolute top-1 right-1" 
+                  <Droplet
+                    className="w-2.5 h-2.5 absolute top-1 right-1"
+                    style={{ color: MENSTRUAL_COLOR }}
                     strokeWidth={2}
-                    fill="#E85A6B"
+                    fill={MENSTRUAL_COLOR}
                   />
                 )}
-                
+
                 {/* Expected period - outline droplet with ? */}
                 {showExpectedPeriod && (
-                  <Droplet 
-                    className="w-2.5 h-2.5 text-[#E85A6B]/60 absolute top-1 right-1" 
+                  <Droplet
+                    className="w-2.5 h-2.5 absolute top-1 right-1"
+                    style={{ color: `${MENSTRUAL_COLOR}99` }}
                     strokeWidth={1.5}
                     fill="transparent"
                   />
@@ -571,9 +650,11 @@ export default function CalendarPage() {
                   />
                 )}
                 
-                {/* Peak ovulation indicator */}
+                {/* Peak ovulation indicator: the ovulatory pair's
+                    pink, so the peak reads differently from the
+                    green window around it */}
                 {isPeak && !showConfirmedPeriod && (
-                  <CircleDot className="w-2.5 h-2.5 text-[#5DBB8A] absolute top-1 left-1" />
+                  <CircleDot className="w-2.5 h-2.5 absolute top-1 left-1" style={{ color: PEAK_COLOR }} />
                 )}
               </button>
             );
@@ -587,8 +668,8 @@ export default function CalendarPage() {
         {getNextPeriodDate() && (
           <div className="bento-card p-4 hover-lift">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-[#E85A6B]/20 flex items-center justify-center">
-                <Droplet className="w-4 h-4 text-[#E85A6B]" fill="#E85A6B" />
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${MENSTRUAL_COLOR}33` }}>
+                <Droplet className="w-4 h-4" style={{ color: MENSTRUAL_COLOR }} fill={MENSTRUAL_COLOR} />
               </div>
             </div>
             <p className="label-luxe mb-1">Next Period</p>
@@ -601,7 +682,7 @@ export default function CalendarPage() {
                 day: 'numeric'
               })}
             </p>
-            <p className="text-[#E85A6B] text-xs mt-1">
+            <p className="text-xs mt-1" style={{ color: MENSTRUAL_COLOR }}>
               {(() => {
                 if (dashboard?.cycle_info?.next_period_date) return `${dashboard.cycle_info.days_until_period} days`;
                 const diff = Math.round((new Date(getNextPeriodDate() + 'T00:00:00') - new Date(new Date().setHours(0, 0, 0, 0))) / 86400000);
@@ -617,8 +698,8 @@ export default function CalendarPage() {
         {getNextPeriodDate() && fertilityOn && (
           <div className="bento-card p-4 hover-lift">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-[#5DBB8A]/20 flex items-center justify-center">
-                <Baby className="w-4 h-4 text-[#5DBB8A]" />
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${FERTILE_COLOR}33` }}>
+                <Baby className="w-4 h-4" style={{ color: FERTILE_COLOR }} />
               </div>
             </div>
             <p className="label-luxe mb-1">Fertile Window</p>
@@ -635,12 +716,83 @@ export default function CalendarPage() {
                 return fertileStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' - ' + ovulationDate.toLocaleDateString('en-US', { day: 'numeric' });
               })()}
             </p>
-            <p className="text-[#5DBB8A] text-xs mt-1">
+            <p className="text-xs mt-1" style={{ color: FERTILE_COLOR }}>
               Estimated from your logged cycle, not a measurement
             </p>
           </div>
         )}
       </div>
+
+      {/* Estimate explainer (fix list item E): the same words
+          onboarding uses, kept here until her first full cycle is
+          logged, so she knows why early dates may move. It leaves on
+          its own when the learning lands; there is no close button
+          to hunt for. */}
+      {showEstimateExplainer && (
+        <div className="glass-card p-4 mb-6" data-testid="estimate-explainer">
+          <p className="text-[#CFC3CC] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            At first, everything is an estimate. Log the day your period starts and the day it finishes, and HORMOscope learns your real bleeding days and your real cycle length from you, month by month. The more you log, the more accurate your predictions get.
+          </p>
+        </div>
+      )}
+
+      {/* Progression chart (v55): both lengths, month to month */}
+      {cycleStats && !user?.no_periods && user?.cycle_status !== 'no_periods' && (
+        <div className="glass-card p-5 mb-6" data-testid="cycle-chart">
+          <p className="label-luxe mb-1">Your Cycles</p>
+          <p className="text-[#FDF8FA] text-sm mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Month to month</p>
+          <p className="text-[#CFC3CC] text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            How many days you bled, and how long each cycle ran. The dashed line on each track is your usual for that number.
+          </p>
+          {chartCycles.length === 0 ? (
+            <p className="text-[#CFC3CC] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="cycle-chart-empty">
+              Your chart fills in as you log each period. Log the day your period starts and the day it finishes, and both lines begin here.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {chartCycles.map((c, i) => {
+                const completed = periodCompleted(c, i);
+                return (
+                  <div key={c.start} data-testid={`cycle-chart-row-${c.start}`}>
+                    <p className="text-[#E6E0EE] text-xs mb-1.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{monthLabel(c.start)}</p>
+                    {completed && c.period_length ? (
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[#CFC3CC] text-[10px] w-12 shrink-0" style={{ fontFamily: 'Poppins, sans-serif' }}>Bled</span>
+                        <div className="relative flex-1 h-3 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                          <div className="h-3 rounded-full" style={{ width: `${Math.max(4, (c.period_length / bleedMax) * 100)}%`, background: `linear-gradient(90deg, ${MENSTRUAL_COLOR}, ${MENSTRUAL_COLOR_2})` }} />
+                          {cycleStats.avg_period_length ? (
+                            <div className="absolute -top-1 -bottom-1 border-l border-dashed border-white/70" style={{ left: `${(cycleStats.avg_period_length / bleedMax) * 100}%` }} />
+                          ) : null}
+                        </div>
+                        <span className="text-[#FDF8FA] text-[11px] w-14 shrink-0" style={{ fontFamily: 'Poppins, sans-serif' }}>{c.period_length} day{c.period_length !== 1 ? 's' : ''}</span>
+                      </div>
+                    ) : null}
+                    {c.cycle_length ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#CFC3CC] text-[10px] w-12 shrink-0" style={{ fontFamily: 'Poppins, sans-serif' }}>Cycle</span>
+                        <div className="relative flex-1 h-3 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                          <div className="h-3 rounded-full" style={{ width: `${Math.max(4, (c.cycle_length / cycleMax) * 100)}%`, background: `linear-gradient(90deg, ${PHASE_PAIRS.luteal.primary}, ${PHASE_PAIRS.luteal.secondary})` }} />
+                          {cycleStats.avg_cycle_length ? (
+                            <div className="absolute -top-1 -bottom-1 border-l border-dashed border-white/70" style={{ left: `${(cycleStats.avg_cycle_length / cycleMax) * 100}%` }} />
+                          ) : null}
+                        </div>
+                        <span className="text-[#FDF8FA] text-[11px] w-14 shrink-0" style={{ fontFamily: 'Poppins, sans-serif' }}>{c.cycle_length} days</span>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {(cycleStats.cycles_tracked >= 1 || cycleRows.length >= 1) && (
+            <p className="text-[#E6E0EE] text-xs leading-relaxed mt-4" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="cycle-chart-summary">
+              {cycleStats.cycles_tracked >= 1 ? `Your period usually lasts ${Math.round(cycleStats.avg_period_length)} days. ` : ''}
+              {cycleRows.length >= 1 ? `Your cycles average ${Math.round(cycleStats.avg_cycle_length)} days. ` : ''}
+              {cycleRows.length >= 2 ? `Your next period is estimated within about ${cycleStats.prediction_window} days either way.` : ''}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Day Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
@@ -657,15 +809,11 @@ export default function CalendarPage() {
           
           <div className="space-y-3 py-2">
             {/* Period Toggle */}
-            <div className={`flex items-center justify-between p-3 rounded-xl ${
-              isPeriodDay(selectedDate) 
-                ? 'bg-[#E85A6B]/15 border border-[#E85A6B]/30' 
-                : 'bg-white/5 border border-white/10'
-            }`}>
+            <div className="flex items-center justify-between p-3 rounded-xl" style={isPeriodDay(selectedDate) ? { background: `${MENSTRUAL_COLOR}26`, border: `1px solid ${MENSTRUAL_COLOR}4D` } : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div className="flex items-center gap-2">
                 <Droplet 
-                  className={`w-4 h-4 ${isPeriodDay(selectedDate) ? 'text-[#E85A6B]' : 'text-[#CFC3CC]'}`} 
-                  fill={isPeriodDay(selectedDate) ? '#E85A6B' : 'transparent'} 
+                  className="w-4 h-4" style={{ color: isPeriodDay(selectedDate) ? MENSTRUAL_COLOR : '#CFC3CC' }}
+                  fill={isPeriodDay(selectedDate) ? MENSTRUAL_COLOR : 'transparent'} 
                 />
                 <span className="text-sm">Period Day</span>
               </div>
@@ -673,7 +821,7 @@ export default function CalendarPage() {
                 <button 
                   type="button"
                   onClick={handleRemovePeriod} 
-                  className="text-[#E85A6B] hover:text-[#E85A6B]/80 h-8 w-8 flex items-center justify-center rounded-lg hover:bg-white/10" 
+                  className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-white/10" style={{ color: MENSTRUAL_COLOR }} 
                   disabled={saving}
                 >
                   <X className="w-5 h-5" />
@@ -748,8 +896,8 @@ export default function CalendarPage() {
 
             {/* Fertility notice */}
             {isOvulationDay(selectedDate) && (
-              <div className="p-2 rounded-lg bg-[#5DBB8A]/10 border border-[#5DBB8A]/30">
-                <p className="text-[#5DBB8A] text-xs flex items-center gap-2">
+              <div className="p-2 rounded-lg" style={{ background: `${FERTILE_COLOR}1A`, border: `1px solid ${FERTILE_COLOR}4D` }}>
+                <p className="text-xs flex items-center gap-2" style={{ color: FERTILE_COLOR }}>
                   <Baby className="w-3 h-3" />
                   Fertile window (estimated)
                 </p>
@@ -761,7 +909,7 @@ export default function CalendarPage() {
 
       {/* Reset Period Dialog */}
       <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
-        <DialogContent className="glass-card border border-[#E85A6B]/20 text-[#FDF8FA] w-[90vw] max-w-[320px] rounded-2xl p-5">
+        <DialogContent className="glass-card text-[#FDF8FA] w-[90vw] max-w-[320px] rounded-2xl p-5" style={{ border: `1px solid ${MENSTRUAL_COLOR}33` }}>
           <DialogHeader>
             <DialogTitle className="text-lg text-center">
               Start New Cycle
@@ -780,22 +928,10 @@ export default function CalendarPage() {
               />
             </div>
             
-            <div className="mb-4">
-              <label className="text-[#CFC3CC] text-xs mb-2 block">How long is your cycle? (days)</label>
-              <input
-                type="number"
-                inputMode="numeric"
-                min="21"
-                max="40"
-                value={newCycleLength}
-                onChange={(e) => setNewCycleLength(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-center text-lg"
-                placeholder="28"
-                style={{ fontSize: '16px' }}
-                data-testid="reset-cycle-input"
-              />
-            </div>
-
+            {/* v55: no cycle length field here anymore. The app
+                learns her real cycle length from the starts she
+                logs; asking her to type it again only overwrote
+                what it had learned. */}
             <div className="mb-4">
               <label className="text-[#CFC3CC] text-xs mb-2 block">How many days does your period last?</label>
               <input
@@ -824,7 +960,7 @@ export default function CalendarPage() {
                 data-testid="confirm-reset-btn"
                 onClick={handleResetPeriod}
                 disabled={resetting || !newPeriodDate}
-                className="flex-1 py-3 rounded-full bg-[#E85A6B] text-white text-sm font-medium disabled:opacity-50"
+                className="flex-1 py-3 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ background: `linear-gradient(135deg, ${MENSTRUAL_COLOR_2}, ${MENSTRUAL_COLOR})` }}
               >
                 {resetting ? 'Saving...' : 'Save'}
               </button>

@@ -19,6 +19,27 @@ export const PHASE_COLORS = {
   unknown: '#9C9CB8',
 };
 
+// Phase color PAIRS (v55, Angelita, Oct 30, 2026). Her words: menstrual
+// is bright orange and red, pretty much the logo colors; follicular is
+// bright pink and blue; ovulation is bright pink and green; luteal is
+// bright pink and purple. Everything in the app is coded by these
+// pairs: primary is the lead color a surface already used, secondary
+// is its pair partner (gradients, glows, second series). The shared
+// pink is her app pink #F74093; the green anchor is the app's existing
+// fertile green #5DBB8A and the purple anchor is the existing luteal
+// #A98BEA. THIS object is the one place to adjust them; every surface
+// reads from here.
+export const PHASE_PAIRS = {
+  menstrual: { primary: '#E85A6B', secondary: '#FF7A29' },
+  follicular: { primary: '#F74093', secondary: '#4FA8FF' },
+  ovulatory: { primary: '#F74093', secondary: '#5DBB8A' },
+  luteal: { primary: '#F74093', secondary: '#A98BEA' },
+  late: { primary: '#E85A6B', secondary: '#FF7A29' },
+  unknown: { primary: '#9C9CB8', secondary: '#6E6E8E' },
+};
+
+export const phasePair = (phase) => PHASE_PAIRS[phase] || PHASE_PAIRS.unknown;
+
 export const PHASE_NAMES = {
   menstrual: 'Menstrual',
   follicular: 'Follicular',

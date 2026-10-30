@@ -140,7 +140,12 @@ BOUTIQUE_VISIBILITY_VALUES = ("private", "partner", "public")
 class UserOnboarding(BaseModel):
     name: str
     birthday: Optional[str] = None  # optional now; set from Profile
-    cycle_length: int = 28
+    # v55 (Angelita, Oct 30, 2026): onboarding no longer asks her cycle
+    # length at all. Optional: omitted means the server stores the
+    # silent placeholder 28 and flags it as an estimate
+    # (cycle_length_is_estimate) until her own logged period starts
+    # teach the app her real lengths and the learning clears the flag.
+    cycle_length: Optional[int] = None
     # None = she doesn't remember. We never invent a date.
     last_period_date: Optional[str] = None
     cycle_status: str = "regular"
@@ -163,6 +168,7 @@ class UserResponse(BaseModel):
     birthday: Optional[str] = None
     age: Optional[int] = None
     cycle_length: int = 28
+    cycle_length_is_estimate: bool = False
     period_length: int = 5
     last_period_date: Optional[str] = None
     profile_photo: Optional[str] = None
@@ -791,6 +797,7 @@ def build_user_response(user: dict) -> UserResponse:
         birthday=user.get("birthday"),
         age=age,
         cycle_length=user.get("cycle_length", 28),
+        cycle_length_is_estimate=bool(user.get("cycle_length_is_estimate", False)),
         period_length=user.get("period_length", 5),
         last_period_date=user.get("last_period_date"),
         profile_photo=user.get("profile_photo"),
@@ -1951,8 +1958,28 @@ async def complete_onboarding(data: UserOnboarding, current_user: dict = Depends
         raise HTTPException(status_code=400, detail="Please tell us your name.")
     if data.cycle_status not in CYCLE_STATUSES:
         raise HTTPException(status_code=400, detail="Unknown cycle situation.")
-    if not 21 <= int(data.cycle_length) <= 40:
+    # v55: cycle_length is optional now. A concrete value is still
+    # validated; an omitted one is NOT an error, it is the new normal.
+    if data.cycle_length is not None and not 21 <= int(data.cycle_length) <= 40:
         raise HTTPException(status_code=400, detail="Cycle length must be between 21 and 40 days.")
+    # What gets stored: a concrete length she actually gave wins and is
+    # not an estimate. Omitted: keep an already learned real value if
+    # this account has one; otherwise the silent placeholder 28,
+    # flagged as an estimate until learning replaces it (Item C).
+    if data.cycle_length is not None:
+        stored_cycle_length = int(data.cycle_length)
+        cycle_length_is_estimate = False
+    elif (current_user.get("onboarding_complete") and current_user.get("cycle_length")
+          and not current_user.get("cycle_length_is_estimate", False)):
+        # Re-onboarding an account that already has a real (learned or
+        # explicitly set) length: keep it. A FRESH account also carries
+        # a default 28 from registration, but that is not a real value,
+        # so the onboarding_complete gate is what separates the two.
+        stored_cycle_length = int(current_user["cycle_length"])
+        cycle_length_is_estimate = False
+    else:
+        stored_cycle_length = 28
+        cycle_length_is_estimate = True
     # Validate last_period_date is sane (not in the future, not > 1 year ago).
     # It may be empty: "I don't remember" is an honest answer.
     if data.last_period_date:
@@ -1989,7 +2016,8 @@ async def complete_onboarding(data: UserOnboarding, current_user: dict = Depends
         {"$set": {
             "name": data.name.strip(),
             "birthday": data.birthday or current_user.get("birthday"),
-            "cycle_length": int(data.cycle_length),
+            "cycle_length": stored_cycle_length,
+            "cycle_length_is_estimate": cycle_length_is_estimate,
             "period_length": period_length,
             "last_period_date": None if no_periods else (data.last_period_date or None),
             "no_periods": no_periods,
@@ -2101,6 +2129,114 @@ async def upload_profile_photo(file: UploadFile = File(...), current_user: dict 
     updated_user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
     return build_user_response(updated_user)
 
+# ==================== CYCLE LEARNING (v55) ====================
+# Angelita, Oct 30, 2026: the app learns BOTH lengths from her own
+# logged period starts and finishes, month to month: how many days
+# she actually bleeds, and how long her whole cycle runs. Learned
+# values are written back to user.cycle_length and user.period_length
+# so every prediction (when the next period starts AND how long it
+# is expected to last) improves at once. Guardrails: a gap outside
+# 15 to 90 days is almost always a missed log, not a cycle, and a
+# bleeding run outside 1 to 15 days does not teach either; at least
+# 2 real observations are required before a learned value replaces
+# anything; averages use the most recent 6 observations. Every
+# completed cycle also leaves one auditable cycle_history entry.
+LEARN_GAP_MIN, LEARN_GAP_MAX = 15, 90
+LEARN_PERIOD_MIN, LEARN_PERIOD_MAX = 1, 15
+LEARN_MIN_OBSERVATIONS = 2
+LEARN_WINDOW = 6
+
+
+def _runs_from_date_strings(dates):
+    """Group sorted unique YYYY-MM-DD strings into consecutive runs."""
+    runs, cur = [], []
+    for d_str in sorted(set(dates)):
+        d = datetime.strptime(d_str, "%Y-%m-%d").date()
+        if not cur:
+            cur = [d]
+        elif (d - cur[-1]).days == 1:
+            cur.append(d)
+        else:
+            runs.append(cur)
+            cur = [d]
+    if cur:
+        runs.append(cur)
+    return runs
+
+
+async def _period_runs(user_id: str):
+    cursor = db.cycle_logs.find(
+        {"user_id": user_id, "is_period": True},
+        {"_id": 0, "date": 1}
+    )
+    logs = await cursor.to_list(length=None)
+    return _runs_from_date_strings([l["date"] for l in logs])
+
+
+async def _apply_cycle_learning(user_id: str, source: str):
+    """Learn from her logged period runs. Returns a summary dict for
+    the confirmation line, or None when there is no completed cycle
+    yet (fewer than 2 period runs)."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user or _is_no_periods(user):
+        return None
+    runs = await _period_runs(user_id)
+    if len(runs) < 2:
+        return None
+    starts = [r[0] for r in runs]
+    gaps = [(starts[i] - starts[i - 1]).days for i in range(1, len(starts))]
+    valid_gaps = [g for g in gaps if LEARN_GAP_MIN <= g <= LEARN_GAP_MAX]
+    # Bleeding lengths of COMPLETED periods: every run except the
+    # newest, which is the period she is in now and may still be going.
+    bleeding = [len(r) for r in runs[:-1]]
+    valid_bleeding = [b for b in bleeding if LEARN_PERIOD_MIN <= b <= LEARN_PERIOD_MAX]
+
+    updates = {}
+    learned_cycle = None
+    learned_period = None
+    if len(valid_gaps) >= LEARN_MIN_OBSERVATIONS:
+        window = valid_gaps[-LEARN_WINDOW:]
+        learned_cycle = round(sum(window) / len(window))
+        updates["cycle_length"] = learned_cycle
+        # Real learning has landed: the onboarding estimate is over.
+        updates["cycle_length_is_estimate"] = False
+    if len(valid_bleeding) >= LEARN_MIN_OBSERVATIONS:
+        window = valid_bleeding[-LEARN_WINDOW:]
+        learned_period = round(sum(window) / len(window))
+        updates["period_length"] = learned_period
+    if updates:
+        await db.users.update_one({"id": user_id}, {"$set": updates})
+
+    entry = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "start": starts[-2].isoformat(),
+        "next_start": starts[-1].isoformat(),
+        "gap_days": gaps[-1],
+        "period_length_days": len(runs[-2]),
+        "cycle_length_before": user.get("cycle_length"),
+        "cycle_length_after": updates.get("cycle_length", user.get("cycle_length")),
+        "period_length_before": user.get("period_length"),
+        "period_length_after": updates.get("period_length", user.get("period_length")),
+        "source": source,
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
+    existing = await db.cycle_history.find_one(
+        {"user_id": user_id, "start": entry["start"], "next_start": entry["next_start"]}
+    )
+    if not existing:
+        await db.cycle_history.insert_one(entry)
+
+    return {
+        "gap_days": gaps[-1],
+        "last_period_length": len(runs[-2]),
+        "learned_cycle_length": learned_cycle,
+        "learned_period_length": learned_period,
+        "updated": bool(updates),
+        "history_recorded": existing is None,
+    }
+
+
 @api_router.post("/period/reset")
 async def reset_period(data: PeriodReset, current_user: dict = Depends(get_current_user)):
     """Reset period to a new start date (Day 1) and optionally update cycle length.
@@ -2134,8 +2270,10 @@ async def reset_period(data: PeriodReset, current_user: dict = Depends(get_curre
     
     # Build update data
     update_data = {"last_period_date": data.new_period_date}
-    if data.cycle_length:
-        update_data["cycle_length"] = data.cycle_length
+    # v55: a cycle_length sent by a client is IGNORED here. The reset
+    # dialog no longer asks for it, and the old behavior (the dialog
+    # re-asserting parseInt(newCycleLength) || 28 over the estimate on
+    # every reset) is dead: the learning below owns this number now.
     # Determine period length: incoming > existing > default 5
     period_length = data.period_length or current_user.get("period_length") or 5
     update_data["period_length"] = period_length
@@ -2171,9 +2309,19 @@ async def reset_period(data: PeriodReset, current_user: dict = Depends(get_curre
                 "notes": f"Period reset - Day {i + 1}",
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
-    
+
+    # v55 learning: this reset just completed a cycle. Record the gap
+    # since her last logged start and the bleeding days of the cycle
+    # that ended, and write the learned usuals back when there is
+    # enough real data. The summary rides the response so the app can
+    # tell her what it learned, in her pattern, never silently.
+    learning = await _apply_cycle_learning(current_user["id"], "period_reset")
+
     updated_user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
-    return build_user_response(updated_user)
+    resp = build_user_response(updated_user)
+    out = resp.model_dump() if hasattr(resp, "model_dump") else resp.dict()
+    out["learning"] = learning
+    return out
 
 @api_router.get("/cycle-stats")
 async def get_cycle_stats(current_user: dict = Depends(get_current_user)):
@@ -2220,10 +2368,11 @@ async def get_cycle_stats(current_user: dict = Depends(get_current_user)):
     else:
         prediction_window = 3  # default low-confidence window
 
-    # Recent cycles (last 6) for chart
+    # Recent cycles (last 12, raised from 6 in v55) for the Calendar
+    # progression chart: both lengths, month to month.
     recent_cycles = [
         {"start": runs[i][0].isoformat(), "period_length": len(runs[i]), "cycle_length": cycle_lengths[i - 1] if i > 0 else None}
-        for i in range(max(0, len(runs) - 6), len(runs))
+        for i in range(max(0, len(runs) - 12), len(runs))
     ]
 
     return {
@@ -3525,6 +3674,12 @@ async def get_partner_status(current_user: dict = Depends(get_current_user)):
     # all, and no journal data of any kind rides along either way.
     if other:
         other_vis = {**DEFAULT_PARTNER_VISIBILITY, **(other.get("partner_visibility") or {})}
+        # v55: same present-only-when-on pattern for phase sharing, so
+        # a partner's device can gate the daily partner note
+        # notification (id 7104) on the owner's phase sharing at
+        # schedule time, from data the partner's app already fetches.
+        if other_vis.get("phase"):
+            out["partner_shares_phase"] = True
         if other_vis.get("share_journal"):
             out["partner_shares_journal"] = True
         # v54: same present-only-when-on pattern for the intimacy log,
@@ -4499,6 +4654,9 @@ async def create_cycle_log(log: CycleLogCreate, current_user: dict = Depends(get
     # If this is a period day, recompute last_period_date so ovulation/next-period update
     if log.is_period:
         await _recompute_last_period_date(current_user["id"])
+        # v55: learning runs on every period log path, so however she
+        # logs a start or a finish, the two lengths keep learning.
+        await _apply_cycle_learning(current_user["id"], "cycle_log")
         await db.daily_content.delete_many({"user_id": current_user["id"]})
 
     return {"id": log_data["id"], "message": "Log created successfully"}
@@ -4522,6 +4680,7 @@ async def delete_cycle_log(log_id: str, current_user: dict = Depends(get_current
     # If we removed a period day, recompute last_period_date
     if deleting and deleting.get("is_period"):
         await _recompute_last_period_date(current_user["id"])
+        await _apply_cycle_learning(current_user["id"], "cycle_log_delete")
         await db.daily_content.delete_many({"user_id": current_user["id"]})
     return {"message": "Log deleted successfully"}
 
@@ -4601,17 +4760,22 @@ async def mark_period_started(request: PeriodStartRequest = None, current_user: 
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.cycle_logs.insert_one(log_data)
-    
-    # Get updated user data
+
+    # v55: same learning hook as Reset, so a start logged here counts
+    # exactly the same way toward her two learned lengths.
+    learning = await _apply_cycle_learning(current_user["id"], "period_started")
+
+    # Get updated user data (after learning, so learned values show)
     updated_user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "password": 0})
-    
-    # Calculate new cycle info
-    cycle_info = calculate_cycle_info(period_date, current_user.get("cycle_length", 28))
-    
+
+    # Calculate new cycle info with the possibly just-learned length
+    cycle_info = calculate_cycle_info(period_date, updated_user.get("cycle_length", 28))
+
     return {
         "message": "Period started! Cycle reset to Day 1",
         "last_period_date": period_date,
         "cycle_info": cycle_info,
+        "learning": learning,
         "user": updated_user
     }
 

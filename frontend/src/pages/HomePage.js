@@ -8,7 +8,7 @@ import FloatingCarousel from '../components/FloatingCarousel';
 import TabFooter from '../components/TabFooter';
 import RemindersCard from '../components/RemindersCard';
 import logger from '../utils/logger';
-import { PHASE_COLORS } from '../lib/phases';
+import { PHASE_PAIRS } from '../lib/phases';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -31,13 +31,16 @@ const PHASE_CARDS = {
   luteal: { src: '/images/phase-luteal.png', name: 'Luteal Phase' },
 };
 
+// v55: phase PAIRS are the system now (lib/phases.js PHASE_PAIRS).
+// color is the pair's primary, color2 its partner: the orb glows in
+// both, the phase rows dot in both.
 const phases = {
-  menstrual: { orb: 'orb-menstrual', color: PHASE_COLORS.menstrual, name: 'Menstrual Phase' },
-  follicular: { orb: 'orb-follicular', color: PHASE_COLORS.follicular, name: 'Follicular Phase' },
-  ovulatory: { orb: 'orb-ovulatory', color: PHASE_COLORS.ovulatory, name: 'Ovulatory Phase' },
-  luteal: { orb: 'orb-luteal', color: PHASE_COLORS.luteal, name: 'Luteal Phase' },
-  late: { orb: 'orb-menstrual', color: PHASE_COLORS.menstrual, name: 'Period Expected' },
-  unknown: { orb: 'orb-unknown', color: PHASE_COLORS.unknown, name: 'Log your period to begin' }
+  menstrual: { orb: 'orb-menstrual', color: PHASE_PAIRS.menstrual.primary, color2: PHASE_PAIRS.menstrual.secondary, name: 'Menstrual Phase' },
+  follicular: { orb: 'orb-follicular', color: PHASE_PAIRS.follicular.primary, color2: PHASE_PAIRS.follicular.secondary, name: 'Follicular Phase' },
+  ovulatory: { orb: 'orb-ovulatory', color: PHASE_PAIRS.ovulatory.primary, color2: PHASE_PAIRS.ovulatory.secondary, name: 'Ovulatory Phase' },
+  luteal: { orb: 'orb-luteal', color: PHASE_PAIRS.luteal.primary, color2: PHASE_PAIRS.luteal.secondary, name: 'Luteal Phase' },
+  late: { orb: 'orb-menstrual', color: PHASE_PAIRS.late.primary, color2: PHASE_PAIRS.late.secondary, name: 'Period Expected' },
+  unknown: { orb: 'orb-unknown', color: PHASE_PAIRS.unknown.primary, color2: PHASE_PAIRS.unknown.secondary, name: 'Log your period to begin' }
 };
 
 const PHASE_ROWS = [
@@ -409,7 +412,7 @@ export default function HomePage() {
 
       {/* Cycle Orb */}
       <div className="flex flex-col items-center mb-8">
-        <div className="hs-orb-pulse rounded-full" style={{ boxShadow: `0 0 48px ${config.color}77, 0 0 96px ${config.color}33` }}>
+        <div className="hs-orb-pulse rounded-full" style={{ boxShadow: `0 0 48px ${config.color}77, 0 0 96px ${config.color2}44` }}>
         <div className={`cycle-orb ${config.orb}`} data-testid="day-circle">
           <span className="text-[#1B1030] text-xs tracking-widest uppercase font-semibold">
             {phase === 'unknown' ? 'CYCLE DAY' : periodIsLate ? 'CYCLE DAY' : 'YOU ARE ON DAY'}
@@ -505,11 +508,12 @@ export default function HomePage() {
         <p className="text-[#E6E0EE] text-xs tracking-widest uppercase mb-4">Your cycle phases · tap to learn</p>
         <div className="space-y-3">
           {PHASE_ROWS.map((row) => {
-            const c = PHASE_COLORS[row.id];
+            const pair = PHASE_PAIRS[row.id];
+            const c = pair.primary;
             const now = phase === row.id;
             return (
               <button key={row.id} type="button" onClick={() => setOpenPhaseCard(row.id)} className="w-full text-left flex items-center gap-3 p-3 rounded-xl" style={now ? { background: `${c}22`, border: `1px solid ${c}88` } : { background: 'rgba(255,255,255,0.05)' }} data-testid={`phase-row-${row.id}`}>
-                <div className="w-3 h-3 rounded-full" style={{ background: c }} />
+                <div className="w-3 h-3 rounded-full" style={{ background: `linear-gradient(135deg, ${pair.primary}, ${pair.secondary})` }} />
                 <div className="flex-1">
                   <p className="text-sm font-medium" style={{ color: now ? c : '#F7F4FA' }}>{row.name}</p>
                   <p className="text-[#CFC8DC] text-xs">{row.days}</p>

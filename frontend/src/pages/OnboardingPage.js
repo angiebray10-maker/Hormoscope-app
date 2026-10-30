@@ -18,9 +18,14 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // what the app does, and get her to her cycle day fast. Three steps:
 // welcome (what HORMOscope does, her name, the privacy promise in one
 // proud line with the full text a tap away, an optional partner code)
-// -> last period (approximate is fine, no penalty) -> cycle ("I'm not
-// sure" first; the estimate starts at 28 and her logging makes it
-// exact). Then she lands on Home on her cycle day.
+// -> last period (approximate is fine, no penalty) -> her situation.
+// v55 (Angelita, Oct 30, 2026): NO cycle length question anywhere in
+// onboarding, in any form. The only cycle fact asked is the first day
+// of her last period; everything else starts as an honest estimate
+// the server holds silently, and her own logged starts and finishes
+// teach the app her real bleeding days and real cycle length. Step 3
+// says exactly that, where the cycle question used to be. Then she
+// lands on Home on her cycle day.
 //
 // What moved OUT, by her order: the standalone security step (folded
 // into step 1 above), the sharing checklist step (the checklist lives
@@ -39,12 +44,13 @@ const WHAT_IT_DOES = [
 ];
 
 // "I'm not sure" sits FIRST and equal (Angelita, Oct 26, 2026): she
-// starts on a 28 day estimate and the app gets exact from her logging.
-// The other situations still switch fertility predictions off, exactly
-// as before.
+// starts on an estimate and the app gets exact from her logging. No
+// length is ever typed or slid here (v55); the estimate number itself
+// is never shown to her as if it were hers. The other situations
+// still switch fertility predictions off, exactly as before.
 const SITUATIONS = [
-  { id: 'unsure', label: "I'm not sure", hint: "We'll start with a 28 day estimate, and your logging makes it exact" },
-  { id: 'regular', label: 'I get a period', hint: 'Set my usual length below' },
+  { id: 'unsure', label: "I'm not sure", hint: "We'll start with an estimate, and your logging makes it exact" },
+  { id: 'regular', label: 'I get a period', hint: 'Your logging teaches the app your real lengths' },
   { id: 'hormonal_birth_control', label: "I'm on hormonal birth control", hint: 'Fertility predictions stay off' },
   { id: 'pregnant', label: "I'm pregnant", hint: 'Fertility predictions stay off' },
   { id: 'postpartum', label: 'Postpartum / breastfeeding', hint: 'Fertility predictions stay off' },
@@ -65,7 +71,6 @@ export default function OnboardingPage() {
   const [dontRemember, setDontRemember] = useState(false);
   const [noPeriods, setNoPeriods] = useState(false);
   const [situation, setSituation] = useState('unsure');
-  const [cycleLength, setCycleLength] = useState(28);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   // Optional partner code on the welcome step (v50): closed unless
@@ -154,7 +159,9 @@ export default function OnboardingPage() {
         last_period_date: noPeriods || dontRemember ? null : lastPeriodDate,
         cycle_status: effSituation,
         no_periods: effSituation === 'no_periods',
-        cycle_length: effSituation === 'regular' ? cycleLength : 28,
+        // v55: no cycle_length is sent, ever. The server stores its
+        // silent placeholder estimate and flags it as an estimate
+        // until her logged starts teach the app her real length.
         partner_choice: 'later',
       }, { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 });
       updateUser(res.data);
@@ -355,7 +362,7 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-5" data-testid="onboarding-cycle-step">
               <div>
-                <H>Your cycle</H>
+                <H>Your situation</H>
                 <Sub>Pick what's true for you right now. Not knowing is a perfectly good answer here.</Sub>
               </div>
               <div className="space-y-2">
@@ -366,17 +373,15 @@ export default function OnboardingPage() {
                   </button>
                 ))}
               </div>
-              {effSituation === 'regular' && (
-                <div className="pt-2">
-                  <label htmlFor="ob-cycle" className="flex justify-between text-sm text-white mb-2">
-                    <span>About how long is your cycle?</span>
-                    <span data-testid="onboarding-cycle-value" style={{ color: BRAND.pink }}>{cycleLength} days</span>
-                  </label>
-                  <input id="ob-cycle" data-testid="onboarding-cycle-slider" type="range" min={21} max={40} step={1} value={cycleLength} onChange={(e) => setCycleLength(Number(e.target.value))} className="w-full accent-[#FF4F9A]" />
-                  <div className="flex justify-between text-xs" style={{ color: BRAND.textMuted }}><span>21</span><span>40</span></div>
-                  <p className="text-xs mt-2" style={{ color: BRAND.textMuted }}>From the first day of one period to the day before the next. Most are 24 to 35 days.</p>
-                </div>
-              )}
+              {/* Where the cycle length question used to be, the app
+                  now SAYS what happens instead (Angelita, Oct 30,
+                  2026): it starts from a guess, she teaches it the
+                  truth by logging. Her words, in her voice. */}
+              <div className="rounded-2xl p-4 border border-white/10 text-left" style={{ background: 'rgba(255,255,255,0.03)' }} data-testid="onboarding-learning-note">
+                <p className="text-[13px] leading-relaxed" style={{ color: BRAND.textMuted }}>
+                  That is all we need to start. At first, everything is an estimate. Log the day your period starts and the day it finishes, and HORMOscope learns your real bleeding days and your real cycle length from you, month by month. The more you log, the more accurate your predictions get.
+                </p>
+              </div>
             </div>
           )}
 

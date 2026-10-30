@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Heart, Sun, Brain, Shield, Loader2 } from 'lucide-react';
-import { PHASE_COLORS as SHARED_PHASE_COLORS } from '../lib/phases';
+import { PHASE_COLORS as SHARED_PHASE_COLORS, PHASE_PAIRS } from '../lib/phases';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -59,7 +59,8 @@ export default function PartnerViewPage() {
     );
   }
 
-  const phaseColor = PHASE_COLORS[data.phase] || '#c9b8f0';
+  const phasePair = PHASE_PAIRS[data.phase] || PHASE_PAIRS.unknown;
+  const phaseColor = phasePair.primary;
   const tips = data.partner_tips;
 
   return (
@@ -81,7 +82,7 @@ export default function PartnerViewPage() {
 
         {/* Cycle Day Orb */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-32 h-32 rounded-full flex flex-col items-center justify-center" style={{ background: `linear-gradient(135deg, ${phaseColor}40, ${phaseColor}20)`, boxShadow: `0 0 40px ${phaseColor}30` }}>
+          <div className="w-32 h-32 rounded-full flex flex-col items-center justify-center" style={{ background: `linear-gradient(135deg, ${phasePair.primary}40, ${phasePair.secondary}30)`, boxShadow: `0 0 40px ${phasePair.secondary}30` }}>
             <span className="text-white/70 text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif' }}>Day</span>
             <span className="text-5xl font-bold text-white">{data.cycle_day}</span>
           </div>

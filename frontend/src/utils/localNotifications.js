@@ -10,8 +10,9 @@
 //   - on app open for a signed-in user (keeps the Daily Read text and
 //     the phase fresh, and picks up cycle data changes),
 //   - from Profile whenever the preference is changed there.
-// Every call cancels our three stable ids before scheduling, so
-// schedules never stack. On web (non-native) everything no-ops.
+// Every call cancels our stable ids (7101 to 7104) before
+// scheduling, so schedules never stack. On web (non-native)
+// everything no-ops.
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import axios from 'axios';
@@ -44,6 +45,29 @@ export async function checkNotificationPermission() {
     return res.display;
   } catch (e) {
     logger.error('LocalNotifications checkPermissions failed:', e);
+    return null;
+  }
+}
+
+// v55: resolve the partner gate at schedule time, from the same
+// /partner/status the partner's app already fetches. Returns
+// { isPartner, ownerSharesPhase } or null. Refresh behavior, honestly:
+// this runs on every sync (every app open, every preference change),
+// so if the owner turns phase sharing off, the partner's 7104 stops
+// being scheduled on their NEXT app open, and the cancel-and-replace
+// pass removes the old one then. Nothing is pushed from a server.
+async function fetchPartnerContext(token) {
+  if (!token) return null;
+  try {
+    const res = await axios.get(`${API}/partner/status`, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 15000,
+    });
+    return {
+      isPartner: !!(res.data?.is_linked && res.data?.role === 'partner'),
+      ownerSharesPhase: !!res.data?.partner_shares_phase,
+    };
+  } catch (e) {
     return null;
   }
 }
@@ -88,8 +112,9 @@ export async function syncLocalNotifications({ user, token, requestPermission = 
 
   // v49: the daily reminder and the two cycle alerts are separate
   // choices now. Only when she chose none of them is there nothing
-  // to schedule.
-  if (!prefs.enabled && !prefs.period && !prefs.ovulation) {
+  // to schedule. v55 adds the partner's own opt-in as a fourth,
+  // independent choice (it can be the only one on a partner's phone).
+  if (!prefs.enabled && !prefs.period && !prefs.ovulation && !prefs.partnerDaily) {
     await cancelOurs();
     return { status: 'disabled', permission: null, count: 0 };
   }
@@ -113,7 +138,8 @@ export async function syncLocalNotifications({ user, token, requestPermission = 
   }
 
   const headline = await fetchDailyReadHeadline(token);
-  const plan = buildNotificationPlan({ user, prefs, headline, now: new Date() });
+  const partnerCtx = prefs.partnerDaily ? await fetchPartnerContext(token) : null;
+  const plan = buildNotificationPlan({ user, prefs, headline, now: new Date(), partner: partnerCtx });
 
   await cancelOurs();
   const notifications = plan.map((item) => {

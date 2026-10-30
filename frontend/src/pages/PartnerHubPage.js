@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Link } from 'react-router-dom';
-import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2, Camera, BookOpen } from 'lucide-react';
+import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2, Camera, BookOpen, Bell } from 'lucide-react';
 import axios from 'axios';
-import { PHASE_COLORS as SHARED_PHASE_COLORS } from '../lib/phases';
+import { PHASE_COLORS as SHARED_PHASE_COLORS, PHASE_PAIRS } from '../lib/phases';
+import { syncLocalNotifications, getNotificationPrefs, NOTIFICATION_TIMES } from '../utils/localNotifications';
 import logger from '../utils/logger';
 import CycleSync from '../components/CycleSync';
 import { PartnerAvatar } from './AttunementPage';
@@ -337,6 +338,76 @@ function PartnerIntimacyTab({ token, partnerName }) {
   );
 }
 
+// v55: the partner is ASKED, here in their own hub, whether they want
+// the daily partner note reminder on their own phone (Angelita, Oct
+// 30, 2026). Their opt-in, their time (default 9 AM). Saving writes
+// the same local keys and the same PUT /profile merge as every other
+// notification choice, then reschedules on this device. The reminder
+// itself is generic and only ever schedules while she shares her
+// phase (the gate lives in utils/notificationPlan.js).
+function PartnerDailyReminderCard({ user, token }) {
+  const prefs = getNotificationPrefs(user);
+  const [enabled, setEnabled] = useState(prefs.partnerDaily);
+  const [time, setTime] = useState(prefs.partnerTime || '09:00');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const save = async (nextEnabled, nextTime) => {
+    setEnabled(nextEnabled);
+    setTime(nextTime);
+    setSaving(true);
+    setMsg('');
+    const mergedPrefs = { ...(user.notification_preferences || {}), partner_daily_note: nextEnabled, partner_daily_time: nextTime };
+    try {
+      localStorage.setItem('hormoscope-notifications-partner-daily', nextEnabled ? 'true' : 'false');
+      localStorage.setItem('hormoscope-notification-partner-time', nextTime);
+    } catch (e) { /* storage unavailable: the server fields below still save */ }
+    try {
+      await axios.put(`${API}/profile`, { notification_preferences: mergedPrefs }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+    } catch (err) {
+      logger.error('Partner daily reminder save failed:', err);
+    }
+    try {
+      await syncLocalNotifications({
+        user: { ...user, notification_preferences: mergedPrefs },
+        token,
+        requestPermission: nextEnabled,
+      });
+    } catch (err) {
+      logger.error('Partner daily reminder sync failed:', err);
+    }
+    setSaving(false);
+    setMsg(nextEnabled ? 'Saved. Your daily reminder is on.' : 'Saved. Your daily reminder is off.');
+  };
+
+  const row = 'flex items-center gap-3 py-1.5 text-sm text-[#F7F4FA] cursor-pointer';
+  return (
+    <div className="rounded-3xl p-5 border border-white/10 mb-4" style={{ background: '#15152B', fontFamily: 'Poppins, sans-serif' }} data-testid="partner-daily-reminder">
+      <div className="flex items-start gap-3 mb-2">
+        <div className="w-10 h-10 rounded-full bg-[#FF4F9A]/20 flex items-center justify-center shrink-0">
+          <Bell className="w-5 h-5 text-[#FF4F9A]" />
+        </div>
+        <div className="flex-1">
+          <p className="text-[#F4D3DC] text-sm font-medium">Your daily reminder</p>
+          <p className="text-[#CFC3CC] text-xs leading-relaxed">
+            Want a daily nudge to check what your person is wishing for today? It only ever says to log in and look. The note itself waits for you here, never on your lock screen.
+          </p>
+        </div>
+      </div>
+      <label className={row}>
+        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={enabled} disabled={saving}
+          onChange={(e) => save(e.target.checked, time)} data-testid="partner-daily-toggle" />
+        Daily partner note reminder
+      </label>
+      <select value={time} disabled={!enabled || saving} onChange={(e) => save(enabled, e.target.value)}
+        className="w-full rounded-xl px-3 py-2.5 bg-white/5 border border-white/15 text-white disabled:opacity-50" data-testid="partner-daily-time">
+        {NOTIFICATION_TIMES.map((t) => <option key={t.time} value={t.time} className="bg-[#15152B]">{t.label}</option>)}
+      </select>
+      {msg && <p className="text-sm text-[#E6E0EE] mt-2" role="status">{msg}</p>}
+    </div>
+  );
+}
+
 export default function PartnerHubPage() {
   const { token, user } = useAuth();
   const { loading: rcLoading } = usePremium();
@@ -472,7 +543,8 @@ export default function PartnerHubPage() {
     );
   }
 
-  const phaseColor = PHASE_COLORS[calData?.phase] || '#c9b8f0';
+  const phasePair = PHASE_PAIRS[calData?.phase] || PHASE_PAIRS.unknown;
+  const phaseColor = phasePair.primary;
   const tips = calData?.partner_tips;
   // Feature B (v46): the cycle OWNER's sync block. When she no longer
   // has periods, her Cycle tab is her logged days, not a cycle strip.
@@ -505,6 +577,9 @@ export default function PartnerHubPage() {
 
         {/* Two-cycle sync: shows both cycles when both share their phase */}
         {status.role === 'partner' && <CycleSync token={token} />}
+
+        {/* The daily reminder ask lives with the partner, not the owner */}
+        {status.role === 'partner' && <PartnerDailyReminderCard user={user} token={token} />}
 
         {/* Tabs — Notes sits here quietly, discovered naturally */}
         <div className="flex gap-2 mb-6">
@@ -576,7 +651,7 @@ export default function PartnerHubPage() {
           <div>
             <div className="flex flex-col items-center mb-8">
               <div className="w-32 h-32 rounded-full flex flex-col items-center justify-center"
-                style={{ background: `linear-gradient(135deg, ${phaseColor}40, ${phaseColor}20)`, boxShadow: `0 0 40px ${phaseColor}30` }}>
+                style={{ background: `linear-gradient(135deg, ${phasePair.primary}40, ${phasePair.secondary}30)`, boxShadow: `0 0 40px ${phasePair.secondary}30` }}>
                 <span className="text-white/70 text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif' }}>Day</span>
                 <span className="text-5xl font-bold text-white">{calData.cycle_day}</span>
               </div>

@@ -24,17 +24,34 @@ export const NOTIF_KEYS = {
   // alerts they have today.
   period: 'hormoscope-notifications-period',
   ovulation: 'hormoscope-notifications-ovulation',
+  // v55: the partner daily note reminder (id 7104). The partner opts
+  // in THEMSELVES, on their own phone, with their own time. Separate
+  // keys, following the v49 pattern: local storage wins, the server
+  // preference (notification_preferences.partner_daily_note) is the
+  // fallback, and the default is OFF: nobody is opted in by default.
+  partnerDaily: 'hormoscope-notifications-partner-daily',
+  partnerTime: 'hormoscope-notification-partner-time',
 };
 
 // Stable ids so every reschedule cancels and replaces, never stacks.
 export const DAILY_NOTIFICATION_ID = 7101;
 export const PERIOD_NOTIFICATION_ID = 7102;
 export const OVULATION_NOTIFICATION_ID = 7103;
+export const PARTNER_NOTIFICATION_ID = 7104;
 export const ALL_NOTIFICATION_IDS = [
   DAILY_NOTIFICATION_ID,
   PERIOD_NOTIFICATION_ID,
   OVULATION_NOTIFICATION_ID,
+  PARTNER_NOTIFICATION_ID,
 ];
+
+// The partner notification is deliberately GENERIC (Angelita's draft
+// wording, Oct 30, 2026): the note itself is about her body and her
+// day, so it is fetched fresh inside the app when the partner opens
+// it. Nothing about her phase, journal, or intimacy ever rides the
+// lock screen.
+export const PARTNER_NOTIFICATION_TITLE = 'HORMOscope';
+export const PARTNER_NOTIFICATION_BODY = 'Log in to see what your person is wishing for you to do for them today.';
 
 // Same choices onboarding offers (OnboardingPage TIMES).
 export const NOTIFICATION_TIMES = [
@@ -75,6 +92,8 @@ export function readPrefs(storage, user) {
   let time = null;
   let period = null;
   let ovulation = null;
+  let partnerDaily = null;
+  let partnerTime = null;
   try {
     const rawEnabled = storage ? storage.getItem(NOTIF_KEYS.enabled) : null;
     if (rawEnabled !== null && rawEnabled !== undefined) enabled = rawEnabled === 'true';
@@ -84,6 +103,10 @@ export function readPrefs(storage, user) {
     if (rawPeriod !== null && rawPeriod !== undefined) period = rawPeriod === 'true';
     const rawOvulation = storage ? storage.getItem(NOTIF_KEYS.ovulation) : null;
     if (rawOvulation !== null && rawOvulation !== undefined) ovulation = rawOvulation === 'true';
+    const rawPartnerDaily = storage ? storage.getItem(NOTIF_KEYS.partnerDaily) : null;
+    if (rawPartnerDaily !== null && rawPartnerDaily !== undefined) partnerDaily = rawPartnerDaily === 'true';
+    const rawPartnerTime = storage ? storage.getItem(NOTIF_KEYS.partnerTime) : null;
+    if (rawPartnerTime) partnerTime = rawPartnerTime;
   } catch (e) {
     // storage unavailable (private mode etc.): fall through to user record
   }
@@ -99,7 +122,16 @@ export function readPrefs(storage, user) {
   // which is exactly how every existing install behaves today.
   if (period === null) period = enabled === true;
   if (ovulation === null) ovulation = enabled === true;
-  return { enabled: enabled === true, time, period, ovulation };
+  // The partner reminder NEVER follows the daily flag: it is an opt
+  // in the partner makes for themselves, default off, full stop.
+  if (partnerDaily === null && typeof serverPrefs.partner_daily_note === 'boolean') {
+    partnerDaily = serverPrefs.partner_daily_note;
+  }
+  if (!partnerTime && typeof serverPrefs.partner_daily_time === 'string') {
+    partnerTime = serverPrefs.partner_daily_time;
+  }
+  if (!parseTimeHHMM(partnerTime)) partnerTime = '09:00';
+  return { enabled: enabled === true, time, period, ovulation, partnerDaily: partnerDaily === true, partnerTime };
 }
 
 const DAY_MS = 86400000;
@@ -181,12 +213,24 @@ function clampToToday(at, now) {
 // same data the Home Daily Read renders) or null; the returned items
 // are plain data: { id, kind, title, body, on } for the repeating
 // daily reminder, { id, kind, title, body, at } for one-shot alerts.
-export function buildNotificationPlan({ user, prefs, headline, now }) {
+// The partner gate (v55): `partner` is the partner context resolved
+// at schedule time from GET /partner/status, the same data the
+// partner's app already fetches: { isPartner, ownerSharesPhase }.
+// The 7104 reminder is planned ONLY when all three hold: the partner
+// opted in themselves (prefs.partnerDaily), this account is the
+// linked partner (not the owner), and the owner shares her phase
+// with them (the daily note does not exist otherwise). View link
+// partners have no app and are never planned for, here or anywhere.
+export function partnerDailyEligible(prefs, partner) {
+  return !!(prefs && prefs.partnerDaily && partner && partner.isPartner && partner.ownerSharesPhase);
+}
+
+export function buildNotificationPlan({ user, prefs, headline, now, partner }) {
   if (!prefs) return [];
   // v49: three separate choices. What she chose is what gets scheduled;
   // nothing she left off is scheduled. Older saved prefs (no per-alert
   // keys) arrive with the alert flags already resolved by readPrefs.
-  const anyChosen = prefs.enabled || prefs.period || prefs.ovulation;
+  const anyChosen = prefs.enabled || prefs.period || prefs.ovulation || partnerDailyEligible(prefs, partner);
   if (!anyChosen) return [];
   const time = parseTimeHHMM(prefs.time) || { hour: 9, minute: 0 };
   const body = (headline && headline.trim()) || fallbackHeadline(user, now);
@@ -222,6 +266,7 @@ export function buildNotificationPlan({ user, prefs, headline, now }) {
     // Ovulation week starts today: the morning the fertile window
     // (the app's ovulation window) begins.
     if (prefs.ovulation) {
+
       const ovuAt = new Date(info.fertileStart);
       ovuAt.setHours(OVULATION_ALERT_HOUR, 0, 0, 0);
       const ovuFire = clampToToday(ovuAt, now);
@@ -235,6 +280,23 @@ export function buildNotificationPlan({ user, prefs, headline, now }) {
         });
       }
     }
+  }
+
+  // v55: the partner daily note reminder, on the PARTNER's device, at
+  // the partner's own chosen time (default 9:00 AM). It does not need
+  // the partner's own cycle info: it fires daily while the gate
+  // above holds, and stops being planned the moment the owner's
+  // phase sharing turns off or the partner opts out (schedules
+  // refresh on every app open).
+  if (partnerDailyEligible(prefs, partner)) {
+    const pt = parseTimeHHMM(prefs.partnerTime) || { hour: 9, minute: 0 };
+    plan.push({
+      id: PARTNER_NOTIFICATION_ID,
+      kind: 'partner_daily',
+      title: PARTNER_NOTIFICATION_TITLE,
+      body: PARTNER_NOTIFICATION_BODY,
+      on: { hour: pt.hour, minute: pt.minute },
+    });
   }
   return plan;
 }

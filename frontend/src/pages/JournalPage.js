@@ -3,9 +3,17 @@ import { useAuth } from '../context/AuthContext';
 import { Plus, Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Calendar, X, Lock, Pencil } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
+import { PHASE_PAIRS } from '../lib/phases';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#C9B8F0';
+// v55: phase colors come from the pair system (lib/phases.js), never
+// hard coded here. Period tint is the menstrual pair primary; the
+// ovulation tint is the ovulatory pair secondary (the green), with a
+// lighter tint of the same green for the day numbers.
+const MENSTRUAL_TINT = PHASE_PAIRS.menstrual.primary;
+const OVULATION_TINT = PHASE_PAIRS.ovulatory.secondary;
+const OVULATION_TEXT = '#7ED3A6';
 // The pretty blue for logged days (Angelita, Oct 30, 2026, fix list
 // item 20): any day she logged anything, a journal entry or a Home
 // mood/symptom quick log, lights up in this blue on the little
@@ -118,7 +126,7 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
           return (
             <button key={day} onClick={() => { onSelectDate(ds); onClose(); }}
               className="relative w-6 h-6 flex items-center justify-center rounded text-[8px]"
-              style={{ background: sel?'#FF4F9A':isPeriod(day)?'rgba(232,90,107,0.25)':pk?'rgba(93,187,138,0.4)':ov?'rgba(93,187,138,0.22)':logged?'rgba(116,185,255,0.20)':td?'rgba(255,255,255,0.08)':'transparent', color: sel?'#fff':ov?'#7ED3A6':td?'#fff':'#CFC3CC', fontFamily:'Poppins,sans-serif', border: logged && !sel ? `1px solid ${LOGGED_BLUE}` : '1px solid transparent' }}>
+              style={{ background: sel?'#FF4F9A':isPeriod(day)?`${MENSTRUAL_TINT}40`:pk?`${OVULATION_TINT}66`:ov?`${OVULATION_TINT}38`:logged?'rgba(116,185,255,0.20)':td?'rgba(255,255,255,0.08)':'transparent', color: sel?'#fff':ov?OVULATION_TEXT:td?'#fff':'#CFC3CC', fontFamily:'Poppins,sans-serif', border: logged && !sel ? `1px solid ${LOGGED_BLUE}` : '1px solid transparent' }}>
               {day}
               {isIntimacy(day) && <Heart className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5" style={{color:'#FF4F9A'}} fill="#FF4F9A" />}
             </button>

@@ -2,17 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen, Utensils, Dumbbell, Heart, Flower2, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import { phasePair } from '../lib/phases';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const PHASE_ACCENTS = {
-  menstrual: '#C9B8F0',
-  follicular: '#C9B8F0',
-  ovulatory: '#C9B8F0',
-  luteal: '#C9B8F0',
-  late: '#C9B8F0',
-  unknown: '#C9B8F0',
-};
+// v55: the Daily Read takes the CURRENT phase pair like everything
+// else (lib/phases.js PHASE_PAIRS). It used to wear the same lilac
+// #C9B8F0 for every phase, the one surface that ignored phase color
+// entirely. Accent is the pair's primary; accent2 its partner.
 
 const SECTION_ICONS = {
   body_insight: { icon: Flower2, label: 'Your Body Right Now' },
@@ -59,18 +56,20 @@ export default function DailyRead() {
   if (!data?.reading) return null;
 
   const reading = data.reading;
-  const accent = PHASE_ACCENTS[data.phase] || '#c9b8f0';
+  const pair = phasePair(data.phase);
+  const accent = pair.primary;
+  const accent2 = pair.secondary;
   const sections = ['body_insight', 'mood_forecast', 'food', 'movement', 'self_care'];
 
   return (
-    <div className="relative rounded-xl overflow-hidden" style={{ border: '1.5px solid #C9B8F0', background: 'linear-gradient(135deg, rgba(201,184,240,0.10) 0%, rgba(201,184,240,0.03) 100%)' }} data-testid="daily-read">
+    <div className="relative rounded-xl overflow-hidden" style={{ border: `1.5px solid ${accent}`, background: `linear-gradient(135deg, ${accent}1A 0%, ${accent2}0D 100%)` }} data-testid="daily-read">
       {/* v50 (Angelita, Oct 26, 2026): the life stages line no longer
           sits behind the Daily Read. It belongs to the Journal only. */}
       <div className="relative">
       <div className="px-3 pt-2.5 pb-0.5 flex items-center gap-1.5">
-        <span style={{ color: '#C9B8F0', fontSize: '9px' }}>✿</span>
-        <span className="text-[10px]" style={{ fontFamily: "'Poiret One', sans-serif", color: '#C9B8F0' }}>HORMOscope</span>
-        <span style={{ color: '#C9B8F0', fontSize: '9px' }}>✿</span>
+        <span style={{ color: accent2, fontSize: '9px' }}>✿</span>
+        <span className="text-[10px]" style={{ fontFamily: "'Poiret One', sans-serif", color: accent2 }}>HORMOscope</span>
+        <span style={{ color: accent2, fontSize: '9px' }}>✿</span>
       </div>
       <div className="text-center pt-1 pb-1">
         <h3 className="text-base" style={{ fontFamily: "'Poiret One', sans-serif", color: '#FF4F9A' }}>Your Daily Read</h3>

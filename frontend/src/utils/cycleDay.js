@@ -15,3 +15,16 @@ export function cycleDayFromDashboard(data) {
   if (!Number.isFinite(day) || day < 1) return null;
   return day;
 }
+
+// The current phase, for the tiny peaches' glow (v55): the peaches
+// wear the phase pair colors of the day she is on, around the art,
+// never on it. Same guards as the day number: null on the no-periods
+// path, on placeholder data, and whenever there is no real phase.
+export function phaseFromDashboard(data) {
+  if (!data || typeof data !== 'object') return null;
+  if (data.no_periods) return null;
+  const ci = data.cycle_info;
+  if (!ci || typeof ci !== 'object') return null;
+  if (!ci.phase || ci.phase === 'unknown') return null;
+  return ci.phase;
+}

@@ -171,6 +171,12 @@ function NotificationsSection({ user, token, updateUser }) {
   // v49: the same three choices onboarding offers (Angelita, Oct 26).
   const [periodAlert, setPeriodAlert] = useState(prefs.period);
   const [ovulationAlert, setOvulationAlert] = useState(prefs.ovulation);
+  // v55: the partner daily note reminder is a fourth choice, but it
+  // belongs to partners only: the row renders only when this account
+  // is a linked partner (checked against /partner/status below).
+  const [partnerDaily, setPartnerDaily] = useState(prefs.partnerDaily);
+  const [partnerTime, setPartnerTime] = useState(prefs.partnerTime || '09:00');
+  const [isPartner, setIsPartner] = useState(false);
   const [permDisplay, setPermDisplay] = useState(null);
   const [msg, setMsg] = useState('');
   const native = isNativePlatform();
@@ -181,19 +187,31 @@ function NotificationsSection({ user, token, updateUser }) {
     return () => { live = false; };
   }, []);
 
-  const apply = async (nextEnabled, nextTime, nextPeriod = periodAlert, nextOvulation = ovulationAlert) => {
+  useEffect(() => {
+    let live = true;
+    axios.get(`${API}/partner/status`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
+      .then((res) => { if (live) setIsPartner(!!(res.data?.is_linked && res.data?.role === 'partner')); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [token]);
+
+  const apply = async (nextEnabled, nextTime, nextPeriod = periodAlert, nextOvulation = ovulationAlert, nextPartnerDaily = partnerDaily, nextPartnerTime = partnerTime) => {
     setEnabled(nextEnabled);
     setTime(nextTime);
     setPeriodAlert(nextPeriod);
     setOvulationAlert(nextOvulation);
+    setPartnerDaily(nextPartnerDaily);
+    setPartnerTime(nextPartnerTime);
     setMsg('');
-    const anyOn = nextEnabled || nextPeriod || nextOvulation;
-    const mergedPrefs = { ...(user.notification_preferences || {}), period_reminder: nextPeriod, ovulation_reminder: nextOvulation };
+    const anyOn = nextEnabled || nextPeriod || nextOvulation || nextPartnerDaily;
+    const mergedPrefs = { ...(user.notification_preferences || {}), period_reminder: nextPeriod, ovulation_reminder: nextOvulation, partner_daily_note: nextPartnerDaily, partner_daily_time: nextPartnerTime };
     try {
       localStorage.setItem('hormoscope-notifications-enabled', nextEnabled ? 'true' : 'false');
       localStorage.setItem('hormoscope-notification-time', nextTime);
       localStorage.setItem('hormoscope-notifications-period', nextPeriod ? 'true' : 'false');
       localStorage.setItem('hormoscope-notifications-ovulation', nextOvulation ? 'true' : 'false');
+      localStorage.setItem('hormoscope-notifications-partner-daily', nextPartnerDaily ? 'true' : 'false');
+      localStorage.setItem('hormoscope-notification-partner-time', nextPartnerTime);
     } catch (e) { /* storage unavailable: server fields below still save */ }
     try {
       const res = await axios.put(`${API}/profile`, { notifications_enabled: nextEnabled, notification_time: nextTime, notification_preferences: mergedPrefs }, { headers: { Authorization: `Bearer ${token}` } });
@@ -245,6 +263,22 @@ function NotificationsSection({ user, token, updateUser }) {
           <span className="block text-xs text-[#CFC3CC]">A note the morning your ovulation week is estimated to begin.</span>
         </span>
       </label>
+      {isPartner && (
+        <>
+          <label className={row}>
+            <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={partnerDaily} onChange={(e) => apply(enabled, time, periodAlert, ovulationAlert, e.target.checked, partnerTime)} data-testid="notifications-partner-daily-toggle" />
+            <span>Daily partner note reminder
+              <span className="block text-xs text-[#CFC3CC]">A daily nudge to log in and see what your person is wishing for you to do for them today. The note itself never appears on your lock screen.</span>
+            </span>
+          </label>
+          <div>
+            <p className="text-white text-base mb-2">Partner reminder time</p>
+            <select value={partnerTime} disabled={!partnerDaily} onChange={(e) => apply(enabled, time, periodAlert, ovulationAlert, partnerDaily, e.target.value)} className="w-full rounded-xl px-3 py-2.5 bg-white/5 border border-white/15 text-white disabled:opacity-50" data-testid="notification-partner-time-select">
+              {NOTIFICATION_TIMES.map((t) => <option key={t.time} value={t.time} className="bg-[#15152B]">{t.label}</option>)}
+            </select>
+          </div>
+        </>
+      )}
       {native && (enabled || periodAlert || ovulationAlert) && permDisplay === 'denied' && (
         <p className="text-sm text-[#E6E0EE]" data-testid="notifications-denied-line">Notifications are turned off for HORMOscope in your phone settings. Turn them on there to get your Daily Read and cycle alerts.</p>
       )}
