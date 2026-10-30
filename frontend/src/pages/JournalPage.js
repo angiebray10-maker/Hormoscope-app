@@ -7,10 +7,14 @@ import logger from '../utils/logger';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#C9B8F0';
 const JOURNAL_PREVIEW_IMG = '/pro-screenshots/journal.png';
-// Classy, easy-to-read serif for the journal itself (Angelita, Oct 17:
-// no more cursive). System serif stack, so it renders the same offline
-// in the WebView with no font download.
-const SERIF = "'Poppins', 'Segoe UI', sans-serif";
+// Journal ENTRY text only (Angelita, Oct 29, fix list item 16): her own
+// handwriting feel, Architects Daughter (the 8C sample), self-hosted in
+// src/fonts so it renders offline in the WebView. Headings stay
+// Poiret One and all other journal UI text stays Poppins; the
+// .journal-handwriting class in index.css carries the app pink ink
+// (#F74093) and the slight italic tilt (about 8 degrees, synthesized
+// oblique, entry text only).
+const SERIF = "'Architects Daughter', 'Poppins', cursive";
 
 function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -524,8 +528,8 @@ export default function JournalPage() {
               <textarea
                 value={currentEntry} onChange={(e) => { setCurrentEntry(e.target.value); if (saveError) setSaveError(false); }}
                 placeholder="Write whatever is on your mind..."
-                className="w-full bg-transparent border-none text-white/90 min-h-[180px] resize-none outline-none placeholder-white/15"
-                style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px' }}
+                className="journal-handwriting w-full bg-transparent border-none min-h-[180px] resize-none outline-none placeholder-white/15"
+                style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}
                 autoFocus
                 data-testid="journal-content-input"
               />
@@ -617,7 +621,7 @@ export default function JournalPage() {
                             Intimate · her eyes only
                           </p>
                         )}
-                        <p className="text-white/85 whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px' }}>{entry.content}</p>
+                        <p className="journal-handwriting whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}>{entry.content}</p>
                       </div>
                     ))}
                   </div>
@@ -705,7 +709,7 @@ export default function JournalPage() {
                                       Intimate · her eyes only
                                     </p>
                                   )}
-                                  <p className="text-white/85 whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px' }}>{entry.content}</p>
+                                  <p className="journal-handwriting whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}>{entry.content}</p>
                                 </div>
                               ))}
                               {day.logs.length > 0 && (
