@@ -164,7 +164,7 @@ export default function AuthPage() {
             <ul className="space-y-2 text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
               <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />Sync cycles with your girlfriend: both your phases side by side, with the days you&apos;re in sync highlighted.</li>
               <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />Or invite your boyfriend so he knows what each phase may feel like and how to show up.</li>
-              <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />You choose exactly what they see. Your intimacy log is never shared, and your journal only if you choose to share it.</li>
+              <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />You choose exactly what they see. Your intimacy log and your journal are private unless you choose to share them.</li>
             </ul>
           </div>
 

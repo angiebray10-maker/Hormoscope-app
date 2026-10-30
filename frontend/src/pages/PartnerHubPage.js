@@ -270,6 +270,73 @@ function PartnerJournalTab({ token, partnerName }) {
   );
 }
 
+// v54 (Angelita, Oct 30, 2026): her intimacy log, readable here only
+// because she turned intimacy sharing on (she reversed the old
+// never-shared rule). Read-only. The server refuses the moment she
+// turns it off, and this tab explains that instead of failing quietly.
+function PartnerIntimacyTab({ token, partnerName }) {
+  const [data, setData] = useState(null);
+  const [state, setState] = useState('loading'); // loading | ok | off | error
+
+  useEffect(() => {
+    let live = true;
+    axios.get(`${API}/partner/intimacy`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
+      .then((res) => { if (live) { setData(res.data); setState('ok'); } })
+      .catch((err) => {
+        if (!live) return;
+        setState(err.response?.status === 403 ? 'off' : 'error');
+      });
+    return () => { live = false; };
+  }, [token]);
+
+  if (state === 'loading') {
+    return <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#f4a7b9] animate-spin" /></div>;
+  }
+  if (state === 'off') {
+    return (
+      <p className="text-center text-[#CFC3CC] text-sm leading-relaxed py-6" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="partner-intimacy-off">
+        {partnerName || 'She'} has not chosen to share her intimacy log. It stays private unless she turns sharing on.
+      </p>
+    );
+  }
+  if (state === 'error') {
+    return (
+      <p className="text-center text-[#CFC3CC] text-sm py-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        Her intimacy log could not be loaded just now. Please try again in a moment.
+      </p>
+    );
+  }
+  const days = data?.days || [];
+  if (!days.length) {
+    return (
+      <p className="text-center text-[#CFC3CC] text-sm py-6" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="partner-intimacy-empty">
+        No intimacy days logged yet. When she logs one, it will appear here.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4" data-testid="partner-intimacy">
+      <p className="text-center text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        She chose to share her intimacy log with you. This is read only.
+      </p>
+      {days.map((d) => (
+        <div key={d.date} className="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.03]">
+          <p className="text-lg mb-1 flex items-center gap-2" style={{ fontFamily: "'Poiret One', sans-serif", color: '#FF4F9A' }}>
+            <Heart className="w-4 h-4" fill="#FF4F9A" />
+            {new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+          {d.partners ? (
+            <p className="text-[#E6E0EE] text-sm leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{d.partners}</p>
+          ) : null}
+          {d.notes ? (
+            <p className="text-[#CFC3CC] text-sm leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Poppins, sans-serif' }}>{d.notes}</p>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function PartnerHubPage() {
   const { token, user } = useAuth();
   const { loading: rcLoading } = usePremium();
@@ -398,7 +465,7 @@ export default function PartnerHubPage() {
           </>
           )}
           <p className="text-[#B4B0C8] text-[10px] mt-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Her intimacy log is never shared. You only see what she chose to share.
+            Her intimacy log is private unless she chooses to share it. You only see what she chose to share.
           </p>
         </div>
       </div>
@@ -446,6 +513,7 @@ export default function PartnerHubPage() {
             { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
             { id: 'notes', label: 'Notes', icon: null },
             ...(status.partner_shares_journal ? [{ id: 'journal', label: 'Journal', icon: BookOpen }] : []),
+            ...(status.partner_shares_intimacy ? [{ id: 'intimacy', label: 'Intimacy', icon: Heart }] : []),
           ].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className="flex-1 py-2.5 rounded-full text-sm font-medium relative"
@@ -584,6 +652,8 @@ export default function PartnerHubPage() {
         {tab === 'notes' && <NotesTab token={token} currentUserId={user?.id} onUnreadChange={setUnread} />}
 
         {tab === 'journal' && <PartnerJournalTab token={token} partnerName={status.partner_name} />}
+
+        {tab === 'intimacy' && <PartnerIntimacyTab token={token} partnerName={status.partner_name} />}
 
       </div>
     </div>

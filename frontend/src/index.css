@@ -733,11 +733,26 @@ html.hs-orb-off .hs-orb-pulse { animation: none !important; }
   animation-iteration-count: infinite, infinite;
   will-change: transform, opacity;
 }
-.rare-peach {
-  animation-name: peachSpin, peachFadeRare;
-  animation-timing-function: linear, linear;
-  animation-iteration-count: infinite, infinite;
-  will-change: transform, opacity;
+/* Cycle day peaches (Oct 30, 2026, item 26): the fade lives on the
+   wrapper so the day number fades in and out together with its
+   peach, and the spin lives on the image alone, in place. */
+.peach-fade {
+  animation-name: peachFadeSoft;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: opacity;
 }
-.peaches-paused .tiny-peach, .peaches-paused .rare-peach { animation-play-state: paused; }
-@media (prefers-reduced-motion: reduce) { .tiny-peach, .rare-peach { animation: none !important; } }
+.peach-spin {
+  animation-name: peachSpin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.rare-peach {
+  animation-name: peachFadeRare;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: opacity;
+}
+.peaches-paused .tiny-peach, .peaches-paused .rare-peach, .peaches-paused .peach-fade, .peaches-paused .peach-spin { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .tiny-peach, .rare-peach, .peach-fade, .peach-spin { animation: none !important; } }

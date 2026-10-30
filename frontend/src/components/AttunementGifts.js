@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
 import { PartnerAvatar } from '../pages/AttunementPage';
-import { CATALOG_PRODUCTS, PRODUCT_BY_ASIN, amazonUrl, CATALOG_DISCLOSURE, CATALOG_SECTIONS, CATALOG_PRICES_LINE, formatPrice } from '../data/catalog';
+import { CATALOG_PRODUCTS, PRODUCT_BY_ASIN, amazonUrl, CATALOG_SECTIONS, CATALOG_PRICES_LINE, formatPrice } from '../data/catalog';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const PINK = '#f4a7b9';
@@ -210,9 +210,7 @@ export default function AttunementGifts() {
           {myPicks === null ? (
             <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 text-[#f4a7b9] animate-spin" /></div>
           ) : myPicks.length === 0 ? (
-            <p className="text-[#b8b8d1] text-sm leading-relaxed py-2" style={poppins} data-testid="boutique-empty">
-              Nothing here yet, and that is perfectly fine. When something in the Gift Catalog catches your eye, tap Add to my wishlist and it will be waiting for you right here.
-            </p>
+            <div className="py-2" data-testid="boutique-empty" />
           ) : (
             myPicks.filter((a) => PRODUCT_BY_ASIN[a]).map((asin) => {
               const product = PRODUCT_BY_ASIN[asin];
@@ -258,7 +256,6 @@ export default function AttunementGifts() {
 
       {activeTab === 'catalog' && (
         <div data-testid="catalog-tab">
-          <p className="text-[#B4B0C8] text-[11px] leading-relaxed mb-4" style={poppins}>{CATALOG_DISCLOSURE}</p>
           {/* v50: grouped under her section headings, in her order.
               A section with no products does not show. */}
           {CATALOG_SECTIONS.map((section) => {
@@ -293,7 +290,6 @@ export default function AttunementGifts() {
             );
           })}
           <p className="text-[#B4B0C8] text-[11px] leading-relaxed mt-4" style={poppins}>{CATALOG_PRICES_LINE}</p>
-          <p className="text-[#B4B0C8] text-[11px] leading-relaxed" style={poppins}>{CATALOG_DISCLOSURE}</p>
         </div>
       )}
     </div>

@@ -726,6 +726,14 @@ export default function CalendarPage() {
               )}
             </div>
 
+            {/* The secret heart (Angelita, Oct 30, 2026): the long-press
+                names function has always been here, but nothing ever
+                told her it existed. One quiet line, right where she
+                logs intimacy. */}
+            <p className="text-[#CFC3CC] text-xs leading-relaxed px-1" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="secret-heart-hint">
+              Psst. The heart is a secret button. Press and hold it to add the name, or names, for that day. Only you see them, unless you choose to share your intimacy log.
+            </p>
+
             {/* Her logged days live in her Vault now, not on the Calendar
                 (Angelita, Oct 26, 2026). Days are no longer "saved on the
                 Calendar": this dialog shows her cycle only (period day,

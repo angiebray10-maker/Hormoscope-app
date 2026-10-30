@@ -25,8 +25,6 @@ export const AMAZON_TAG = 'hormoscope20-20';
 
 export const amazonUrl = (asin) => `https://www.amazon.com/dp/${asin}?tag=${AMAZON_TAG}`;
 
-export const CATALOG_DISCLOSURE = 'As an Amazon Associate I earn from qualifying purchases.';
-
 export const CATALOG_PRICES_LINE = 'Prices checked October 27, 2026. Amazon shows the live price when you tap through.';
 
 // Her section order. Sections with no products are skipped.

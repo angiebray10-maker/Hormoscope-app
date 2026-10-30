@@ -47,8 +47,12 @@ const VIS_OPTIONS = [
   // Off unless she ticks it, and it reaches only a linked partner
   // inside the app, never a view link.
   { id: 'share_journal', label: 'My journal entries' },
+  // v54 (Angelita, Oct 30, 2026): the intimacy log is a choice too,
+  // reversing the old never-shared rule. Off unless she ticks it, and
+  // it reaches only a linked partner inside the app, never a view link.
+  { id: 'share_intimacy', label: 'My intimacy log' },
 ];
-const DEFAULT_VIS = { phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true, share_journal: false };
+const DEFAULT_VIS = { phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true, share_journal: false, share_intimacy: false };
 
 // The face beside a partner's name. Falls back to a neutral initial
 // disc for accounts that have no picture (legacy partners).
@@ -85,7 +89,7 @@ function VisibilityChecklist({ vis, onToggle }) {
           </button>
         );
       })}
-      <p className="text-[#E6E0EE] text-xs mt-1" style={poppins}>Your intimacy log is never shared. Your journal goes only to a linked partner inside the app, and only if you tick it above. It never goes out through a view link.</p>
+      <p className="text-[#E6E0EE] text-xs mt-1" style={poppins}>Your journal and your intimacy log are private unless you choose to share them. Each goes only to a linked partner inside the app, and only if you tick it above. Neither ever goes out through a view link.</p>
     </div>
   );
 }
@@ -549,7 +553,7 @@ export default function AttunementPage() {
         <AttunementGifts />
 
         <p className="text-center text-[#B4B0C8] text-[10px] leading-relaxed" style={poppins}>
-          Your intimacy log is never shared, and your journal only if you chose to share it. Your people only see what you chose to share.
+          Your intimacy log and your journal are shared only if you chose to share them. Your people only see what you chose to share.
         </p>
       </div>
     </div>

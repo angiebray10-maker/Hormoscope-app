@@ -120,13 +120,20 @@ class UserLogin(BaseModel):
 # meaningless, so they are switched off for these users.
 CYCLE_STATUSES = {"regular", "unsure", "hormonal_birth_control", "pregnant", "postpartum", "menopause", "no_periods"}
 NO_FERTILITY_STATUSES = {"hormonal_birth_control", "pregnant", "postpartum", "menopause", "no_periods"}
-PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_window", "wishlist", "share_journal")
+PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_window", "wishlist", "share_journal", "share_intimacy")
 # share_journal (v49, Angelita, Oct 26, 2026): her journal entries are
 # shared with her linked in-app partner ONLY when she turns this on.
 # Default False for everyone: new users, existing users, existing
 # relationships. It never applies to view links, and entries she
 # marked intimate are never served to a partner either way.
-DEFAULT_PARTNER_VISIBILITY = {"phase": True, "mood_energy": True, "period_dates": True, "fertile_window": False, "wishlist": True, "share_journal": False}
+# share_intimacy (v54, Angelita, Oct 30, 2026): she REVERSED the old
+# "intimacy log is never shared" rule. Her intimacy LOG (the Calendar
+# intimacy days and the names stored with them) is now a checklist
+# choice like the journal: shared with her linked in-app partner ONLY
+# when she turns this on, default False for everyone, and it never
+# applies to view links. This is separate from journal entries marked
+# intimate, which stay her eyes only either way.
+DEFAULT_PARTNER_VISIBILITY = {"phase": True, "mood_energy": True, "period_dates": True, "fertile_window": False, "wishlist": True, "share_journal": False, "share_intimacy": False}
 BOUTIQUE_VISIBILITY_VALUES = ("private", "partner", "public")
 
 
@@ -2354,6 +2361,27 @@ async def get_journal_entries(current_user: dict = Depends(get_current_user)):
     exchanges = await _companion_exchanges_for(current_user["id"], today.isoformat())
     return {"entries": todays, "companion_exchanges": exchanges}
 
+@api_router.get("/journal/logged-days")
+async def get_journal_logged_days(current_user: dict = Depends(get_current_user)):
+    """Owner only (v54, Angelita, Oct 30, 2026): the DATES she has
+    logged anything, for the Vault and mini calendars. Journal days
+    come from her journal entries (all of them, not just today's page,
+    which is all GET /journal hands out now), log days from her cycle
+    logs (Home moods, symptoms and quick logs). Dates only: no entry
+    text, no log content, nothing a calendar highlight needs beyond
+    the day itself."""
+    entries = await db.journal_entries.find(
+        {"user_id": current_user["id"]}, {"_id": 0, "created_at": 1}
+    ).to_list(length=None)
+    journal_days = sorted({d.isoformat() for e in entries
+                           for d in [_journal_day(e.get("created_at"))] if d})
+    logs = await db.cycle_logs.find(
+        {"user_id": current_user["id"]}, {"_id": 0, "date": 1}
+    ).to_list(length=None)
+    log_days = sorted({l["date"] for l in logs if l.get("date")})
+    return {"journal_days": journal_days, "log_days": log_days,
+            "logged_days": sorted(set(journal_days) | set(log_days))}
+
 @api_router.delete("/journal/{entry_id}")
 async def delete_journal_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
     result = await db.journal_entries.delete_one({"id": entry_id, "user_id": current_user["id"]})
@@ -3328,9 +3356,12 @@ async def get_partner_view(link_code: str):
     
     # Only what she chose to share (Profile > partner visibility).
     # Journal sharing never travels through a view link (v49): the
-    # share_journal choice is not even echoed here.
+    # share_journal choice is not even echoed here. The same holds for
+    # the intimacy log choice (v54): share_intimacy is not echoed here
+    # and intimacy data never travels through a view link either.
     vis = {**DEFAULT_PARTNER_VISIBILITY, **(user.get("partner_visibility") or {})}
     vis.pop("share_journal", None)
+    vis.pop("share_intimacy", None)
     out = {"name": user.get("name", "Her"), "visibility": vis}
     if vis.get("phase"):
         out.update({
@@ -3364,8 +3395,10 @@ async def get_my_partner_link(current_user: dict = Depends(get_current_user)):
 # ==================== ATTUNED PARTNER MODE: LINKED ACCOUNTS ====================
 # A partner creates their own HORMOscope account and links it to her account
 # via an invite code. Partners see her cycle calendar (ovulation, fertile
-# window, next period) but NEVER her journal entries (intimate or otherwise)
-# and NEVER her intimacy logs.
+# window, next period). Her journal entries and her intimacy log reach a
+# partner only through their own gated endpoints, and only when she turns
+# that sharing choice on (share_journal v49, share_intimacy v54); journal
+# entries she marked intimate are never served to a partner either way.
 
 class AcceptInviteRequest(BaseModel):
     invite_code: str
@@ -3494,6 +3527,10 @@ async def get_partner_status(current_user: dict = Depends(get_current_user)):
         other_vis = {**DEFAULT_PARTNER_VISIBILITY, **(other.get("partner_visibility") or {})}
         if other_vis.get("share_journal"):
             out["partner_shares_journal"] = True
+        # v54: same present-only-when-on pattern for the intimacy log,
+        # so the hub can show its Intimacy tab only while she shares it.
+        if other_vis.get("share_intimacy"):
+            out["partner_shares_intimacy"] = True
     return out
 
 def _phase_for_cycle_day(cycle_day: int) -> str:
@@ -3934,7 +3971,8 @@ async def partner_view_page(token: str):
 @api_router.get("/partner/calendar")
 async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
     """Her cycle calendar for a linked partner. NEVER includes journal entries
-    (intimate or otherwise) or intimacy logs."""
+    (intimate or otherwise) or intimacy logs; those travel only through
+    their own gated endpoints when she turns sharing on."""
     rel = await _get_partner_relationship(current_user["id"])
     if not rel:
         raise HTTPException(status_code=403, detail="No linked partner account.")
@@ -4089,6 +4127,37 @@ async def get_partner_journal(current_user: dict = Depends(get_current_user)):
             "created_at": e.get("created_at"),
         })
     days = [{"date": d, "entries": by_day[d]} for d in sorted(by_day, reverse=True)]
+    return {"partner_name": other.get("name") or "Partner", "days": days}
+
+@api_router.get("/partner/intimacy")
+async def get_partner_intimacy(current_user: dict = Depends(get_current_user)):
+    """Her intimacy log, for her linked in-app partner, ONLY when she
+    turned intimacy sharing on (partner_visibility.share_intimacy,
+    v54, Angelita, Oct 30, 2026, reversing the old never-shared rule).
+    While the choice is off (the default for everyone) this refuses,
+    and no intimacy data appears in any partner payload. When it is
+    on, the partner sees her intimacy days: each day she logged, the
+    names she stored for that day, and any note on the log. Read-only;
+    nothing here writes. View links never carry intimacy data,
+    whatever she chooses. Journal entries marked intimate are a
+    separate thing and are never served to a partner either way."""
+    rel = await _get_partner_relationship(current_user["id"])
+    if not rel:
+        raise HTTPException(status_code=403, detail="No linked partner account.")
+    owner_id, partner_id = _partner_pair(rel)
+    other_id = partner_id if current_user["id"] == owner_id else owner_id
+    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1, "partner_visibility": 1})
+    if not other:
+        raise HTTPException(status_code=404, detail="Partner account not found")
+    other_vis = {**DEFAULT_PARTNER_VISIBILITY, **(other.get("partner_visibility") or {})}
+    if not other_vis.get("share_intimacy"):
+        raise HTTPException(status_code=403, detail="Intimacy sharing is off.")
+    logs = await db.intimacy_logs.find(
+        {"user_id": other_id}, {"_id": 0}
+    ).sort("date", -1).to_list(length=None)
+    days = [{"date": l.get("date"),
+             "partners": l.get("partners") or "",
+             "notes": l.get("notes") or ""} for l in logs if l.get("date")]
     return {"partner_name": other.get("name") or "Partner", "days": days}
 
 # ==================== ATTUNED PARTNER MODE: NOTES ====================

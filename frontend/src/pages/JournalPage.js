@@ -6,6 +6,12 @@ import logger from '../utils/logger';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#C9B8F0';
+// The pretty blue for logged days (Angelita, Oct 30, 2026, fix list
+// item 20): any day she logged anything, a journal entry or a Home
+// mood/symptom quick log, lights up in this blue on the little
+// calendar and on the big Vault calendar. Kept clearly apart from
+// the ovulation green (#5DBB8A) the small calendar already uses.
+const LOGGED_BLUE = '#74B9FF';
 const JOURNAL_PREVIEW_IMG = '/pro-screenshots/journal.png';
 // Journal ENTRY text only (Angelita, Oct 29, fix list item 16): her own
 // handwriting feel, Architects Daughter (the 8C sample), self-hosted in
@@ -21,19 +27,22 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
   const [cycleLogs, setCycleLogs] = useState([]);
   const [intimacyLogs, setIntimacyLogs] = useState([]);
   const [dashboard, setDashboard] = useState(null);
+  const [journalDays, setJournalDays] = useState([]);
 
   /* eslint-disable */
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [c, i, d] = await Promise.all([
+        const [c, i, d, j] = await Promise.all([
           axios.get(`${API}/cycle-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }),
           axios.get(`${API}/intimacy-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }),
-          axios.get(`${API}/dashboard`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }).catch(() => ({ data: null }))
+          axios.get(`${API}/dashboard`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }).catch(() => ({ data: null })),
+          axios.get(`${API}/journal/logged-days`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }).catch(() => ({ data: null }))
         ]);
         setCycleLogs(c.data || []);
         setIntimacyLogs(i.data || []);
         setDashboard(d.data || null);
+        setJournalDays(j.data?.journal_days || []);
       } catch (err) { logger.error('Failed to fetch calendar data:', err); }
     };
     if (token) fetchData();
@@ -85,6 +94,10 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
   const fmt = (d) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   const isPeriod = (d) => cycleLogs.some(l => l.date === fmt(d) && l.is_period);
   const isIntimacy = (d) => intimacyLogs.some(l => l.date === fmt(d));
+  // Logged days in blue (item 20): a journal entry that day, or any
+  // cycle log that day (her Home moods, symptoms and quick logs).
+  const loggedSet = new Set([...journalDays, ...cycleLogs.map((l) => l.date).filter(Boolean)]);
+  const isLogged = (d) => loggedSet.has(fmt(d));
   const today = new Date().toISOString().split('T')[0];
 
   return (
@@ -101,16 +114,83 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
           const ds = fmt(day), sel = selectedDate===ds, td = ds===today;
           const ov = !sel && !isPeriod(day) && isOvulation(day);
           const pk = ov && isPeak(day);
+          const logged = isLogged(day);
           return (
             <button key={day} onClick={() => { onSelectDate(ds); onClose(); }}
               className="relative w-6 h-6 flex items-center justify-center rounded text-[8px]"
-              style={{ background: sel?'#FF4F9A':isPeriod(day)?'rgba(232,90,107,0.25)':pk?'rgba(93,187,138,0.4)':ov?'rgba(93,187,138,0.22)':td?'rgba(255,255,255,0.08)':'transparent', color: sel?'#fff':ov?'#7ED3A6':td?'#fff':'#CFC3CC', fontFamily:'Poppins,sans-serif' }}>
+              style={{ background: sel?'#FF4F9A':isPeriod(day)?'rgba(232,90,107,0.25)':pk?'rgba(93,187,138,0.4)':ov?'rgba(93,187,138,0.22)':logged?'rgba(116,185,255,0.20)':td?'rgba(255,255,255,0.08)':'transparent', color: sel?'#fff':ov?'#7ED3A6':td?'#fff':'#CFC3CC', fontFamily:'Poppins,sans-serif', border: logged && !sel ? `1px solid ${LOGGED_BLUE}` : '1px solid transparent' }}>
               {day}
               {isIntimacy(day) && <Heart className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5" style={{color:'#FF4F9A'}} fill="#FF4F9A" />}
             </button>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// The big Vault calendar (Angelita, Oct 30, 2026, fix list item 20):
+// the same month-by-month calendar as the little one, only bigger,
+// shown inside the unlocked Vault. Every logged day is outlined in
+// the same pretty blue, and tapping a logged day opens her book to
+// that day below. Month arrows move one month at a time.
+function VaultCalendar({ loggedDays, selectedDate, onSelectDay }) {
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const d = selectedDate ? new Date(selectedDate + 'T12:00:00') : new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const y = currentMonth.getFullYear(), m = currentMonth.getMonth();
+  const firstDay = new Date(y, m, 1).getDay();
+  const days = new Date(y, m + 1, 0).getDate();
+  const fmt = (d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const today = new Date().toISOString().split('T')[0];
+  const logged = loggedDays || new Set();
+  return (
+    <div className="rounded-2xl p-4 mb-6" style={{ background: 'rgba(20,15,30,0.85)', border: '1px solid rgba(116,185,255,0.25)' }} data-testid="vault-calendar">
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={() => setCurrentMonth(new Date(y, m - 1))} className="p-1.5 text-white/70" aria-label="Previous month" data-testid="vault-cal-prev">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-sm text-white/85" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+        </span>
+        <button onClick={() => setCurrentMonth(new Date(y, m + 1))} className="p-1.5 text-white/70" aria-label="Next month" data-testid="vault-cal-next">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+          <span key={`vdow-${i}-${d}`} className="text-[10px] text-center text-white/30 py-1" style={{ fontFamily: 'Poppins, sans-serif' }}>{d}</span>
+        ))}
+        {Array.from({ length: firstDay }).map((_, i) => <span key={`ve${i}`} />)}
+        {Array.from({ length: days }, (_, i) => i + 1).map((day) => {
+          const ds = fmt(day);
+          const isLoggedDay = logged.has(ds);
+          const sel = selectedDate === ds;
+          const td = ds === today;
+          return (
+            <button
+              key={day}
+              onClick={() => { if (isLoggedDay) onSelectDay(ds); }}
+              disabled={!isLoggedDay}
+              className="h-11 flex items-center justify-center rounded-lg text-sm"
+              style={{
+                background: sel ? LOGGED_BLUE : isLoggedDay ? 'rgba(116,185,255,0.15)' : 'transparent',
+                border: isLoggedDay ? `2px solid ${LOGGED_BLUE}` : '2px solid transparent',
+                color: sel ? '#0B0B1E' : isLoggedDay ? '#DCEEFF' : td ? '#fff' : 'rgba(255,255,255,0.35)',
+                fontFamily: 'Poppins, sans-serif',
+                fontWeight: sel ? 600 : 400,
+              }}
+              data-testid={`vault-cal-day-${ds}`}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[11px] mt-3 text-center" style={{ fontFamily: 'Poppins, sans-serif', color: '#9CC8F5' }}>
+        Days outlined in blue are days you logged something. Tap one to open your book to that day.
+      </p>
     </div>
   );
 }
@@ -158,6 +238,10 @@ export default function JournalPage() {
   const [vaultNew2, setVaultNew2] = useState('');   // set form: say it again
   const [vaultDays, setVaultDays] = useState(null); // sealed days, once unlocked
   const [vaultPage, setVaultPage] = useState(0);
+  // Item 20: every day she logged anything (journal or quick logs),
+  // for the big Vault calendar, plus the day she last tapped there.
+  const [vaultLoggedDays, setVaultLoggedDays] = useState(null);
+  const [vaultSelectedDate, setVaultSelectedDate] = useState(null);
   const [showChangePw, setShowChangePw] = useState(false);
   const [changeCur, setChangeCur] = useState('');
   const [changeNew, setChangeNew] = useState('');
@@ -324,6 +408,7 @@ export default function JournalPage() {
     setChangeCur(''); setChangeNew(''); setChangeMsg('');
     setShowChangePw(false);
     setVaultDays(null); setVaultPage(0); setVaultError('');
+    setVaultLoggedDays(null); setVaultSelectedDate(null);
   };
 
   const unlockVault = async (password) => {
@@ -358,6 +443,19 @@ export default function JournalPage() {
       });
       setVaultDays([...byDay.values()].sort((a, b) => b.date.localeCompare(a.date)));
       setVaultPage(0);
+      // Item 20: the big calendar's blue days. The dates endpoint is
+      // the full history (journal days plus quick log days, today
+      // included); if it cannot be reached, fall back to the sealed
+      // days plus every cycle log date this unlock already fetched.
+      try {
+        const daysRes = await axios.get(`${API}/journal/logged-days`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+        setVaultLoggedDays(new Set(daysRes.data?.logged_days || []));
+      } catch (daysErr) {
+        logger.error('Vault logged days failed, using sealed days:', daysErr);
+        const fallback = new Set([...byDay.keys(), ...(logsRes.data || []).map((l) => l.date).filter(Boolean)]);
+        setVaultLoggedDays(fallback);
+      }
+      setVaultSelectedDate(null);
     } catch (err) {
       const detail = err?.response?.data?.detail;
       setVaultError(typeof detail === 'string' ? detail : 'That did not open your vault. The server may be waking up, give it a moment and try again.');
@@ -394,13 +492,26 @@ export default function JournalPage() {
     } finally { setVaultBusy(false); }
   };
 
+  // Item 20: tapping a blue day on the big Vault calendar opens the
+  // book to that day. A sealed day turns the vault book to its page;
+  // today closes the vault back to today's page in the journal book.
+  const handleVaultCalSelect = (dateStr) => {
+    setVaultSelectedDate(dateStr);
+    const idx = (vaultDays || []).findIndex((d) => d.date === dateStr);
+    if (idx >= 0) {
+      setVaultPage(idx);
+    } else if (dateStr >= todayISO()) {
+      closeVault();
+    }
+  };
+
   const fmtDayLong = (dateStr) => new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   const fmtTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
   if (loading && !loadTimedOut && !loadError) return (
     <div className="relative min-h-screen" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }}>
       <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.12 }} />
+        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.12, transform: 'translateX(10px)' }} />
       </div>
       <div className="relative max-w-2xl mx-auto px-5 pt-6">
         <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Yours only</p>
@@ -417,7 +528,7 @@ export default function JournalPage() {
   if (loadTimedOut || loadError) return (
     <div className="relative flex flex-col items-center justify-center min-h-screen px-6 text-center overflow-hidden">
       <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.12 }} />
+        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.12, transform: 'translateX(10px)' }} />
       </div>
       <p className="relative text-white/80 text-sm mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Couldn&apos;t load your journal.</p>
       <p className="relative text-white/70 text-xs mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>The server might be waking up. Try again in a moment.</p>
@@ -456,9 +567,13 @@ export default function JournalPage() {
           asked for it back DOWN low where it was before v50, tight and
           clear of the wording, not up under the text, so the bottom
           anchoring from v49 is restored. Decorative only, kept faint so
-          every word on the page stays easy to read. */}
+          every word on the page stays easy to read. Oct 30 (item 13
+          completion): every placement of this artwork also carries a
+          small explicit nudge to the RIGHT (translateX(10px), about
+          1 to 2 percent of the strip) so the baby at the left edge is
+          not cut off. */}
       <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true" data-testid="journal-life-stages-backdrop">
-        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.13 }} />
+        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.13, transform: 'translateX(10px)' }} />
       </div>
       {/* Decorative flowers */}
       <div className="absolute top-0 left-0 w-full h-64 pointer-events-none overflow-hidden opacity-20">
@@ -589,7 +704,7 @@ export default function JournalPage() {
                       Page {Math.min(pageIndex, pages.length - 1) + 1} of {pages.length}
                     </p>
                   </div>
-                  <div className="rounded-2xl overflow-hidden"
+                  <div className="relative rounded-2xl overflow-hidden"
                     style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: '3px solid rgba(255,79,154,0.5)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
                     {page.entries.map((entry, i) => (
                       <div key={entry.id} className="p-4"
@@ -624,6 +739,9 @@ export default function JournalPage() {
                         <p className="journal-handwriting whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}>{entry.content}</p>
                       </div>
                     ))}
+                    {/* Item 20: our peach, always on the book page,
+                        bottom right corner, very small but visible. */}
+                    <img src="/images/peach-mini.png" alt="" aria-hidden="true" className="absolute bottom-2 right-2 w-6 h-6 object-contain pointer-events-none" style={{ opacity: 0.9 }} data-testid="journal-book-peach-logo" />
                   </div>
                   {/* Page-turn controls */}
                   <div className="flex items-center justify-between mt-4">
@@ -661,7 +779,7 @@ export default function JournalPage() {
               down low like the journal page (v49 placement, restored
               in v54 at her word). */}
           <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true">
-            <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.10 }} />
+            <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.10, transform: 'translateX(10px)' }} />
           </div>
           <div className="relative flex items-center justify-between px-5 py-4 max-w-2xl mx-auto w-full flex-shrink-0">
             <div className="flex items-center gap-2">
@@ -681,6 +799,11 @@ export default function JournalPage() {
 
               {vaultDays ? (
                 <div data-testid="vault-unlocked">
+                  <VaultCalendar
+                    loggedDays={vaultLoggedDays}
+                    selectedDate={vaultSelectedDate || vaultDays[Math.min(vaultPage, Math.max(0, vaultDays.length - 1))]?.date || null}
+                    onSelectDay={handleVaultCalSelect}
+                  />
                   {vaultDays.length === 0 ? (
                     <div className="text-center py-16">
                       <p className="text-3xl mb-3" style={{ color: 'rgba(201,184,240,0.25)' }}>✿</p>
@@ -699,7 +822,7 @@ export default function JournalPage() {
                                 Sealed day {Math.min(vaultPage, vaultDays.length - 1) + 1} of {vaultDays.length}
                               </p>
                             </div>
-                            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: `3px solid ${GOLD}`, background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
+                            <div className="relative rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: `3px solid ${GOLD}`, background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
                               {day.entries.map((entry, i) => (
                                 <div key={entry.id} className="p-4" style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`vault-entry-${entry.id}`}>
                                   <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', sans-serif" }}>{entry.title}</h3>
@@ -732,6 +855,8 @@ export default function JournalPage() {
                                   </div>
                                 </div>
                               )}
+                              {/* Item 20: the peach rides on the vault book page too, bottom right, small but visible. */}
+                              <img src="/images/peach-mini.png" alt="" aria-hidden="true" className="absolute bottom-2 right-2 w-6 h-6 object-contain pointer-events-none" style={{ opacity: 0.9 }} data-testid="vault-day-peach-logo" />
                             </div>
                             <div className="flex items-center justify-between mt-4">
                               <button

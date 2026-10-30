@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Heart, Sun, ShieldAlert, Cookie, BedDouble, Droplet, X, Check } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -129,6 +129,82 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved | error
   const flashTimer = useRef(null);
 
+  // Prefill from today's saved logs (Angelita, Oct 30, 2026, fix list
+  // item 21). ROOT CAUSE of "it opens empty like I never logged
+  // anything": this sheet kept its picks only in local state, started
+  // blank on every mount, and never read today's saved cycle logs
+  // back, so closing the sheet (or tapping the next log option, which
+  // remounts it) threw away everything she had already saved today
+  // from view, even though the records were on the server. Now the
+  // sheet reads today's logs on open and replays them in saved order:
+  // each save in here is a full snapshot of its group (mood+feelings,
+  // symptoms, cravings, collection, energy, sleep), so the latest
+  // snapshot per group is what she sees, including an emptied group.
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const res = await axios.get(`${API}/cycle-logs`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 15000,
+        });
+        if (!live) return;
+        const todays = (Array.isArray(res.data) ? res.data : [])
+          .filter((l) => l.date === todayISO())
+          .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+        let pMood; let pEmos; let pEnergy; let pSyms; let pCravs; let pColls; let pHours; let pQual;
+        const seen = {};
+        for (const l of todays) {
+          const S = Array.isArray(l.symptoms) ? l.symptoms : [];
+          const notes = l.notes || '';
+          const tags = (p) => S.filter((s) => typeof s === 'string' && s.startsWith(p)).map((s) => s.slice(p.length));
+          if (S.some((s) => typeof s === 'string' && (s.startsWith('mood:') || s.startsWith('emotion:'))) || notes.startsWith('No mood or feelings')) {
+            const mv = tags('mood:')[0];
+            pMood = mv !== undefined ? parseInt(mv, 10) : null;
+            pEmos = tags('emotion:').map((name) => {
+              const opt = EMOTION_OPTIONS.find((e) => e.label.toLowerCase() === String(name).toLowerCase());
+              return opt ? opt.label : null;
+            }).filter(Boolean);
+            seen.mood = true;
+          }
+          const ev = tags('energy:')[0];
+          if (ev !== undefined) { pEnergy = parseInt(ev, 10); seen.energy = true; }
+          const sh = tags('sleep:')[0];
+          const sq = tags('sleep_quality:')[0];
+          if (sh !== undefined || sq !== undefined) {
+            if (sh !== undefined) pHours = parseFloat(sh);
+            if (sq !== undefined) pQual = sq;
+            seen.sleep = true;
+          }
+          if (S.some((s) => typeof s === 'string' && s.startsWith('craving:')) || notes.startsWith('No cravings')) {
+            pCravs = tags('craving:'); seen.cravings = true;
+          }
+          if (S.some((s) => typeof s === 'string' && s.startsWith('collection:')) || notes.startsWith('No collection')) {
+            pColls = tags('collection:'); seen.collection = true;
+          }
+          const plain = S.filter((s) => SYMPTOM_OPTIONS.includes(s));
+          if (plain.length > 0 || notes.startsWith('No symptoms')) {
+            pSyms = plain; seen.symptoms = true;
+          }
+        }
+        if (seen.mood) { setMood(pMood != null && !Number.isNaN(pMood) ? pMood : null); setEmotions(pEmos || []); }
+        if (seen.energy && !Number.isNaN(pEnergy)) setEnergy(pEnergy);
+        if (seen.symptoms) setSymptoms(pSyms || []);
+        if (seen.cravings) setCravings(pCravs || []);
+        if (seen.collection) setCollection(pColls || []);
+        if (seen.sleep) {
+          if (pHours !== undefined && !Number.isNaN(pHours)) setSleepHours(pHours);
+          if (pQual !== undefined && SLEEP_QUALITY.includes(pQual)) setSleepQuality(pQual);
+        }
+      } catch (err) {
+        // A failed read-back must not block logging: the sheet still
+        // opens and every tap still saves, as before.
+        logger.error('Quick log prefill failed:', err);
+      }
+    })();
+    return () => { live = false; };
+  }, [token]);
+
   const buildPayload = (kind, ov = {}) => {
     const moodVal = ov.mood !== undefined ? ov.mood : mood;
     const emos = ov.emotions !== undefined ? ov.emotions : emotions;
@@ -148,7 +224,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
         ];
         label = emos.length
           ? (moodVal != null ? `Feeling ${emos.join(', ')} · Mood ${moodVal}/5` : `Feeling ${emos.join(', ')}`)
-          : `Mood ${moodVal}/5`;
+          : (moodVal != null ? `Mood ${moodVal}/5` : 'No mood or feelings');
         break;
       case 'energy':
         payloadSymptoms = [`energy:${energyVal}`];
@@ -205,29 +281,29 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
     saveNow('mood', { mood: value });
   };
 
-  // Tapping a feeling chip saves the updated set at once.
+  // Tapping a feeling chip saves the updated set at once. Untapping
+  // the last feeling saves too (Oct 30, 2026): an emptied group is a
+  // real snapshot, so the read-back on the next open shows it empty
+  // because she emptied it, not because her picks were lost.
   const handleEmotionToggle = (label) => {
     const next = emotions.includes(label) ? emotions.filter((v) => v !== label) : [...emotions, label];
     setEmotions(next);
     setLastKind('mood');
-    // Save the selected emotions exactly as picked. If she untapped the
-    // last feeling and never picked a mood face, there is nothing to
-    // save, and nothing is invented for her.
-    if (next.length > 0 || mood !== null) saveNow('mood', { emotions: next });
+    saveNow('mood', { emotions: next });
   };
 
   const handleSymptomToggle = (s) => {
     const next = symptoms.includes(s) ? symptoms.filter((v) => v !== s) : [...symptoms, s];
     setSymptoms(next);
     setLastKind('symptoms');
-    if (next.length > 0) saveNow('symptoms', { symptoms: next });
+    saveNow('symptoms', { symptoms: next });
   };
 
   const handleCravingToggle = (c) => {
     const next = cravings.includes(c) ? cravings.filter((v) => v !== c) : [...cravings, c];
     setCravings(next);
     setLastKind('cravings');
-    if (next.length > 0) saveNow('cravings', { cravings: next });
+    saveNow('cravings', { cravings: next });
   };
 
   // Tapping a collection chip saves the updated set at once, exactly
@@ -236,7 +312,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
     const next = collection.includes(c) ? collection.filter((v) => v !== c) : [...collection, c];
     setCollection(next);
     setLastKind('collection');
-    if (next.length > 0) saveNow('collection', { collection: next });
+    saveNow('collection', { collection: next });
   };
 
   const handleSleepQuality = (q) => {
@@ -255,6 +331,16 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
     }
   };
 
+  // Closing any other way (the X, or a tap outside) used to throw a
+  // typed note away without a word (Oct 19-20 audit). It now takes
+  // the same last save Done does, so the note is never silently lost.
+  const handleCloseRequest = async () => {
+    if (note.trim()) {
+      await saveNow(lastKind, {});
+    }
+    onClose();
+  };
+
   const chip = (active, color) => ({
     fontFamily: 'Poppins, sans-serif',
     border: `1px solid ${active ? color : 'rgba(255,255,255,0.12)'}`,
@@ -268,7 +354,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
       style={{ background: 'rgba(10,5,15,0.75)', backdropFilter: 'blur(4px)' }}
-      onClick={onClose}
+      onClick={handleCloseRequest}
       data-testid="quicklog-sheet"
     >
       <div
@@ -282,7 +368,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
               <Heart className="w-5 h-5" style={{ color: moodColor }} />
               <h3 className="text-white text-lg font-script">How do you feel?</h3>
             </div>
-            <button onClick={onClose} aria-label="Close" className="text-[#CFC3CC] hover:text-white">
+            <button onClick={handleCloseRequest} aria-label="Close" className="text-[#CFC3CC] hover:text-white">
               <X className="w-5 h-5" />
             </button>
           </div>

@@ -44,7 +44,7 @@ export default function PrivacyPage() {
             <li>Cycle tracking data (period dates, cycle length)</li>
             <li>Health-related notes and symptoms you choose to log</li>
             <li>Journal entries and notes you choose to log</li>
-            <li>Intimacy tracking data you choose to log (always private, never shared)</li>
+            <li>Intimacy tracking data you choose to log (private by default, shared with a linked partner only if you turn that sharing on)</li>
           </ul>
         </section>
 
