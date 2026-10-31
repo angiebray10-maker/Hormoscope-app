@@ -1010,11 +1010,18 @@ export default function JournalPage() {
               style={{ ...POIRET, fontSize: '16px', borderBottom: '1px solid rgba(244,167,185,0.14)', paddingBottom: '8px' }}
               data-testid="journal-note-title"
             />
+            {/* The writing window has a fixed height of its own
+                (Angelita, Oct 31, 2026: the Save button sat on top
+                of her writing). A long note scrolls INSIDE this
+                window; the box can never grow down over the Save
+                row below it, and the Save row can never sit on
+                the text. */}
             <textarea
               value={note} onChange={(e) => { setNote(e.target.value); if (noteError) setNoteError(false); if (noteSaved) setNoteSaved(false); }}
               placeholder="Write whatever is on your mind..."
-              className="journal-handwriting w-full bg-transparent border-none min-h-[140px] resize-none outline-none placeholder-white/15"
-              style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: WRITING_PINK }}
+              rows={7}
+              className="journal-handwriting w-full bg-transparent border-none resize-none outline-none placeholder-white/15 block"
+              style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: WRITING_PINK, height: '196px', overflowY: 'auto' }}
               data-testid="journal-note-input"
             />
           </div>
@@ -1026,7 +1033,11 @@ export default function JournalPage() {
           {noteSaved && (
             <p className="relative z-10 px-4 pb-2 text-xs" style={{ ...POPPINS, color: '#7FD9A8' }} role="status" data-testid="journal-note-saved">Saved to this day.</p>
           )}
-          <div className="relative z-10 flex gap-2 px-3 pt-3 pb-6 border-t border-white/5 items-center">
+          {/* The Save row is its own band: normal flow below the
+              writing window, an opaque background of its own, and
+              a divider above it, so the button never overlaps the
+              note text and the text never runs under the button. */}
+          <div className="relative z-10 flex gap-2 px-3 pt-3 pb-6 border-t border-white/10 items-center" style={{ background: 'rgba(16,10,24,0.92)' }}>
             <button
               onClick={() => setNoteIntimate(!noteIntimate)}
               title={noteIntimate ? 'Intimate' : 'Mark as intimate'}
