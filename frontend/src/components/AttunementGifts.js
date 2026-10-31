@@ -55,12 +55,21 @@ function ProductCard({ product, children }) {
     <div className="rounded-2xl p-4 mb-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }} data-testid={`product-${product.asin}`}>
       <div className="flex gap-3">
         {product.image ? (
+          // CONTAIN fit, never cover (Angelita, Oct 31, 2026): with
+          // cover the square tile zoomed in and cut the edges off
+          // wide and tall products (the diamond bracelet photo most
+          // of all). The whole product now shows inside the same
+          // 64px tile, on the same soft tile background, with a
+          // little padding so nothing touches the edges. This one
+          // row serves the catalog, My Wishlist, My Boutique and
+          // the partner wishlist, so all of them get the whole
+          // picture. The image files themselves are untouched.
           <img
             src={product.image}
             alt=""
             loading="lazy"
             className="rounded-xl shrink-0"
-            style={{ width: 64, height: 64, objectFit: 'cover', background: 'rgba(255,255,255,0.05)' }}
+            style={{ width: 64, height: 64, objectFit: 'contain', padding: 4, boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)' }}
             data-testid={`image-${product.asin}`}
           />
         ) : (
