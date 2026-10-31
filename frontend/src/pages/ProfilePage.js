@@ -491,6 +491,13 @@ export default function ProfilePage() {
         Delete My Account
       </button>
 
+      {/* A short founder note near the bottom of Profile, in
+          Angelita's own dictated words (Oct 31, 2026), exactly as
+          she said them. */}
+      <p className="text-center text-sm text-[#E6E0EE] leading-relaxed mt-8 mb-2 px-2" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="profile-founder-note">
+        I&apos;m just a solopreneur. It&apos;s just me, one person. This app was made by one woman, a breast cancer survivor.
+      </p>
+
       {/* v50: our logo rests at the very bottom of Profile. */}
       <TabFooter />
 
