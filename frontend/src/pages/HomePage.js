@@ -314,12 +314,15 @@ export default function HomePage() {
     return (
       <div className="min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8" data-testid="home-noperiods">
         <div className="text-center mb-8">
-          <p className="text-[#B4B0C8] text-xs tracking-widest uppercase mb-2">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </p>
           <h1 className="text-3xl text-white mb-3 font-script">
             Welcome to your true HORMOscope
           </h1>
+          {/* Today's full date, from the device's local date
+              (Angelita, Oct 31, 2026: the date sits under the
+              greeting; this is the most important thing). */}
+          <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }} data-testid="home-today-date">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          </p>
         </div>
 
         {showWelcome && (
@@ -397,12 +400,15 @@ export default function HomePage() {
 
       {/* Header */}
       <div className="text-center mb-8">
-        <p className="text-[#B4B0C8] text-xs tracking-widest uppercase mb-2">
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
         <h1 className="text-3xl text-white mb-3 font-script">
           Welcome to your true HORMOscope
         </h1>
+        {/* Today's full date, from the device's local date
+            (Angelita, Oct 31, 2026: the date sits under the
+            greeting; this is the most important thing). */}
+        <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }} data-testid="home-today-date">
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+        </p>
       </div>
 
       {/* Welcome message after onboarding */}

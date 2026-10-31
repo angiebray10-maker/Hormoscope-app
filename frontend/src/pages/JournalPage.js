@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Lock, RotateCcw, CircleDot, Baby, HelpCircle } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
-import { PHASE_PAIRS, PHASE_NAMES, phaseTint, phaseOther, phaseForDate } from '../lib/phases';
+import { PHASE_PAIRS, PHASE_NAMES, phaseTint, phaseOther, phaseForDate, cycleDayForDate } from '../lib/phases';
 import FloatingCarousel from '../components/FloatingCarousel';
 import DateSelect from '../components/DateSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -263,6 +263,10 @@ export default function JournalPage() {
     [user?.last_period_date, user?.cycle_length]
   );
   const selectedPhase = phaseForDate(selectedDate, user?.last_period_date, user?.cycle_length || 28);
+  // The Day headline number: the same anchor math as the phase, so
+  // the number and the phase name always agree. Null when she has
+  // no cycle start on file, and then no headline shows.
+  const selectedCycleDay = cycleDayForDate(selectedDate, user?.last_period_date, user?.cycle_length || 28);
   const selectedPhaseColor = phaseTint(selectedPhase);
 
   // Same refresh CalendarPage does on mount: pull the fresh user
@@ -888,7 +892,10 @@ export default function JournalPage() {
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="text-center">
-            <p className="text-base" style={{ ...POIRET, color: '#F4D3DC' }}>{fmtDayLong(selectedDate)}</p>
+            <p className="text-xs" style={{ ...POPPINS, color: '#CFC3CC' }} data-testid="journal-day-date">{fmtDayLong(selectedDate)}</p>
+            {selectedCycleDay != null && (
+              <h2 className="text-3xl mt-1" style={{ ...POIRET, color: '#FFFFFF' }} data-testid="journal-day-headline">Day {selectedCycleDay}</h2>
+            )}
             <p className="text-xs mt-0.5" style={{ ...POPPINS, color: selectedPhaseColor }} data-testid="journal-day-phase">
               {selectedPhase === 'unknown' ? PHASE_NAMES.unknown : `${PHASE_NAMES[selectedPhase] || PHASE_NAMES.unknown} phase`}
             </p>
@@ -994,7 +1001,8 @@ export default function JournalPage() {
               the writing so the words stay fully readable. */}
           <img src="/images/life-stages-silhouettes.webp" alt="" aria-hidden="true" className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[72%] object-contain pointer-events-none" style={{ opacity: 0.15 }} />
           <div className="relative z-10 p-4">
-            <h2 className="text-lg text-white mb-3" style={POIRET}>Your note for this day</h2>
+            <h2 className="text-lg text-white mb-1" style={POIRET}>Your note for this day</h2>
+            <p className="text-[11px] mb-3" style={{ ...POPPINS, color: '#CFC3CC' }} data-testid="journal-note-date">{fmtDayLong(selectedDate)}</p>
             <input
               type="text" value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)}
               placeholder="Title (optional)"

@@ -91,6 +91,20 @@ export const phaseForDate = (dateStr, lastPeriodDate, cycleLength) => {
   return 'luteal';
 };
 
+// The wrapped cycle day number for any date (Day 1 is the period
+// start), using the exact same anchor math as phaseForDate so the
+// number and the phase name always agree. Null when no cycle start
+// is set, so callers can simply not show a number then.
+export const cycleDayForDate = (dateStr, lastPeriodDate, cycleLength) => {
+  if (!dateStr || !lastPeriodDate) return null;
+  const L = cycleLength || 28;
+  const start = new Date(String(lastPeriodDate).slice(0, 10) + 'T00:00:00');
+  const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00');
+  if (isNaN(start) || isNaN(d) || L <= 0) return null;
+  const diff = Math.floor((d - start) / 86400000);
+  return ((diff % L) + L) % L + 1;
+};
+
 export const PHASE_NAMES = {
   menstrual: 'Menstrual',
   follicular: 'Follicular',
