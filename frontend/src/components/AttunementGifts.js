@@ -106,9 +106,12 @@ function ProductCard({ product, children }) {
 // every product. The women write which items they tried and liked
 // and what they would like to see, and Angelita finds the suggested
 // items. Every signed-in user sees the wall; a woman can delete
-// only her own comments. Her life-stages progression artwork sits
-// faded behind it, the same treatment as the Journal note; per her
-// word those are the only two places that artwork belongs.
+// only her own comments. Angelita's own comments (she writes them
+// herself, from her account) come pinned at the top from the API,
+// with her picture and a Founder label. Her life-stages progression
+// artwork sits faded behind it, the same treatment as the Journal
+// note; per her word those are the only two places that artwork
+// belongs.
 function CommunityWall({ token, user }) {
   const [comments, setComments] = useState(null); // null while loading
   const [draft, setDraft] = useState('');
@@ -163,7 +166,7 @@ function CommunityWall({ token, user }) {
       <div className="relative z-10 p-4">
         <h3 className="text-white text-lg mb-1" style={script}>Community</h3>
         <p className="text-[#CFC3CC] text-xs leading-relaxed mb-2" style={poppins}>
-          Please feel free to comment here on which items you tried and liked, and suggestions of what you would like to see. Looking for something you want? Leave a comment and I will find it for you.
+          Leave a comment. Show off the gifts you got and say how much you liked them. If you have any suggestions, or if you did not like them, say it here. Leave a comment.
         </p>
         {comments === null ? (
           <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 text-[#f4a7b9] animate-spin" /></div>
@@ -174,10 +177,20 @@ function CommunityWall({ token, user }) {
             {comments.map((c) => (
               <div key={c.id} className="py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} data-testid={`catalog-comment-${c.id}`}>
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-xs" style={poppins}>
-                    <span style={{ color: PINK }}>{c.name}</span>{' '}
-                    <span className="text-white/30">{fmtCommentDate(c.created_at)}</span>
-                  </p>
+                  {/* The founder's comments come pinned first from
+                      the API and read as hers: her picture (or her
+                      initial when she has none), her name, and a
+                      small Founder label. */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    {c.is_founder && <PartnerAvatar photo={c.photo} name={c.name} size={26} />}
+                    <p className="text-xs" style={poppins}>
+                      <span style={{ color: PINK }}>{c.name}</span>{' '}
+                      {c.is_founder && (
+                        <span className="inline-block align-middle rounded-full px-2 py-px text-[9px] font-semibold uppercase tracking-wider mr-1" style={{ color: HOT, border: '1px solid rgba(255,79,154,0.55)' }} data-testid={`founder-label-${c.id}`}>Founder</span>
+                      )}
+                      <span className="text-white/30">{fmtCommentDate(c.created_at)}</span>
+                    </p>
+                  </div>
                   {user && c.user_id === user.id && (
                     <button onClick={() => deleteComment(c.id)} className="text-white/30 hover:text-red-400 p-1 shrink-0" title="Delete this comment" data-testid={`delete-catalog-comment-${c.id}`}>
                       <Trash2 className="w-3.5 h-3.5" />

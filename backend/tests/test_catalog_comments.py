@@ -14,6 +14,13 @@ Proven here:
     comment stays), and a missing comment is a 404;
 (e) empty, whitespace-only and over-500-character texts are
     rejected; exactly 500 characters is accepted.
+(f) founder pinning (Angelita, Oct 31, 2026): a comment from
+    her account (registered with hormoscope@gmail.com) comes
+    back is_founder True and sorts BEFORE newer comments from
+    everyone else, newest of hers first; everyone else's
+    comments carry is_founder False; every comment carries a
+    photo field with the author's current profile photo, or
+    None when she has none on file.
 
 Runs server.py against in-memory fake collections. No network,
 no real Mongo.
@@ -132,6 +139,67 @@ async def main():
     code, created = await post(OWNER, "x" * 500)
     check("exactly 500 characters is accepted",
           code == "ok" and len(created.get("text") or "") == 500)
+
+    # --- (f) founder pinning: her comments lead the list even
+    # when they are older than everyone else's, and every comment
+    # carries the author's current photo (or None).
+    FOUNDER = {"id": "u-founder", "email": "hormoscope@gmail.com",
+               "name": "Angelita",
+               "profile_photo": "data:image/jpeg;base64,FOUNDER"}
+    db.users = FakeCollection([
+        {"id": FOUNDER["id"], "email": "hormoscope@gmail.com",
+         "name": "Angelita Lopez",
+         "profile_photo": "data:image/jpeg;base64,FOUNDER"},
+        {"id": OTHER["id"], "email": OTHER["email"], "name": "Oona",
+         "profile_photo": "data:image/jpeg;base64,OONA"},
+        {"id": OWNER["id"], "email": OWNER["email"], "name": "Olivia",
+         "profile_photo": None},
+    ])
+    db.catalog_comments = FakeCollection([
+        {"id": "f-old", "user_id": FOUNDER["id"], "name": "Angelita",
+         "text": "founder older",
+         "created_at": "2026-10-20T10:00:00+00:00"},
+        {"id": "n-new", "user_id": OTHER["id"], "name": "Oona",
+         "text": "newest", "created_at": "2026-10-31T10:00:00+00:00"},
+        {"id": "f-new", "user_id": FOUNDER["id"], "name": "Angelita",
+         "text": "founder newer",
+         "created_at": "2026-10-25T10:00:00+00:00"},
+        {"id": "n-mid", "user_id": OWNER["id"], "name": "Olivia",
+         "text": "middle", "created_at": "2026-10-28T10:00:00+00:00"},
+    ])
+    server.db = db
+    code, listing = await call(server.get_catalog_comments, dict(OTHER))
+    texts = [c["text"] for c in listing["comments"]]
+    check("founder comments pin above newer comments, newest of hers first",
+          texts == ["founder newer", "founder older", "newest", "middle"])
+    by_text = {c["text"]: c for c in listing["comments"]}
+    check("founder comments are flagged is_founder True",
+          by_text["founder newer"].get("is_founder") is True
+          and by_text["founder older"].get("is_founder") is True)
+    check("non-founder comments are flagged is_founder False",
+          by_text["newest"].get("is_founder") is False
+          and by_text["middle"].get("is_founder") is False)
+    check("founder comments carry her current profile photo",
+          by_text["founder newer"].get("photo")
+          == "data:image/jpeg;base64,FOUNDER")
+    check("a non-founder comment carries her photo when she has one",
+          by_text["newest"].get("photo") == "data:image/jpeg;base64,OONA")
+    check("photo is None when the author has none on file",
+          "photo" in by_text["middle"]
+          and by_text["middle"].get("photo") is None)
+
+    # Her own post reports the flag and photo too, and the founder
+    # match does not care about email casing or stray spaces.
+    code, created = await post(FOUNDER, "The bracelet is here")
+    check("the founder's own post returns is_founder True",
+          code == "ok" and created.get("is_founder") is True)
+    check("the founder's own post returns her photo",
+          created.get("photo") == "data:image/jpeg;base64,FOUNDER")
+    code, created = await post(
+        {"id": "u-founder-alt", "email": "  Hormoscope@Gmail.com ",
+         "name": "Angelita"}, "Same account, typed differently")
+    check("founder match ignores email casing and spaces",
+          code == "ok" and created.get("is_founder") is True)
 
     failed = [name for name, ok in results if not ok]
     for name, ok in results:

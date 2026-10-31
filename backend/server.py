@@ -4840,13 +4840,32 @@ class CatalogCommentCreate(BaseModel):
     text: str
 
 
-def _catalog_comment_shape(doc):
+# The founder is Angelita, identified by the email her app account
+# is registered with (Angelita, Oct 31, 2026). This is the single
+# source of truth for founder treatment: her comments on the wall
+# are pinned at the top and carry a Founder label. She writes them
+# herself, from her own account, like any other comment; nothing
+# here creates or seeds a comment for her.
+FOUNDER_EMAILS = {"hormoscope@gmail.com"}
+
+
+def _email_is_founder(email):
+    return (email or "").strip().lower() in FOUNDER_EMAILS
+
+
+def _catalog_comment_shape(doc, author=None):
     return {
         "id": doc.get("id"),
         "user_id": doc.get("user_id"),
         "name": doc.get("name"),
         "text": doc.get("text"),
         "created_at": doc.get("created_at"),
+        # The author's CURRENT profile photo and founder flag ride
+        # along so the wall can show her picture and pin her
+        # comments; author is the author's user record, or None
+        # when the account is gone.
+        "is_founder": _email_is_founder((author or {}).get("email")),
+        "photo": (author or {}).get("profile_photo"),
     }
 
 
@@ -4855,7 +4874,25 @@ async def get_catalog_comments(current_user: dict = Depends(get_current_user)):
     comments = await db.catalog_comments.find(
         {}, {"_id": 0}
     ).sort("created_at", -1).to_list(length=100)
-    return {"comments": [_catalog_comment_shape(c) for c in comments]}
+    # One lookup for every author on the page, so each comment can
+    # carry its author's current photo and founder flag.
+    author_ids = list({c.get("user_id") for c in comments if c.get("user_id")})
+    authors = {}
+    if author_ids:
+        users = await db.users.find(
+            {"id": {"$in": author_ids}},
+            {"_id": 0, "id": 1, "email": 1, "profile_photo": 1},
+        ).to_list(length=len(author_ids))
+        authors = {u["id"]: u for u in users}
+    shaped = [_catalog_comment_shape(c, authors.get(c.get("user_id")))
+              for c in comments]
+    # Pinned: the founder's comments first (the list is already
+    # latest-first, so the newest of hers leads), then everyone
+    # else latest-first as before. The 100 cap above counts every
+    # comment, pinned ones included.
+    pinned = [c for c in shaped if c["is_founder"]]
+    rest = [c for c in shaped if not c["is_founder"]]
+    return {"comments": pinned + rest}
 
 
 @api_router.post("/catalog/comments")
@@ -4876,7 +4913,7 @@ async def create_catalog_comment(payload: CatalogCommentCreate, current_user: di
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.catalog_comments.insert_one(doc)
-    return _catalog_comment_shape(doc)
+    return _catalog_comment_shape(doc, current_user)
 
 
 @api_router.delete("/catalog/comments/{comment_id}")
