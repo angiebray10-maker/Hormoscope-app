@@ -564,10 +564,6 @@ export default function AttunementPage() {
             the Gift Catalog live here in Attunement, in a
             tabbed section under everything else. */}
         <AttunementGifts />
-
-        <p className="text-center text-[#B4B0C8] text-[10px] leading-relaxed" style={poppins}>
-          Your intimacy log and your journal are shared only if you chose to share them. Your people only see what you chose to share.
-        </p>
       </div>
     </div>
   );
