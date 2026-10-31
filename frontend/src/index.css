@@ -155,6 +155,42 @@ h1, h2, h3, .heading {
   align-items: center;
   justify-content: center;
 }
+/* Oct 31, 2026 amendment (supersedes the no-glow reading of her
+   v56 verdict): still NO solid circle or disc behind the peach,
+   but she wants it bright and pretty, with a SOFT GLOW behind it
+   in the current phase pair (primary at the heart, secondary
+   fading out), breathing gently with the orb pulse wrapper. The
+   gradient itself is set inline in HomePage from PHASE_PAIRS. */
+.day-peach-glow {
+  position: absolute;
+  inset: -42%;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: dayPeachGlow 4.5s ease-in-out infinite;
+}
+@keyframes dayPeachGlow {
+  0%, 100% { opacity: 0.75; transform: scale(0.97); }
+  50% { opacity: 1; transform: scale(1.03); }
+}
+/* Oct 31, 2026: the spinning, fading decorative peaches are GONE
+   (her decision). In their place, a soft light in the current
+   phase pair colors breathes slowly behind the Home and Calendar
+   content: no shapes, no spinning, just calm light. */
+.phase-breath-light {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(30px);
+  pointer-events: none;
+  animation: phaseBreath 9s ease-in-out infinite;
+}
+@keyframes phaseBreath {
+  0%, 100% { opacity: 0.10; transform: scale(1); }
+  50% { opacity: 0.22; transform: scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .day-peach-glow, .phase-breath-light { animation: none; }
+  .phase-breath-light { opacity: 0.14; }
+}
 .day-peach-tint {
   position: absolute;
   inset: 0;

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Plus, Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Calendar, X, Lock, Pencil } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
-import { PHASE_PAIRS } from '../lib/phases';
+import { PHASE_PAIRS, phaseTint, phaseForDate } from '../lib/phases';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#C9B8F0';
@@ -130,7 +130,7 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
           return (
             <button key={day} onClick={() => { onSelectDate(ds); onClose(); }}
               className="relative w-6 h-6 flex items-center justify-center rounded text-[8px]"
-              style={{ background: sel?'#FF4F9A':isPeriod(day)?`${MENSTRUAL_TINT}40`:pk?`${OVULATION_TINT}66`:ov?`${OVULATION_TINT}38`:logged?'rgba(116,185,255,0.20)':td?'rgba(255,255,255,0.08)':'transparent', color: sel?'#fff':ov?OVULATION_TEXT:td?'#fff':'#CFC3CC', fontFamily:'Poppins,sans-serif', border: logged && !sel ? `1px solid ${LOGGED_BLUE}` : '1px solid transparent' }}>
+              style={{ background: sel?'#FF4F9A':isPeriod(day)?`${MENSTRUAL_TINT}40`:pk?`${OVULATION_TINT}66`:ov?`${OVULATION_TINT}38`:logged?'rgba(116,185,255,0.20)':td?'rgba(255,255,255,0.08)':'transparent', color: sel?'#fff':phaseTint(phaseForDate(ds, user?.last_period_date, user?.cycle_length || 28)), fontFamily:'Poppins,sans-serif', border: logged && !sel ? `1px solid ${LOGGED_BLUE}` : '1px solid transparent' }}>
               {day}
               {isIntimacy(day) && <Heart className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5" style={{color:'#FF4F9A'}} fill="#FF4F9A" />}
             </button>
@@ -146,11 +146,16 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
 // shown inside the unlocked Vault. Every logged day is outlined in
 // the same pretty blue, and tapping a logged day opens her book to
 // that day below. Month arrows move one month at a time.
-function VaultCalendar({ loggedDays, selectedDate, onSelectDay }) {
+function VaultCalendar({ loggedDays, selectedDate, onSelectDay, phaseColorFor, focusMonth }) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const d = selectedDate ? new Date(selectedDate + 'T12:00:00') : new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+  // The Journal browse year view can point this calendar at a
+  // chosen month (tap a month name over there to land here).
+  useEffect(() => {
+    if (focusMonth) setCurrentMonth(new Date(focusMonth.getFullYear(), focusMonth.getMonth(), 1));
+  }, [focusMonth]);
   const y = currentMonth.getFullYear(), m = currentMonth.getMonth();
   const firstDay = new Date(y, m, 1).getDay();
   const days = new Date(y, m + 1, 0).getDate();
@@ -189,7 +194,12 @@ function VaultCalendar({ loggedDays, selectedDate, onSelectDay }) {
               style={{
                 background: sel ? LOGGED_BLUE : isLoggedDay ? 'rgba(116,185,255,0.15)' : 'transparent',
                 border: isLoggedDay ? `2px solid ${LOGGED_BLUE}` : '2px solid transparent',
-                color: sel ? '#0B0B1E' : isLoggedDay ? '#DCEEFF' : td ? '#fff' : 'rgba(255,255,255,0.35)',
+                // v57: the day NUMBER wears that day's phase tint
+                // (the same color her peach wears for the phase),
+                // one rule on every calendar; the blue logged
+                // marking and the white/plain outline stand.
+                color: sel ? '#0B0B1E' : phaseColorFor ? phaseColorFor(ds) : isLoggedDay ? '#DCEEFF' : td ? '#fff' : 'rgba(255,255,255,0.35)',
+                opacity: sel || isLoggedDay || td ? 1 : 0.55,
                 fontFamily: 'Poppins, sans-serif',
                 fontWeight: sel ? 600 : 400,
               }}
@@ -202,6 +212,79 @@ function VaultCalendar({ loggedDays, selectedDate, onSelectDay }) {
       </div>
       <p className="text-[11px] mt-3 text-center" style={{ fontFamily: 'Poppins, sans-serif', color: '#9CC8F5' }}>
         Days outlined in blue are days you logged something. Tap one to open your book to that day.
+      </p>
+    </div>
+  );
+}
+
+// The YEAR view for Browse your days (v57, Angelita, Oct 31,
+// 2026): all twelve months small at once, the big picture of her
+// whole year. Logged days carry the same Vault blue marking and
+// phase tinted numbers as the month calendar; tapping a marked
+// day opens that day the same way, and tapping a month name jumps
+// the month view to that month.
+function YearCalendar({ year, onYearChange, loggedDays, selectedDate, phaseColorFor, onSelectDay, onPickMonth }) {
+  const logged = loggedDays || new Set();
+  const months = Array.from({ length: 12 }, (_, i) => i);
+  return (
+    <div className="rounded-2xl p-4 mb-6" style={{ background: 'rgba(20,15,30,0.85)', border: '1px solid rgba(116,185,255,0.25)' }} data-testid="journal-year-calendar">
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={() => onYearChange(year - 1)} className="p-1.5 text-white/70" aria-label="Previous year" data-testid="year-cal-prev">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-sm text-white/85" style={{ fontFamily: 'Poppins, sans-serif' }}>{year}</span>
+        <button onClick={() => onYearChange(year + 1)} className="p-1.5 text-white/70" aria-label="Next year" data-testid="year-cal-next">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {months.map((m) => {
+          const firstDay = new Date(year, m, 1).getDay();
+          const days = new Date(year, m + 1, 0).getDate();
+          const fmt = (d) => `${year}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          return (
+            <div key={m}>
+              <button
+                onClick={() => onPickMonth(new Date(year, m, 1))}
+                className="text-[11px] text-white/80 mb-1 underline decoration-white/20 underline-offset-2"
+                style={{ fontFamily: 'Poppins, sans-serif' }}
+                data-testid={`year-cal-month-${m}`}
+              >
+                {new Date(year, m, 1).toLocaleDateString('en-US', { month: 'long' })}
+              </button>
+              <div className="grid grid-cols-7 gap-px">
+                {Array.from({ length: firstDay }).map((_, i) => <span key={`ye${i}`} />)}
+                {Array.from({ length: days }, (_, i) => i + 1).map((day) => {
+                  const ds = fmt(day);
+                  const isLoggedDay = logged.has(ds);
+                  const sel = selectedDate === ds;
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => { if (isLoggedDay) onSelectDay(ds); }}
+                      disabled={!isLoggedDay}
+                      className="h-5 flex items-center justify-center rounded text-[9px]"
+                      style={{
+                        background: sel ? LOGGED_BLUE : isLoggedDay ? 'rgba(116,185,255,0.20)' : 'transparent',
+                        border: isLoggedDay ? `1px solid ${LOGGED_BLUE}` : '1px solid transparent',
+                        color: sel ? '#0B0B1E' : phaseColorFor ? phaseColorFor(ds) : '#CFC3CC',
+                        opacity: sel || isLoggedDay ? 1 : 0.5,
+                        fontFamily: 'Poppins, sans-serif',
+                        fontWeight: isLoggedDay ? 600 : 400,
+                      }}
+                      data-testid={`year-cal-day-${ds}`}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-[11px] mt-3 text-center" style={{ fontFamily: 'Poppins, sans-serif', color: '#9CC8F5' }}>
+        Your whole year at a glance. Days outlined in blue are days you logged something. Tap one to open that day.
       </p>
     </div>
   );
@@ -268,6 +351,14 @@ export default function JournalPage() {
   const [browseLoggedDays, setBrowseLoggedDays] = useState(null);
   const [browseDay, setBrowseDay] = useState(null); // {date, entries, logs}
   const [browseBusy, setBrowseBusy] = useState(false);
+  // Month or year at a glance (v57): she can switch between the
+  // month calendar and the whole year in Browse your days.
+  const [browseView, setBrowseView] = useState('month'); // month | year
+  const [browseYear, setBrowseYear] = useState(() => new Date().getFullYear());
+  const [browseFocus, setBrowseFocus] = useState(null);
+  // The phase tint for any date, from her own cycle record: the
+  // color her peach wears for that day's phase.
+  const phaseColorFor = (ds) => phaseTint(phaseForDate(ds, user?.last_period_date, user?.cycle_length || 28));
 
   useEffect(() => {
     if (!token) return;
@@ -821,11 +912,46 @@ export default function JournalPage() {
           <p className="text-white/50 text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Every day you wrote something or logged something is outlined in blue.
           </p>
-          <VaultCalendar
-            loggedDays={browseLoggedDays}
-            selectedDate={browseDay?.date || null}
-            onSelectDay={handleBrowseSelect}
-          />
+          <div className="flex gap-2 mb-4" role="tablist" aria-label="Calendar view">
+            {[{ id: 'month', label: 'Month' }, { id: 'year', label: 'Year' }].map((v) => (
+              <button
+                key={v.id}
+                role="tab"
+                aria-selected={browseView === v.id}
+                onClick={() => setBrowseView(v.id)}
+                className="px-4 py-1.5 rounded-full text-xs"
+                style={{
+                  fontFamily: 'Poppins, sans-serif',
+                  background: browseView === v.id ? LOGGED_BLUE : 'rgba(255,255,255,0.05)',
+                  color: browseView === v.id ? '#0B0B1E' : '#CFC3CC',
+                  border: `1px solid ${browseView === v.id ? LOGGED_BLUE : 'rgba(255,255,255,0.12)'}`,
+                  fontWeight: browseView === v.id ? 600 : 400,
+                }}
+                data-testid={`browse-view-${v.id}`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+          {browseView === 'month' ? (
+            <VaultCalendar
+              loggedDays={browseLoggedDays}
+              selectedDate={browseDay?.date || null}
+              onSelectDay={handleBrowseSelect}
+              phaseColorFor={phaseColorFor}
+              focusMonth={browseFocus}
+            />
+          ) : (
+            <YearCalendar
+              year={browseYear}
+              onYearChange={setBrowseYear}
+              loggedDays={browseLoggedDays}
+              selectedDate={browseDay?.date || null}
+              phaseColorFor={phaseColorFor}
+              onSelectDay={handleBrowseSelect}
+              onPickMonth={(d) => { setBrowseFocus(d); setBrowseView('month'); }}
+            />
+          )}
           {browseBusy && (
             <p className="text-white/60 text-sm text-center py-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening that day...</p>
           )}
@@ -918,6 +1044,7 @@ export default function JournalPage() {
                     loggedDays={vaultLoggedDays}
                     selectedDate={vaultSelectedDate || vaultDays[Math.min(vaultPage, Math.max(0, vaultDays.length - 1))]?.date || null}
                     onSelectDay={handleVaultCalSelect}
+                    phaseColorFor={phaseColorFor}
                   />
                   {vaultDays.length === 0 ? (
                     <div className="text-center py-16">

@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
 import TabFooter from '../components/TabFooter';
-import { PHASE_PAIRS } from '../lib/phases';
+import { PHASE_PAIRS, phaseTint, phaseForDate } from '../lib/phases';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -607,7 +607,12 @@ export default function CalendarPage() {
             const isNextPeriod = isNextPeriodDay(dateStr);
             const isOvulation = isOvulationDay(dateStr);
             const isPeak = isPeakOvulation(dateStr);
-            
+            // v57 (Angelita, Oct 31, 2026): the day NUMBER wears that
+            // day's phase color, the same tint her peach wears for
+            // the phase (PHASE_TINTS via phases.js). One rule on
+            // every calendar in the app. Outlines stay plain white.
+            const dayPhaseColor = phaseTint(phaseForDate(dateStr, user?.last_period_date, user?.cycle_length || 28));
+
             // Show CONFIRMED period indicator (logged or past estimated)
             const showConfirmedPeriod = isPeriod || isEstimatedPeriod;
             // Show EXPECTED period (future prediction, not confirmed)
@@ -630,9 +635,10 @@ export default function CalendarPage() {
                 `}
                 style={{
                   // v55: day colors from the phase pairs. Period wears
-                  // menstrual red, fertile wears ovulatory green, and
-                  // the peak day gets an extra ring in the ovulatory
-                  // pair's pink so it stays unmistakable.
+                  // menstrual red, fertile wears ovulatory green.
+                  // v57: the outlines are plain white now (the peak
+                  // day keeps a white inset ring), and the day number
+                  // itself wears that day's phase tint.
                   background: showExpectedPeriod
                     ? `${MENSTRUAL_COLOR}1A`
                     : showConfirmedPeriod
@@ -641,23 +647,13 @@ export default function CalendarPage() {
                         ? (isPeak ? `${FERTILE_COLOR}26` : `${FERTILE_COLOR}1A`)
                         : 'rgba(255,255,255,0.02)',
                   border: showExpectedPeriod
-                    ? `1px dashed ${MENSTRUAL_COLOR}66`
-                    : showConfirmedPeriod
-                      ? `1px solid ${MENSTRUAL_COLOR}80`
-                      : isOvulation
-                        ? `1px solid ${FERTILE_COLOR}${isPeak ? '66' : '40'}`
-                        : '1px solid transparent',
-                  boxShadow: isPeak && !showConfirmedPeriod ? `inset 0 0 0 2px ${PEAK_COLOR}` : undefined,
+                    ? '1px dashed rgba(255,255,255,0.30)'
+                    : '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: isPeak && !showConfirmedPeriod ? 'inset 0 0 0 2px rgba(255,255,255,0.35)' : undefined,
                 }}
               >
                 <span className="text-lg font-semibold tracking-wide z-10" style={{
-                  color: showConfirmedPeriod
-                    ? MENSTRUAL_COLOR
-                    : showExpectedPeriod
-                      ? `${MENSTRUAL_COLOR}B3`
-                      : isOvulation
-                        ? FERTILE_COLOR
-                        : isToday ? '#F4D3DC' : '#C9B8C1'
+                  color: showExpectedPeriod ? `${dayPhaseColor}B3` : dayPhaseColor
                 }}>
                   {day}
                 </span>

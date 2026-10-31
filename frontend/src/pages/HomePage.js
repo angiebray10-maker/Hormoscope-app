@@ -8,7 +8,19 @@ import FloatingCarousel from '../components/FloatingCarousel';
 import TabFooter from '../components/TabFooter';
 import RemindersCard from '../components/RemindersCard';
 import logger from '../utils/logger';
-import { PHASE_PAIRS } from '../lib/phases';
+import { PHASE_PAIRS, phaseTint } from '../lib/phases';
+import { dailyAffirmation } from '../lib/affirmations';
+
+// Home bottom phase legend (v57, Angelita, Oct 31, 2026): each
+// entry shows the peach wearing that phase's tint, the pair dots,
+// and her own words for the pair. Colors all come from
+// PHASE_PAIRS / phaseTint, never restated here.
+const PHASE_LEGEND = [
+  { id: 'menstrual', words: 'Red and pink', name: 'Menstrual' },
+  { id: 'follicular', words: 'Blue and pink', name: 'Follicular' },
+  { id: 'ovulatory', words: 'Pink and green', name: 'Ovulation' },
+  { id: 'luteal', words: 'Pink and purple', name: 'Luteal' },
+];
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -448,13 +460,26 @@ export default function HomePage() {
           = purple; see the tint field on the phase config). The
           day number is much smaller than v56 and sits low inside
           the peach, clear of the sunglasses and face. No current
-          phase: no number and no tint, as before. */}
+          phase: no number and no tint, as before.
+          Oct 31 amendment (01:17 PDT): she wants it bright and
+          pretty too, so a SOFT GLOW in the phase pair (primary at
+          the heart, secondary fading out) breathes behind the
+          peach. Still no solid circle or disc, just light, and
+          the whole header is color coordinated with her phase
+          pair: peach tint, glow, and phase name below. */}
       <div className="flex flex-col items-center mb-8">
         <span className="text-[#E6E0EE] text-xs tracking-widest uppercase font-semibold mb-3">
           {phase === 'unknown' ? 'CYCLE DAY' : 'YOU ARE ON DAY'}
         </span>
         <div className="hs-orb-pulse rounded-full">
         <div className="day-peach" data-testid="day-circle">
+          {phase !== 'unknown' && (
+            <span
+              className="day-peach-glow"
+              data-testid="day-peach-glow"
+              style={{ background: `radial-gradient(circle, ${config.color}59 0%, ${config.color}30 42%, ${config.color2}26 62%, transparent 72%)` }}
+            />
+          )}
           <img src="/images/peach-mini.png" alt="" className="day-peach-img" />
           {phase !== 'unknown' && (
             <span
@@ -709,6 +734,48 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {/* Daily affirmation (v57, Part 6): always at the very bottom
+          of Home, by the logo. A good quote for the day, different
+          every day, from the big deterministic pool in
+          lib/affirmations (this is separate from the backend
+          affirmation card inside See more above). */}
+      <div className="text-center mt-10 px-4" data-testid="home-daily-affirmation">
+        <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Today&apos;s affirmation</p>
+        <p className="text-[#F7F4FA] text-[15px] italic leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>&ldquo;{dailyAffirmation()}&rdquo;</p>
+      </div>
+
+      {/* Phase color legend (v57): small and tidy at the bottom,
+          each phase shown as the peach wearing its tint, with the
+          pair dots and her words for the colors. */}
+      <div className="mt-8 px-2" data-testid="home-phase-legend">
+        <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-3 text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>Your phase colors</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 max-w-sm mx-auto">
+          {PHASE_LEGEND.map((row) => {
+            const pair = PHASE_PAIRS[row.id];
+            return (
+              <div key={row.id} className="flex items-center gap-2">
+                <span className="relative inline-block shrink-0" style={{ width: 24, height: 24 }}>
+                  <img src="/images/peach-mini.png" alt="" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block' }} />
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute', inset: 0, backgroundColor: phaseTint(row.id), mixBlendMode: 'color', opacity: 0.55, pointerEvents: 'none',
+                      WebkitMaskImage: 'url(/images/peach-mini.png)', maskImage: 'url(/images/peach-mini.png)',
+                      WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center',
+                    }}
+                  />
+                </span>
+                <span className="flex gap-1 shrink-0">
+                  <span className="w-2 h-2 rounded-full" style={{ background: pair.primary }} />
+                  <span className="w-2 h-2 rounded-full" style={{ background: pair.secondary }} />
+                </span>
+                <span className="text-[11px] text-[#CFC8DC]" style={{ fontFamily: 'Poppins, sans-serif' }}>{row.words}: {row.name}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* v50: our logo rests at the very bottom of Home. */}
       <TabFooter />

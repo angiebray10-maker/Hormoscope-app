@@ -40,6 +40,42 @@ export const PHASE_PAIRS = {
 
 export const phasePair = (phase) => PHASE_PAIRS[phase] || PHASE_PAIRS.unknown;
 
+// The ONE color a phase wears on a peach (v57, Angelita, Oct 31,
+// 2026): menstrual wears its pair's red, the others wear their
+// pair's second color (blue, green, purple), always beside the
+// shared pink. The Home day peach tint, the calendar day numbers,
+// and the Home legend peaches all read this same map, so a phase
+// is the same color everywhere she looks.
+export const PHASE_TINTS = {
+  menstrual: PHASE_PAIRS.menstrual.primary,
+  follicular: PHASE_PAIRS.follicular.secondary,
+  ovulatory: PHASE_PAIRS.ovulatory.secondary,
+  luteal: PHASE_PAIRS.luteal.secondary,
+  late: PHASE_PAIRS.late.primary,
+  unknown: '#F74093',
+};
+
+export const phaseTint = (phase) => PHASE_TINTS[phase] || PHASE_TINTS.unknown;
+
+// The phase of any calendar date, projected from her last period
+// start and cycle length with the same fixed day bands the rest of
+// the app uses (1-5 menstrual, 6-12 follicular, 13-19 ovulatory,
+// 20+ luteal), wrapping cycle by cycle in both directions so past
+// months and future months color the same way her peach would.
+export const phaseForDate = (dateStr, lastPeriodDate, cycleLength) => {
+  if (!dateStr || !lastPeriodDate) return 'unknown';
+  const L = cycleLength || 28;
+  const start = new Date(String(lastPeriodDate).slice(0, 10) + 'T00:00:00');
+  const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00');
+  if (isNaN(start) || isNaN(d)) return 'unknown';
+  const diff = Math.floor((d - start) / 86400000);
+  const day = ((diff % L) + L) % L + 1;
+  if (day <= 5) return 'menstrual';
+  if (day <= 12) return 'follicular';
+  if (day <= 19) return 'ovulatory';
+  return 'luteal';
+};
+
 export const PHASE_NAMES = {
   menstrual: 'Menstrual',
   follicular: 'Follicular',
