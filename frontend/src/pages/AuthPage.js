@@ -14,6 +14,10 @@ const PINK_SOFT = '#e8dce0';
 const PINK_MUTED = '#a0a0b8';
 
 const NEW_LOGO = '/images/logo.png';
+// The couple backdrops render CONTAINED, never cover (Angelita,
+// Oct 31, 2026): with cover the couples were cropped out of frame.
+// Whole picture, navy field behind it, the 92% navy overlay on top
+// unchanged.
 const HERO_BG = BACKDROPS[0];
 const SCENARIO_BG = BACKDROPS[1];
 const SCIENCE_BG = BACKDROPS[2];
@@ -99,7 +103,7 @@ export default function AuthPage() {
 
       {/* HERO */}
       <section className="relative min-h-screen flex items-center pt-16">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(${HERO_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0" style={{ backgroundImage: `url(${HERO_BG})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
         <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,79,154,0.5) 0%, rgba(255,79,154,0) 70%)' }} />
@@ -190,7 +194,7 @@ export default function AuthPage() {
 
       {/* THE SCIENCE — Demystify How It Works */}
       <section ref={scienceRef} className="py-20 px-6 relative overflow-hidden official-doc">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(${SCIENCE_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0" style={{ backgroundImage: `url(${SCIENCE_BG})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
         <div className="max-w-2xl mx-auto relative z-10">
@@ -236,7 +240,7 @@ export default function AuthPage() {
 
       {/* TRANSFORMATION */}
       <section className="py-20 px-6 relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(${TRANSFORM_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0" style={{ backgroundImage: `url(${TRANSFORM_BG})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
         <div className="max-w-2xl mx-auto relative z-10">
@@ -269,7 +273,7 @@ export default function AuthPage() {
 
       {/* CTA */}
       <section className="py-16 px-6 relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(${BACKDROPS[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0" style={{ backgroundImage: `url(${BACKDROPS[0]})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
         <div className="max-w-md mx-auto relative z-10 text-center">
@@ -302,7 +306,7 @@ export default function AuthPage() {
 
       {/* FINAL CTA */}
       <section className="py-20 px-6 text-center relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(${BACKDROPS[1]})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0" style={{ backgroundImage: `url(${BACKDROPS[1]})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
         <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,79,154,0.5) 0%, rgba(255,79,154,0) 70%)' }} />
