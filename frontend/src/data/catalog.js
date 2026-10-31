@@ -19,7 +19,11 @@
 // Inside Out, the five beauty devices in Jewelry and extra
 // special things, the migraine stick bundle in Candles and
 // scented products, the Turkish Delight in Chocolates), so the
-// hold is empty and all 119 sit inside the eleven sections. Eight products carry a banner (the
+// hold is empty and all 119 sit inside the eleven sections.
+// Four advent calendars are cross-listed (see FEATURED_TOP_OF
+// below): three chocolate ones also top the Chocolates section
+// and the Pukka tea one tops Drinks, so those sections display
+// 12 and 5 rows while the distinct product count stays 119. Eight products carry a banner (the
 // banner field): her words sit in a small pink outlined label
 // above the product name. The two wild yam creams in Beauty from
 // the Inside Out sit side by side among them.
@@ -55,6 +59,18 @@ export const CATALOG_SECTIONS = [
   'Jewelry and extra special things',
 ];
 
+// Cross-listing (Angelita, Oct 31, 2026): a few advent calendars
+// ALSO appear at the very top of a content section, in the order
+// listed here, before that section's own products. Their home
+// stays Advent calendars and gift sets (the section field); this
+// map only adds the extra display spot. It is still ONE product
+// row per ASIN in CATALOG_PRODUCTS, so hearts and the wishlist
+// dedupe by ASIN: hearting either listing adds the one product.
+export const FEATURED_TOP_OF = {
+  Chocolates: ['B0CX7FDWCC', 'B0HBXM4173', 'B0HDQK47F9'],
+  Drinks: ['B0FJ2V6K2G'],
+};
+
 export const formatPrice = (price) =>
   typeof price === 'number' ? `$${price.toFixed(2)}` : null;
 
@@ -72,7 +88,7 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0DNM83ZK7', name: 'Benchmark Bouquets Tulips with Glass Vase', blurb: 'Fresh fall tulips in red and orange, arranged in a glass vase.', image: '/images/catalog/B0DNM83ZK7.jpg', price: 44.92, section: 'Flowers' },
   { asin: 'B07H15GPZG', name: 'Stargazer Barn 10 Stem Sunflower Bouquet', blurb: 'Fresh cut sunflowers, hand tied, 10 stems. Vase not included.', image: '/images/catalog/B07H15GPZG.jpg', price: 30.04, section: 'Flowers' },
   { asin: 'B00KWX688S', name: 'Benchmark Bouquets Flowering Fields, With Vase (Fresh Cut Flowers)', blurb: 'A mixed fresh cut bouquet in a glass vase, ready to give.', image: '/images/catalog/B00KWX688S.jpg', price: 44.95, section: 'Flowers' },
-  // Chocolates (9)
+  // Chocolates (9 of its own, plus the 3 featured advent calendars at the top: 12 shown)
   { asin: 'B07WT6GP2F', name: 'Lindt Mini Pralines Gift Box, 6.2 oz', blurb: 'Assorted chocolate candy pralines with premium filling, made for gift giving.', image: '/images/catalog/B07WT6GP2F.jpg', price: 14.62, section: 'Chocolates' },
   { asin: 'B000LQJKI6', name: 'GuyLian Belgian Chocolate Seashells, 8.82 oz, 22 pc', blurb: 'Belgian chocolate seashells with hazelnut praline filling.', image: '/images/catalog/B000LQJKI6.jpg', price: 17.99, section: 'Chocolates' },
   { asin: 'B0CP48QKPS', name: "Sarah's Candy Factory Belgian Chocolate Gift Box", blurb: 'Assorted milk, dark and white Belgian chocolate pralines in an elegant gift box, 4.23 oz.', image: '/images/catalog/B0CP48QKPS.jpg', price: 17.99, section: 'Chocolates' },
@@ -82,7 +98,7 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B081ZG4898', name: 'Ethel M Taste of Las Vegas Collection, 16-Piece Gift Box', blurb: 'Caramels, nut clusters and satin crèmes in milk and dark chocolate, small batch handcrafted.', image: '/images/catalog/B081ZG4898.jpg', price: 45, section: 'Chocolates' },
   { asin: 'B0G616FHRW', name: 'LAKRIDS BY BÜLOW Love Selection Box', blurb: 'Heart shaped gift box of chocolate covered gourmet black licorice, a premium Danish candy gift.', image: '/images/catalog/B0G616FHRW.jpg', price: 49.99, section: 'Chocolates' },
   { asin: 'B0CNTSVB7Q', name: 'Biteyz Turkish Delight, Vegan Candy Gift Box, 36 Pieces', blurb: 'Assorted gourmet fruit flavors: lemon, apple, orange, pomegranate and raspberry. Handmade vegan treats.', image: '/images/catalog/B0CNTSVB7Q.jpg', price: 25.99, section: 'Chocolates' },
-  // Drinks (4)
+  // Drinks (4 of its own, plus the 1 featured tea advent calendar at the top: 5 shown)
   { asin: 'B0G1S4KBS6', name: 'Beforeyouspeak Period Coffee, 7 Count', blurb: 'Instant Colombian coffee with iron, goji berry and milk thistle, white peony root, rehmannia and MCT oil. Keto and vegan friendly.', image: '/images/catalog/B0G1S4KBS6.jpg', price: 14.99, section: 'Drinks' },
   { asin: 'B0H7K1RTY1', name: 'Tilz Hot Chocolate Station', blurb: 'Original and white hot chocolate with mini candy canes, marshmallows and chocolate sprinkles, in a Christmas gift hamper.', image: '/images/catalog/B0H7K1RTY1.jpg', price: 24.99, section: 'Drinks' },
   { asin: 'B0GM36TY3S', name: 'MAÏA Ceremonial Cacao, High Flavanol, 30 Servings', blurb: 'Super cacao with theobromine; supports healthy blood pressure and cardiovascular wellness.', image: '/images/catalog/B0GM36TY3S.jpg', price: 32.95, section: 'Drinks' },
@@ -164,10 +180,10 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B07TT5RQ2P', name: 'Benatu Essential Oil Blends Roll On Set, 3 Bottles', blurb: 'Breathe, Focus On and Happiness natural aromatherapy roll ons for massage, body skin care and home.', image: '/images/catalog/B07TT5RQ2P.jpg', price: 16.58, section: 'Candles and scented products' },
   { asin: 'B0CVG37WJH', name: 'Basic Vigor Migraine Stick Super Bundle, 3 Pack', blurb: 'Original, Extra Strength and Magnesium migraine sticks in one bundle.', image: '/images/catalog/B0CVG37WJH.jpg', price: 29.87, section: 'Candles and scented products' },
   // Advent calendars and gift sets (12)
-  { asin: 'B0CX7FDWCC', name: 'Lindt Holiday Teddy Bear Chocolate Advent Calendar, 4.5 oz', blurb: 'A teddy bear advent calendar filled with Lindt chocolate candy.', image: '/images/catalog/B0CX7FDWCC.jpg', price: 13.97, section: 'Advent calendars and gift sets' },
-  { asin: 'B0FJ2V6K2G', name: 'Pukka Organic Tea Advent Calendar 2025', blurb: '24 organic black and green tea infusions in a Christmas countdown for tea lovers.', image: '/images/catalog/B0FJ2V6K2G.jpg', price: 28.18, section: 'Advent calendars and gift sets' },
-  { asin: 'B0HBXM4173', name: 'GODIVA Limited Edition Luxury Chocolate Advent Calendar 2026, 24 pc', blurb: '24 doors of milk, dark and white chocolate in a gift ready holiday countdown.', image: '/images/catalog/B0HBXM4173.jpg', price: 46.4, section: 'Advent calendars and gift sets' },
-  { asin: 'B0HDQK47F9', name: 'LAKRIDS BY BÜLOW Advent Calendar, Chocolate-Covered Licorice', blurb: 'A Christmas countdown of Danish chocolate covered licorice, 12.17 oz.', image: '/images/catalog/B0HDQK47F9.jpg', price: 69.99, section: 'Advent calendars and gift sets' },
+  { asin: 'B0CX7FDWCC', name: 'Lindt Holiday Teddy Bear Chocolate Advent Calendar, 4.5 oz', blurb: 'A teddy bear advent calendar filled with Lindt chocolate candy.', image: '/images/catalog/B0CX7FDWCC.jpg', price: 13.97, featuredIn: 'Chocolates', section: 'Advent calendars and gift sets' },
+  { asin: 'B0FJ2V6K2G', name: 'Pukka Organic Tea Advent Calendar 2025', blurb: '24 organic black and green tea infusions in a Christmas countdown for tea lovers.', image: '/images/catalog/B0FJ2V6K2G.jpg', price: 28.18, featuredIn: 'Drinks', section: 'Advent calendars and gift sets' },
+  { asin: 'B0HBXM4173', name: 'GODIVA Limited Edition Luxury Chocolate Advent Calendar 2026, 24 pc', blurb: '24 doors of milk, dark and white chocolate in a gift ready holiday countdown.', image: '/images/catalog/B0HBXM4173.jpg', price: 46.4, featuredIn: 'Chocolates', section: 'Advent calendars and gift sets' },
+  { asin: 'B0HDQK47F9', name: 'LAKRIDS BY BÜLOW Advent Calendar, Chocolate-Covered Licorice', blurb: 'A Christmas countdown of Danish chocolate covered licorice, 12.17 oz.', image: '/images/catalog/B0HDQK47F9.jpg', price: 69.99, featuredIn: 'Chocolates', section: 'Advent calendars and gift sets' },
   { asin: 'B0F8J3GJDQ', name: 'Survival Kit Advent Calendar for Men', blurb: 'A 24 day countdown with 24 survival tools. A partner gift pick.', image: '/images/catalog/B0F8J3GJDQ.jpg', price: 34.99, section: 'Advent calendars and gift sets' },
   { asin: 'B0H5KMGWR6', name: 'The Body Shop Advent Calendar Gift Set, Set of 24', blurb: '24 days of shower and body creams and gels, hand balms and more.', image: '/images/catalog/B0H5KMGWR6.jpg', price: 111, section: 'Advent calendars and gift sets' },
   { asin: 'B0FY7R1TQ3', name: 'LOVERY Luxury Perfume Advent Calendar for Women', blurb: '24 mini fragrances in a gold gift box.', image: '/images/catalog/B0FY7R1TQ3.jpg', price: 125, section: 'Advent calendars and gift sets' },

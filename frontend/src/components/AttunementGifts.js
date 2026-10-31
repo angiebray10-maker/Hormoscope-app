@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
 import { PartnerAvatar } from '../pages/AttunementPage';
-import { CATALOG_PRODUCTS, PRODUCT_BY_ASIN, amazonUrl, CATALOG_SECTIONS, formatPrice } from '../data/catalog';
+import { CATALOG_PRODUCTS, PRODUCT_BY_ASIN, amazonUrl, CATALOG_SECTIONS, FEATURED_TOP_OF, formatPrice } from '../data/catalog';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const PINK = '#f4a7b9';
@@ -423,11 +423,16 @@ export default function AttunementGifts() {
       {activeTab === 'catalog' && (
         <div data-testid="catalog-tab">
           {/* Grouped under her section headings, in her order (the
-              eleven sections of Oct 31, 2026, plus the end hold for
-              the ten products awaiting her ruling). A section with
-              no products does not show. */}
+              eleven sections of Oct 31, 2026; all 119 products sit
+              inside them). Cross-listed advent calendars (her
+              order) also show at the very top of their content
+              section, ahead of that section's own products; they
+              are the same product rows, so a heart on either
+              listing is the same heart. A section with no products
+              does not show. */}
           {CATALOG_SECTIONS.map((section) => {
-            const items = CATALOG_PRODUCTS.filter((p) => p.section === section);
+            const featuredItems = (FEATURED_TOP_OF[section] || []).map((a) => PRODUCT_BY_ASIN[a]).filter(Boolean);
+            const items = [...featuredItems, ...CATALOG_PRODUCTS.filter((p) => p.section === section)];
             if (items.length === 0) return null;
             return (
               <div key={section} data-testid={`catalog-section-${section}`}>
