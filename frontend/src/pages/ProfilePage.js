@@ -3,105 +3,24 @@ import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { User, LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Camera, Loader2, Heart, BookOpen, Trash2, Bell } from 'lucide-react';
+import { User, LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Camera, Loader2, BookOpen, Trash2, Bell } from 'lucide-react';
 import { syncLocalNotifications, checkNotificationPermission, getNotificationPrefs, isNativePlatform, NOTIFICATION_TIMES } from '../utils/localNotifications';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
-import DateSelect from '../components/DateSelect';
 import TabFooter from '../components/TabFooter';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const APP_URL = process.env.REACT_APP_BACKEND_URL?.replace('/api', '') || window.location.origin;
 
-function AttunedSection({ token }) {
-  // Attunement Mode is FREE for everyone (Angelita, Oct 18, 2026): no Pro
-  // gate anywhere on this section.
-  // v42 (Angelita, Oct 25, 2026): this card no longer creates an invite
-  // code itself. There is ONE sync flow, in the Attunement tab, because
-  // the "What your partner can see" checklist now lives there and must
-  // always appear during setup. This card routes there instead.
-  const [status, setStatus] = useState(null);
-
-  useEffect(() => {
-    if (!token) return;
-    axios.get(`${API}/partner/status`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => setStatus(res.data))
-      .catch(() => setStatus({ is_linked: false }));
-  }, [token]);
-
-  const handleUnlink = async () => {
-    try {
-      await axios.post(`${API}/partner/unlink`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      setStatus({ is_linked: false });
-    } catch (err) {
-      logger.error('Unlink error:', err);
-    }
-  };
-
-  return (
-    <div className="glass-card p-5 mb-6" data-testid="attuned-section">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full bg-[#FF4F9A]/20 flex items-center justify-center">
-          <Heart className="w-5 h-5 text-[#FF4F9A]" fill="#FF4F9A" />
-        </div>
-        <div>
-          <p className="text-[#F4D3DC] text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>Attunement Mode</p>
-          <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Built by one woman, a breast cancer survivor, from real personal experience.</p>
-        </div>
-      </div>
-
-      {status === null ? (
-        <div className="flex justify-center py-2"><Loader2 className="w-5 h-5 text-[#FF4F9A] animate-spin" /></div>
-      ) : status.is_linked ? (
-        <div>
-          <p className="text-white text-sm mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Linked with <span className="font-semibold" style={{ color: '#f4a7b9' }}>{status.partner_name}</span>
-          </p>
-          <p className="text-[#CFC3CC] text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            He can see your cycle calendar, your ovulation and fertile days, and your next period. Your journal and your intimacy log are shared only if you turn them on.
-          </p>
-          <div className="flex gap-2">
-            <Link to="/attunement" className="flex-1 py-2.5 rounded-full text-white text-sm font-medium text-center"
-              style={{ fontFamily: 'Poppins, sans-serif', background: 'transparent', border: '1.5px solid #FF4F9A' }}>
-              Open Attunement Mode
-            </Link>
-            <button onClick={handleUnlink} className="px-4 py-2.5 rounded-full text-white/75 text-xs"
-              style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.12)' }}>
-              Unlink
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div>
-          <p className="text-[#CFC3CC] text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Link your partner's account to yours so they can follow your cycle. If they track too, you'll see both cycles side by side.
-          </p>
-          <Link to="/attunement" data-testid="attuned-go-btn"
-            className="block w-full py-2.5 rounded-full text-white text-sm font-medium text-center"
-            style={{ fontFamily: 'Poppins, sans-serif', background: 'transparent', border: '1.5px solid #FF4F9A' }}>
-            Create &amp; share invite code
-          </Link>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-const SITUATION_OPTIONS = [
-  { id: 'regular', label: 'I get a period' },
-  { id: 'unsure', label: 'Not sure of my cycle length' },
-  { id: 'hormonal_birth_control', label: 'Hormonal birth control' },
-  { id: 'pregnant', label: 'Pregnant' },
-  { id: 'postpartum', label: 'Postpartum / breastfeeding' },
-  { id: 'menopause', label: 'Perimenopause or menopause' },
-];
 const CONDITION_OPTIONS = ['PMDD', 'PCOS', 'Endometriosis', 'Irregular cycles'];
 
 function MyDetailsSection({ user, token, updateUser }) {
-  const [birthday, setBirthday] = useState(user?.birthday || '');
-  const [situation, setSituation] = useState(user?.cycle_status || 'regular');
+  // Oct 31, 2026 (Angelita): the Birthday field and the "My cycle
+  // right now" list are removed from Profile ("just more junk").
+  // UI only: her stored birthday and cycle_status are untouched in
+  // the database; the save below simply no longer sends them, and
+  // the server only updates fields it receives.
   const [conditions, setConditions] = useState(user?.conditions || []);
   const [msg, setMsg] = useState('');
   const [saving, setSaving] = useState(false);
@@ -109,7 +28,7 @@ function MyDetailsSection({ user, token, updateUser }) {
   const save = async () => {
     setSaving(true); setMsg('');
     try {
-      const res = await axios.put(`${API}/profile`, { birthday: birthday || '', cycle_status: situation, conditions }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.put(`${API}/profile`, { conditions }, { headers: { Authorization: `Bearer ${token}` } });
       updateUser(res.data);
       setMsg('Saved.');
     } catch (err) {
@@ -120,17 +39,6 @@ function MyDetailsSection({ user, token, updateUser }) {
 
   return (
     <div className="glass-card p-5 mb-6 space-y-5" data-testid="my-details" style={{ fontFamily: 'Poppins, sans-serif' }}>
-      <div>
-        <p className="text-white text-base mb-2">Birthday <span className="text-[#E6E0EE] text-xs">(optional)</span></p>
-        <DateSelect testId="profile-birthday" value={birthday} onChange={setBirthday} minYear={1930} maxYear={new Date().getFullYear() - 18} />
-      </div>
-      <div>
-        <p className="text-white text-base mb-2">My cycle right now</p>
-        <select value={situation} onChange={(e) => setSituation(e.target.value)} className="w-full rounded-xl px-3 py-2.5 bg-white/5 border border-white/15 text-white" data-testid="profile-situation">
-          {SITUATION_OPTIONS.map((o) => <option key={o.id} value={o.id} className="bg-[#15152B]">{o.label}</option>)}
-        </select>
-        {!['regular', 'unsure'].includes(situation) && <p className="text-[#E6E0EE] text-xs mt-1">Fertility predictions are turned off.</p>}
-      </div>
       <div>
         <p className="text-white text-base mb-1">Conditions I live with</p>
         {CONDITION_OPTIONS.map((c) => (
@@ -557,8 +465,9 @@ export default function ProfilePage() {
         </Link>
       </div>
 
-      {/* Attunement Mode */}
-      <AttunedSection token={token} />
+      {/* The Attunement Mode card that used to sit here is removed
+          (Angelita, Oct 31, 2026): Attunement has its own tab, and
+          this duplicate only cluttered Profile. */}
       <MyDetailsSection user={user} token={token} updateUser={updateUser} />
       <NotificationsSection user={user} token={token} updateUser={updateUser} />
 
