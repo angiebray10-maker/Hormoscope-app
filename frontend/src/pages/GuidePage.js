@@ -28,7 +28,7 @@ export default function GuidePage() {
           <section data-testid="guide-overview">
             <h2 className="text-xl sm:text-2xl text-white mb-3">What HORMOscope does</h2>
             <p className="mb-3">HORMOscope has four tabs, in this order: Home, Journal, Attunement and Profile. Home is where you read your day. Journal is where you log it.</p>
-            <p className="mb-3">Science, not Stars. Your daily reads come from your cycle and what you log, not from astrology.</p>
+            <p className="mb-3">Your daily reads come from your cycle and what you log, not from astrology.</p>
           </section>
           <section data-testid="guide-verify">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Confirm your email</h2>

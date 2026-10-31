@@ -112,7 +112,7 @@ export default function AuthPage() {
 
         <div className="relative z-10 w-full max-w-xl mx-auto px-6 py-20 text-center sm:text-left">
           <h1 className="text-5xl sm:text-6xl text-white leading-tight mb-3" style={{ fontFamily: HEADING_FONT }} data-testid="hero-title">
-            Science, not stars
+            HORMOscope
           </h1>
           <p className="text-base sm:text-lg mb-5" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }} data-testid="hero-tagline">
             Not your horoscope. Your hormones.

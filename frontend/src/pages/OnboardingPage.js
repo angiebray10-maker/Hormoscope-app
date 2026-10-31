@@ -242,7 +242,7 @@ export default function OnboardingPage() {
                   style={{ fontFamily: BODY_FONT, color: 'rgba(255,79,154,0.12)', WebkitTextStroke: '1.4px #FF4F9A', textShadow: '0 0 18px rgba(255,79,154,0.45)' }}>
                   Welcome to your true HORMOscope
                 </h1>
-                <Sub>Science, not stars. Your day, read from your own cycle.</Sub>
+                <Sub>Your day, read from your own cycle.</Sub>
               </div>
 
               {/* What HORMOscope does: the glimpse comes before the
