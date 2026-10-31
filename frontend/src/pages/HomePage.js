@@ -224,14 +224,11 @@ export default function HomePage() {
   const cycle = data?.cycle_info || {};
   const mood = data?.mood_prediction || {};
 
-  // Address her by her first name wherever the app greets her
-  // (Angelita, Oct 17). The dashboard's user_name falls back to
-  // "Beautiful" server-side when she has not given a name, so that word
-  // is not a name and never becomes a first name.
-  const rawName = (user?.name || data?.user_name || '').trim();
-  const firstName = rawName && rawName !== 'Beautiful' ? rawName.split(/\s+/)[0] : null;
-  const hourNow = new Date().getHours();
-  const dayGreeting = hourNow < 12 ? 'Good morning' : hourNow < 18 ? 'Good afternoon' : 'Good evening';
+  // Home greeting (Angelita, Oct 31, 2026, supersedes the Oct 17
+  // first-name greeting): the top of Home says exactly "Welcome
+  // to your true HORMOscope" and nothing else. No time-of-day
+  // greeting is computed or rendered anywhere on Home anymore,
+  // and her first name does not appear in the line.
   // v56: while her cycle length is still an estimate (the estimate
   // flag, or fewer than 2 logged period starts for older accounts,
   // the same test the Calendar explainer uses), Home labels the
@@ -321,7 +318,7 @@ export default function HomePage() {
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
           <h1 className="text-3xl text-white mb-3 font-script">
-            {firstName ? `${dayGreeting}, ${firstName}` : `Hello, ${data?.user_name || 'Beautiful'}`}
+            Welcome to your true HORMOscope
           </h1>
         </div>
 
@@ -404,7 +401,7 @@ export default function HomePage() {
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
         <h1 className="text-3xl text-white mb-3 font-script">
-          {firstName ? `${dayGreeting}, ${firstName}` : `Hello, ${data?.user_name || 'Beautiful'}`}
+          Welcome to your true HORMOscope
         </h1>
       </div>
 
