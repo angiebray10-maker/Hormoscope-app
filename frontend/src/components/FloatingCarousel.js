@@ -108,7 +108,12 @@ function SectionTitle({ Icon, color, children }) {
 // Supplements joined Oct 31, 2026 as a free text group (an optional
 // field, not a question: "Your current supplements and vitamins",
 // final wording 01:12 PDT), saved the same way.
-function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
+function QuickLogSheet({ token, onClose, onSaved, mode = 'full', date }) {
+  // v58: optional target date (the Journal day view passes the selected
+  // day). With no date prop this is today, exactly as Home has always
+  // used it; with one, prefill and every save file to that day instead.
+  const targetDate = date || todayISO();
+  const isTodayTarget = targetDate === todayISO();
   // No mood is pre-picked (Angelita, Oct 20, 2026): the old default of
   // 3 (Okay) meant an emotion-only log also recorded a mood she never
   // chose. Null until she taps a face, and the payload follows suit.
@@ -165,7 +170,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
         });
         if (!live) return;
         const todays = (Array.isArray(res.data) ? res.data : [])
-          .filter((l) => l.date === todayISO())
+          .filter((l) => l.date === targetDate)
           .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
         let pMood; let pEmos; let pEnergy; let pSyms; let pCravs; let pColls; let pHours; let pQual; let pSupp;
         const seen = {};
@@ -227,7 +232,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
       }
     })();
     return () => { live = false; };
-  }, [token]);
+  }, [token, targetDate]);
 
   const buildPayload = (kind, ov = {}) => {
     const moodVal = ov.mood !== undefined ? ov.mood : mood;
@@ -279,7 +284,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
         break;
     }
     return {
-      date: todayISO(),
+      date: targetDate,
       is_period: false,
       symptoms: payloadSymptoms,
       notes: note.trim() ? `${label} — ${note.trim()}` : label,
@@ -422,7 +427,9 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
             </button>
           </div>
           <p className="text-[#CFC3CC] text-xs mb-5" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            {isTodayTarget
+              ? new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+              : new Date(targetDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
 
@@ -597,11 +604,11 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
               is the proof, and a failure shows here instead of vanishing. */}
           <div className="h-5 mb-2 flex items-center justify-center" aria-live="polite">
             {saveState === 'saving' && (
-              <span className="text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>Saving to today…</span>
+              <span className="text-[11px]" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>{isTodayTarget ? 'Saving to today…' : 'Saving…'}</span>
             )}
             {saveState === 'saved' && (
               <span className="text-[11px] flex items-center gap-1 animate-in" style={{ fontFamily: 'Poppins, sans-serif', color: '#55efc4' }}>
-                <Check className="w-3.5 h-3.5" /> Saved to today
+                <Check className="w-3.5 h-3.5" /> {isTodayTarget ? 'Saved to today' : 'Saved to this day'}
               </span>
             )}
             {saveState === 'error' && (
@@ -625,7 +632,9 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
   );
 }
 
-export default function FloatingCarousel({ token, onLogged }) {
+export default function FloatingCarousel({ token, onLogged, date }) {
+  // v58: optional date prop for the Journal day view. Home mounts this
+  // with no date prop and keeps the exact "Log today" behavior.
   // Quick log is a static row of five large buttons (launch fixes): no
   // orbit, no motion, nothing to chase with a thumb.
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -636,7 +645,7 @@ export default function FloatingCarousel({ token, onLogged }) {
   return (
     <div className="mb-6" data-testid="floating-carousel">
       <p className="text-white text-sm mb-3 text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
-        Log today
+        {date && date !== todayISO() ? 'Log this day' : 'Log today'}
       </p>
       <div className="grid grid-cols-5 gap-2" data-testid="quick-log-row">
         {CATEGORIES.map((cat) => {
@@ -659,12 +668,13 @@ export default function FloatingCarousel({ token, onLogged }) {
         })}
       </div>
       {justLogged && (
-        <p className="text-center text-sm mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#7FD9A8' }} role="status">✓ Saved to today</p>
+        <p className="text-center text-sm mt-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#7FD9A8' }} role="status">✓ {date && date !== todayISO() ? 'Saved to this day' : 'Saved to today'}</p>
       )}
 
       {sheetOpen && (
         <QuickLogSheet
           mode={sheetMode}
+          date={date}
           token={token}
           onClose={() => setSheetOpen(false)}
           onSaved={() => {

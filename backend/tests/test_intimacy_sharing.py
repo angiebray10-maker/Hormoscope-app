@@ -221,9 +221,11 @@ async def section_default_off(results):
 async def section_on_then_off(results):
     db = FakeDB()
     server.db = db
+    # v58: journal text also needs include_note (see test_journal_sharing).
     vis_on = {"phase": True, "mood_energy": True, "period_dates": True,
               "fertile_window": False, "wishlist": True,
-              "share_journal": True, "share_intimacy": True}
+              "share_journal": True, "share_intimacy": True,
+              "include_note": True}
     owner, partner = seed(db, owner_kw={"partner_visibility": dict(vis_on)})
 
     code, res = await call(server.get_partner_status, dict(partner))

@@ -238,8 +238,11 @@ async def section_default_off(results):
 async def section_on_then_off(results):
     db = FakeDB()
     server.db = db
+    # v58: journal TEXT now requires include_note on top of share_journal
+    # (Angelita's note choice), so the fully-on fixture sets both.
     vis_on = {"phase": True, "mood_energy": True, "period_dates": True,
-              "fertile_window": False, "wishlist": True, "share_journal": True}
+              "fertile_window": False, "wishlist": True, "share_journal": True,
+              "include_note": True}
     owner, partner = seed(db, owner_kw={"partner_visibility": dict(vis_on)})
 
     code, res = await call(server.get_partner_status, dict(partner))
@@ -387,10 +390,43 @@ async def section_onboarding(results):
                     (resp_vis or {}).get("share_journal") is False))
 
 
+async def section_note_gate(results):
+    # v58 (Angelita): share_journal on but include_note OFF — the partner
+    # reaches the journal structure but no entry text is served anywhere.
+    db = FakeDB()
+    server.db = db
+    vis = {"phase": True, "mood_energy": True, "period_dates": True,
+           "fertile_window": False, "wishlist": True, "share_journal": True,
+           "include_note": False}
+    owner, partner = seed(db, owner_kw={"partner_visibility": dict(vis)})
+
+    code, res = await call(server.get_partner_journal, dict(partner))
+    results.append(("note gate: partner journal still ok", code == "ok"))
+    blob = json.dumps(res, default=str)
+    results.append(("note gate: no entry text in partner journal",
+                    "SHAREDWORDSONE" not in blob and "SHAREDWORDSTWO" not in blob
+                    and "INTIMATESECRETWORDS" not in blob))
+    payload = await server._partner_view_payload("tok-view-1")
+    pblob = json.dumps(payload, default=str)
+    results.append(("note gate: no entry text in view payload",
+                    "SHAREDWORDSONE" not in pblob
+                    and "INTIMATESECRETWORDS" not in pblob))
+    page = server._render_partner_view_html(payload)
+    results.append(("note gate: view page renders no entry text",
+                    "SHAREDWORDSONE" not in page
+                    and "INTIMATESECRETWORDS" not in page))
+    code, res = await call(server.get_partner_view, "LEGACY1")
+    lblob = json.dumps(res, default=str)
+    results.append(("note gate: no entry text in legacy view",
+                    code == "ok" and "SHAREDWORDSONE" not in lblob
+                    and "INTIMATESECRETWORDS" not in lblob))
+
+
 async def main():
     results = []
     await section_default_off(results)
     await section_on_then_off(results)
+    await section_note_gate(results)
     await section_journal_day(results)
     await section_onboarding(results)
     failed = [name for name, ok in results if not ok]

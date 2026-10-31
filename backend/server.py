@@ -120,7 +120,7 @@ class UserLogin(BaseModel):
 # meaningless, so they are switched off for these users.
 CYCLE_STATUSES = {"regular", "unsure", "hormonal_birth_control", "pregnant", "postpartum", "menopause", "no_periods"}
 NO_FERTILITY_STATUSES = {"hormonal_birth_control", "pregnant", "postpartum", "menopause", "no_periods"}
-PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_window", "wishlist", "share_journal", "share_intimacy")
+PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_window", "wishlist", "share_journal", "share_intimacy", "share_daily_log", "include_note")
 # share_journal (v49, Angelita, Oct 26, 2026): her journal entries are
 # shared with her linked in-app partner ONLY when she turns this on.
 # Default False for everyone: new users, existing users, existing
@@ -134,7 +134,15 @@ PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_wind
 # choice like the journal: shared with her linked in-app partner ONLY
 # when she turns this on, default False for everyone, and it never
 # applies to view links.
-DEFAULT_PARTNER_VISIBILITY = {"phase": True, "mood_energy": True, "period_dates": True, "fertile_window": False, "wishlist": True, "share_journal": False, "share_intimacy": False}
+# share_daily_log / include_note (v58, Oct 31, 2026): finer-grained
+# gates layered on the choices above, both default False. Her day's
+# question answers / cycle log data reach a partner ONLY when
+# share_daily_log is on, and her journal/note TEXT reaches a partner
+# ONLY when include_note is on AND share_journal already permits
+# reaching the journal at all. Partner payload builders strip the
+# gated data server-side while a flag is off; the client is never
+# trusted to hide it.
+DEFAULT_PARTNER_VISIBILITY = {"phase": True, "mood_energy": True, "period_dates": True, "fertile_window": False, "wishlist": True, "share_journal": False, "share_intimacy": False, "share_daily_log": False, "include_note": False}
 BOUTIQUE_VISIBILITY_VALUES = ("private", "partner", "public")
 
 
@@ -2481,6 +2489,9 @@ class JournalEntryCreate(BaseModel):
     title: str = ""
     content: str
     is_intimate: bool = False
+    # v58: optional day (YYYY-MM-DD) to file this entry under, so she
+    # can write into a past (or any) day of the book, not just today.
+    date: Optional[str] = None
 
 class IntimateUpdate(BaseModel):
     is_intimate: bool
@@ -2498,17 +2509,60 @@ def _journal_day(iso_str):
         return None
 
 
+def _parse_entry_date(value):
+    """Strict YYYY-MM-DD parse for an explicitly filed journal day,
+    or None when the value is not exactly that shape."""
+    if not isinstance(value, str):
+        return None
+    v = value.strip()
+    if len(v) != 10 or v[4] != "-" or v[7] != "-":
+        return None
+    try:
+        return date.fromisoformat(v)
+    except ValueError:
+        return None
+
+
+def _journal_entry_day(entry):
+    """The day a journal entry files under (v58): its explicit
+    entry_date when one was stored, otherwise the UTC day of
+    created_at, exactly as entries have always been grouped."""
+    filed = _parse_entry_date(entry.get("entry_date"))
+    if filed is not None:
+        return filed
+    return _journal_day(entry.get("created_at"))
+
+
 @api_router.post("/journal")
 async def create_journal_entry(entry: JournalEntryCreate, current_user: dict = Depends(get_current_user)):
     # The Journal is free for everyone (Angelita, Oct 18, 2026).
+    # v58: an explicit entry date files the entry under that day. The
+    # day is stored as entry_date AND encoded in created_at (noon UTC
+    # of that day), so every existing created_at-based grouping (book,
+    # vault, partner journal) files it to the same day, while GET
+    # /journal keeps it off today's page unless the day IS today.
+    filed_day = None
+    if entry.date is not None and str(entry.date).strip():
+        filed_day = _parse_entry_date(entry.date)
+        if filed_day is None:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+    if filed_day is not None:
+        created_at = datetime(filed_day.year, filed_day.month, filed_day.day,
+                              12, 0, 0, tzinfo=timezone.utc).isoformat()
+        default_title = filed_day.strftime("%A, %B %d")
+    else:
+        created_at = datetime.now(timezone.utc).isoformat()
+        default_title = datetime.now().strftime("%A, %B %d")
     entry_data = {
         "id": str(uuid.uuid4()),
         "user_id": current_user["id"],
-        "title": entry.title or datetime.now().strftime("%A, %B %d"),
+        "title": entry.title or default_title,
         "content": entry.content,
         "is_intimate": bool(entry.is_intimate),
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": created_at
     }
+    if filed_day is not None:
+        entry_data["entry_date"] = filed_day.isoformat()
     await db.journal_entries.insert_one(entry_data)
     return {"id": entry_data["id"], "message": "Entry saved"}
 
@@ -2524,7 +2578,7 @@ async def get_journal_entries(current_user: dict = Depends(get_current_user)):
     entries = await db.journal_entries.find(
         {"user_id": current_user["id"]}, {"_id": 0}
     ).sort("created_at", -1).to_list(length=None)
-    todays = [e for e in entries if _journal_day(e.get("created_at")) == today]
+    todays = [e for e in entries if _journal_entry_day(e) == today]
     exchanges = await _companion_exchanges_for(current_user["id"], today.isoformat())
     return {"entries": todays, "companion_exchanges": exchanges}
 
@@ -2538,16 +2592,24 @@ async def get_journal_logged_days(current_user: dict = Depends(get_current_user)
     text, no log content, nothing a calendar highlight needs beyond
     the day itself."""
     entries = await db.journal_entries.find(
-        {"user_id": current_user["id"]}, {"_id": 0, "created_at": 1}
+        {"user_id": current_user["id"]}, {"_id": 0, "created_at": 1, "entry_date": 1}
     ).to_list(length=None)
     journal_days = sorted({d.isoformat() for e in entries
-                           for d in [_journal_day(e.get("created_at"))] if d})
+                           for d in [_journal_entry_day(e)] if d})
     logs = await db.cycle_logs.find(
         {"user_id": current_user["id"]}, {"_id": 0, "date": 1}
     ).to_list(length=None)
     log_days = sorted({l["date"] for l in logs if l.get("date")})
+    # v58: the Journal day model is one merged day, so her intimacy
+    # log days join the union too, and are also reported on their own.
+    ilogs = await db.intimacy_logs.find(
+        {"user_id": current_user["id"]}, {"_id": 0, "date": 1}
+    ).to_list(length=None)
+    intimacy_days = sorted({l["date"] for l in ilogs if l.get("date")})
     return {"journal_days": journal_days, "log_days": log_days,
-            "logged_days": sorted(set(journal_days) | set(log_days))}
+            "intimacy_days": intimacy_days,
+            "logged_days": sorted(set(journal_days) | set(log_days)
+                                  | set(intimacy_days))}
 
 @api_router.get("/journal/day/{date_str}")
 async def get_journal_day(date_str: str, current_user: dict = Depends(get_current_user)):
@@ -2565,11 +2627,17 @@ async def get_journal_day(date_str: str, current_user: dict = Depends(get_curren
     entries = await db.journal_entries.find(
         {"user_id": current_user["id"]}, {"_id": 0}
     ).sort("created_at", -1).to_list(length=None)
-    day_entries = [e for e in entries if _journal_day(e.get("created_at")) == target]
+    day_entries = [e for e in entries if _journal_entry_day(e) == target]
     logs = await db.cycle_logs.find(
         {"user_id": current_user["id"], "date": target.isoformat()}, {"_id": 0}
     ).to_list(length=None)
-    return {"date": target.isoformat(), "entries": day_entries, "logs": logs}
+    # v58: the merged day also carries that day's intimacy logs in
+    # full (her own docs, _id excluded), so the day view is complete.
+    intimacy = await db.intimacy_logs.find(
+        {"user_id": current_user["id"], "date": target.isoformat()}, {"_id": 0}
+    ).to_list(length=None)
+    return {"date": target.isoformat(), "entries": day_entries, "logs": logs,
+            "intimacy": intimacy}
 
 @api_router.delete("/journal/{entry_id}")
 async def delete_journal_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
@@ -3520,20 +3588,25 @@ def _partner_daily_note(phase: str, cycle_day):
     note = variants[(day - 1) % len(variants)]
     return {"text": note["text"], "prompt": note["prompt"]}
 
-async def _journal_entries_for_partner(owner_id):
+async def _journal_entries_for_partner(owner_id, include_note=False):
     """Her journal in view-link shape (v57): every entry, newest first,
     entries marked intimate included. Callers add this ONLY while her
     Journal sharing choice is on (follow the toggle, Oct 31, 2026);
-    while it is off the key never appears in a partner payload."""
+    while it is off the key never appears in a partner payload.
+    v58: the entries' TEXT (title and content) rides along only when
+    include_note is also on; while it is off the text fields are
+    omitted server-side and only each entry's date remains."""
     docs = await db.journal_entries.find(
-        {"user_id": owner_id}, {"_id": 0, "title": 1, "content": 1, "created_at": 1}
+        {"user_id": owner_id}, {"_id": 0, "title": 1, "content": 1, "created_at": 1, "entry_date": 1}
     ).sort("created_at", -1).to_list(length=90)
     out = []
     for e in docs:
-        d = _journal_day(e.get("created_at"))
-        out.append({"date": d.isoformat() if d else None,
-                    "title": e.get("title") or "",
-                    "content": e.get("content") or ""})
+        d = _journal_entry_day(e)
+        item = {"date": d.isoformat() if d else None}
+        if include_note:
+            item["title"] = e.get("title") or ""
+            item["content"] = e.get("content") or ""
+        out.append(item)
     return out
 
 
@@ -3574,7 +3647,9 @@ async def get_partner_view(link_code: str):
     out = {"name": user.get("name", "Her"), "visibility": vis}
     if share_journal:
         out["visibility"]["share_journal"] = True
-        out["journal_entries"] = await _journal_entries_for_partner(user["id"])
+        # v58: entry text only when include_note is also on.
+        out["journal_entries"] = await _journal_entries_for_partner(
+            user["id"], include_note=bool(vis.get("include_note")))
     if vis.get("phase"):
         out.update({
             "cycle_day": cycle_info.get("cycle_day", 1),
@@ -3922,7 +3997,10 @@ async def get_partner_sync(current_user: dict = Depends(get_current_user)):
             svis = {**DEFAULT_PARTNER_VISIBILITY, **(src.get("partner_visibility") or {})}
             if not is_self and not (svis.get("phase") or svis.get("mood_energy")):
                 person["shared"] = False
-            elif person.get("shared"):
+            elif person.get("shared") and (is_self or svis.get("share_daily_log")):
+                # v58: the other person's logged days (her cycle log
+                # data) attach only when share_daily_log is on; her
+                # own side always carries her own days.
                 person["log_days"] = await _log_days_for(
                     src["id"],
                     include_details=is_self or bool(svis.get("mood_energy")))
@@ -3999,10 +4077,13 @@ async def _partner_view_payload(token: str):
     payload = {"owner_name": owner.get("name") or "Her",
                "owner_photo": owner.get("profile_photo")}
     if _is_no_periods(owner):
-        if vis.get("phase") or vis.get("mood_energy"):
+        # v58: her logged days are cycle log data; they ride along
+        # only when share_daily_log is on, on top of the existing
+        # phase/mood_energy choices.
+        if (vis.get("phase") or vis.get("mood_energy")) and vis.get("share_daily_log"):
             payload["log_days"] = await _log_days_for(
                 owner_id, include_details=bool(vis.get("mood_energy")))
-        if vis.get("mood_energy"):
+        if vis.get("mood_energy") and vis.get("share_daily_log"):
             payload["feeling_today"] = await _mood_today_for(owner_id)
     else:
         lp = owner.get("last_period_date")
@@ -4027,10 +4108,14 @@ async def _partner_view_payload(token: str):
                     payload["fertile_window"] = {
                         "start": (ov - timedelta(days=5)).isoformat(),
                         "end": ov.isoformat()}
-        if vis.get("mood_energy"):
+        # v58: feeling_today is read from her cycle logs, so it is
+        # cycle log data and also requires share_daily_log.
+        if vis.get("mood_energy") and vis.get("share_daily_log"):
             payload["feeling_today"] = await _mood_today_for(owner_id)
     if vis.get("share_journal"):
-        payload["journal_entries"] = await _journal_entries_for_partner(owner_id)
+        # v58: entry text only when include_note is also on.
+        payload["journal_entries"] = await _journal_entries_for_partner(
+            owner_id, include_note=bool(vis.get("include_note")))
     cursor = db.wishlist_items.find({"user_id": owner_id},
                                     {"_id": 0, "product_id": 1, "created_at": 1})
     docs = await cursor.to_list(length=500)
@@ -4145,10 +4230,14 @@ def _render_partner_view_html(payload):
             for e in payload["journal_entries"]:
                 title_bit = (f'<p class="daybody" style="font-weight:600">{esc(str(e.get("title") or ""))}</p>'
                              if e.get("title") else "")
+                # v58: when the text fields were stripped server-side
+                # (include_note off) no empty text paragraph renders.
+                content_bit = (f'<p class="daybody" style="white-space:pre-wrap">{esc(str(e.get("content")))}</p>'
+                               if e.get("content") else "")
                 jrows.append(
                     f'<div class="day"><p class="daydate">{esc(_fmt_view_date(e.get("date")))}</p>'
                     + title_bit
-                    + f'<p class="daybody" style="white-space:pre-wrap">{esc(str(e.get("content") or ""))}</p></div>')
+                    + content_bit + '</div>')
             jinner = "".join(jrows) if jrows else '<p class="note">No journal entries yet.</p>'
             parts.append(
                 f'<div class="card"><p class="label">Her journal, shared with you</p>{jinner}</div>')
@@ -4296,9 +4385,14 @@ async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
     # intimacy logs, or anything from her journal.
     mood_today = None
     today_str = datetime.now(timezone.utc).date().isoformat()
-    owner_logs = await db.cycle_logs.find(
-        {"user_id": owner_id, "date": today_str}, {"_id": 0, "symptoms": 1, "created_at": 1}
-    ).sort("created_at", 1).to_list(length=None)
+    # v58: mood_today is read from her cycle logs, so it is cycle log
+    # data: it is only read (and only ever non-None) while her
+    # share_daily_log choice is on.
+    owner_logs = []
+    if _vis.get("share_daily_log"):
+        owner_logs = await db.cycle_logs.find(
+            {"user_id": owner_id, "date": today_str}, {"_id": 0, "symptoms": 1, "created_at": 1}
+        ).sort("created_at", 1).to_list(length=None)
     mood_labels = {1: "Low", 2: "Meh", 3: "Okay", 4: "Good", 5: "Great"}
     for l in owner_logs:
         for s in (l.get("symptoms") or []):
@@ -4353,20 +4447,23 @@ async def get_partner_journal(current_user: dict = Depends(get_current_user)):
     other_vis = {**DEFAULT_PARTNER_VISIBILITY, **(other.get("partner_visibility") or {})}
     if not other_vis.get("share_journal"):
         raise HTTPException(status_code=403, detail="Journal sharing is off.")
+    # v58: her entry TEXT (title and content) is served only when
+    # include_note is also on; while it is off the fields are omitted
+    # server-side and only the entry's id and timestamp remain.
+    include_note = bool(other_vis.get("include_note"))
     entries = await db.journal_entries.find(
         {"user_id": other_id}, {"_id": 0}
     ).sort("created_at", -1).to_list(length=None)
     by_day = {}
     for e in entries:
-        d = _journal_day(e.get("created_at"))
+        d = _journal_entry_day(e)
         if d is None:
             continue
-        by_day.setdefault(d.isoformat(), []).append({
-            "id": e.get("id"),
-            "title": e.get("title") or "",
-            "content": e.get("content") or "",
-            "created_at": e.get("created_at"),
-        })
+        item = {"id": e.get("id"), "created_at": e.get("created_at")}
+        if include_note:
+            item["title"] = e.get("title") or ""
+            item["content"] = e.get("content") or ""
+        by_day.setdefault(d.isoformat(), []).append(item)
     days = [{"date": d, "entries": by_day[d]} for d in sorted(by_day, reverse=True)]
     return {"partner_name": other.get("name") or "Partner", "days": days}
 
@@ -4557,27 +4654,29 @@ async def get_partner_mood(current_user: dict = Depends(get_current_user)):
 
 CATALOG_PRODUCT_IDS = {
     # One catalog (Angelita, Oct 26, 2026); the app groups it under
-    # section headings, but server-side it is one validated list.
-    "B0FHBXCCLM", "B0C1YG33PD", "B0C9LCM3HW", "B07NLSLP9K", "B093LVS21D", "B083C6BYG9",
-    "B0FGB2NS3C", "B07M5X4D3P",
-    "B0CNC67C8B",
-    # Added Oct 30, 2026 (v56): her picks sent that day.
-    "B0HF6S81XH", "B07GY22VLW", "B0D5FZGY8W",
-    "B07VTDXFDC", "B0D7N2KWLH", "B09Y8SV5RY",
-    "B0F8J3GJDQ", "B0FY7R1TQ3",
-    "B0FQFMDMDC", "B0B75T46L8",
-    # Added Oct 26, 2026, in the order she sent them.
-    "B0BX78DC84", "B0BLSVBMVY", "B0DS1MRGBY", "B00LWE69NU", "B07YQBWVGF", "B06XKP5Z1X",
-    "B07JK78TM7", "B0DZ2J1GS1", "B09PTGQ4CK", "B0CFPRZHYM", "B005F1ATJQ",
-    # Added Oct 27, 2026 (v50): her late-night picks that research
-    # could identify. The unidentified ones stay out until named.
-    "B098TV9THH", "B000LQJKI6", "B00KWX688S",
-    # The Oct 31, 2026 v57 products were in CATALOG_PRODUCTS but
-    # missing here; added so wishlist validation matches the catalog.
-    "B018E6TE1C", "B081CKP4SN", "B087258KHP", "B08L7NSWCX", "B09HT62WR4", "B09JKDWS6H", "B09S2Y1G7B", "B0B836FZFB", "B0BNJRJP6M", "B0BZRJM2BG", "B0CGQ3YW9M", "B0CNTSVB7Q", "B0CPD78HL2", "B0DB9K83N3", "B0DCLVWKVT", "B0DJYXR31R", "B0DT5M5DHD", "B0F1QHNFJP", "B0F2J966QL", "B0FD771S38", "B0FDM3GC7M", "B0FK5CJXRX",
-    # Added Oct 31, 2026 (v57 data completion): the rest of the
-    # Oct 30 to 31 batch with verified name, price and picture.
-    "B002D2JYYG", "B0DGVVB8HW", "B0GT1LQD2Q", "B0CVG37WJH", "B0D1H31PRY", "B0DY9Z9FTZ", "B0FTGKQZT6", "B0GX7X6ZKL", "B0FR24YSSM", "B06W5PD1KY", "B07YNL9VWM", "B0CMDJNG4L", "B0F517J8JR", "B0DHWFWSVF", "B0GD6R7CFJ", "B0DYJMQKLJ", "B0CC5R3S9V", "B0DPWYG9Y8", "B0CRDH79BK", "B0H1GBWV98", "B0FG1QTBGL", "B01N0RSCBI", "B0D8HQHXK1", "B0CLDN4BRM", "B07TT5RQ2P", "B0D7MRCJRL", "B0DBLLK8YG", "B08ZJJ3BVV", "B0HDQK47F9", "B0CX7FDWCC", "B0FJ2V6K2G", "B0HBXM4173", "B0H5KMGWR6", "B0G616FHRW", "B081ZG4898", "B0CLT9Y2ZK", "B07WT6GP2F", "B0G4S8JJRS", "B0GM36TY3S", "B0G1S4KBS6",
+    # the two Oct 31, 2026 headings (Food & Drink, then Non Food &
+    # Drink, each price ascending), but server-side it is one
+    # validated list, in the same order as the app catalog.
+    "B0CX7FDWCC", "B07WT6GP2F", "B0G1S4KBS6", "B000LQJKI6", "B0CP48QKPS", "B0CLT9Y2ZK",
+    "B0FDM3GC7M", "B0CMDJNG4L", "B0F517J8JR", "B0H7K1RTY1", "B0CNTSVB7Q", "B002D2JYYG",
+    "B0FJ2V6K2G", "B0D5FZGY8W", "B0GM36TY3S", "B07GY22VLW", "B081ZG4898", "B0HBXM4173",
+    "B0HF6S81XH", "B0G616FHRW", "B0HDQK47F9", "B0FHBXCCLM", "B0DY9Z9FTZ", "B0CGQ3YW9M",
+    "B0DBLLK8YG", "B005F1ATJQ", "B0GGNN6PK4", "B018E6TE1C", "B07QTFTCV2", "B0FD771S38",
+    "B0DGVVB8HW", "B01N0RSCBI", "B06XKP5Z1X", "B09S2Y1G7B", "B0GXC53GZ8", "B07TT5RQ2P",
+    "B09HT62WR4", "B0D8HQHXK1", "B07KY49QSD", "B0DVQ8W9SH", "B07JK78TM7", "B083C6BYG9",
+    "B0GT1LQD2Q", "B0C1YG33PD", "B0D1H31PRY", "B0DYJMQKLJ", "B0CRDH79BK", "B08T7DSZYD",
+    "B09JKDWS6H", "B07T9N5T79", "B0H4NM3DC1", "B0FR24YSSM", "B09PTGQ4CK", "B0GD6R7CFJ",
+    "B0DCLVWKVT", "B08ZJJ3BVV", "B0DNZF4ZL4", "B0BLT5XT9R", "B0CFPRZHYM", "B087258KHP",
+    "B0BNJRJP6M", "B0FTGKQZT6", "B0CPD78HL2", "B0G5Q443HD", "B0H714TLPH", "B0F2J966QL",
+    "B0B836FZFB", "B0GK2PMLW1", "B07YNL9VWM", "B0FK5CJXRX", "B0BZRJM2BG", "B0CVG37WJH",
+    "B0GX7X6ZKL", "B0F1K99T6R", "B0HHN2N9DL", "B07YMKC6NF", "B07H15GPZG", "B07GZXM7X7",
+    "B0D7MRCJRL", "B09Y8SV5RY", "B0H1GBWV98", "B0GYCTJZ65", "B0DPWYG9Y8", "B0DB9K83N3",
+    "B0GQ2BT3WG", "B0FG1QTBGL", "B0DHWFWSVF", "B00LWE69NU", "B08L7NSWCX", "B0DJYXR31R",
+    "B07NF7XG17", "B081FHFN4C", "B0D7P58742", "B0BLSVBMVY", "B0DS1MRGBY", "B0HHJB27VJ",
+    "B0CJLXNGX6", "B0DNM83ZK7", "B00KWX688S", "B0C9LCM3HW", "B0DX852TG1", "B0H9471ZVK",
+    "B0G4S8JJRS", "B0BG5KDYMC", "B06W5PD1KY", "B0CC5R3S9V", "B0H5KMGWR6", "B07VTDXFDC",
+    "B0B75T46L8", "B0FGB2NS3C", "B07M5X4D3P", "B0F8J3GJDQ", "B0FY7R1TQ3", "B0FQFMDMDC",
+    "B0BX78DC84", "B07YQBWVGF", "B0DZ2J1GS1", "B098TV9THH", "B0CNC67C8B",
 }
 
 
@@ -4629,101 +4728,125 @@ async def remove_wishlist_item(product_id: str, current_user: dict = Depends(get
 # research could not verify them, and the app then shows its peach
 # placeholder tile / no price rather than inventing one.
 CATALOG_PRODUCTS = {
-    "B0FHBXCCLM": {"name": "Dona Tea Library", "image": "https://m.media-amazon.com/images/I/718HP8ZB13L._SX569_.jpg", "price": 79},
-    "B0C1YG33PD": {"name": "BouZaFoFa Portable Heating Pad for Cramps", "image": "https://m.media-amazon.com/images/I/41iqdbVzm+L.jpg", "price": 19.99},
-    "B0C9LCM3HW": {"name": "FLEX Reusable Menstrual Disc Starter Bundle", "image": None, "price": 49.97},
-    "B07NLSLP9K": {"name": "Always Radiant Pads, Size 5 Extra Heavy Overnight, 54 Count", "image": "https://m.media-amazon.com/images/I/51YQCkH1eWL.jpg", "price": 24.84},
-    "B093LVS21D": {"name": "Tampax Pearl Tampons, Regular, 50 Count x 2", "image": "https://m.media-amazon.com/images/I/51Jh8uiyKsL.jpg", "price": 22.71},
-    "B083C6BYG9": {"name": "Rael Slim Applicator Tampons, Organic Cotton, 40 Count", "image": "https://m.media-amazon.com/images/I/41LOZTBQoKL.jpg", "price": 18.99},
-    "B0FGB2NS3C": {"name": "Philips Lumea 9000 Series IPL Hair Removal Device", "image": None, "price": 579.95},
-    "B07M5X4D3P": {"name": "iRESTORE Professional Laser Hair Growth System", "image": "https://m.media-amazon.com/images/I/31nSdU7iWZL.jpg", "price": 899},
-    "B0CNC67C8B": {"name": "Diamond Tennis Bracelet, 20 Carat Lab Grown, Platinum, 7 Inch", "image": None, "price": None},
-    "B0HF6S81XH": {"name": "Anomaly Daily Immunity Mix, 28 Servings", "image": "https://tryanomalyhealth.com/cdn/shop/files/1.Hero_UnflavoredAdult_c5253503-4af9-4674-acca-c3657d16a01f.webp?v=1781545171&width=1000", "price": 49.99},
-    "B07GY22VLW": {"name": "Live Conscious Collagen Peptides Powder", "image": "https://m.media-amazon.com/images/I/719PP+XVu1L._AC_SL128_.jpg", "price": 34.00},
-    "B0D5FZGY8W": {"name": "O Positiv URO Vaginal Probiotics for Women, 60 Count", "image": "https://m.media-amazon.com/images/I/41Bj7UNMcZL.jpg", "price": 28.97},
-    "B07VTDXFDC": {"name": "Aromatherapy Associates Ultimate Wellbeing Bath & Shower Oil Set", "image": None, "price": 199.99},
-    "B0D7N2KWLH": {"name": "iRestore LED Face Mask", "image": "https://m.media-amazon.com/images/I/41N6YT4V+xL.jpg", "price": 379},
-    "B09Y8SV5RY": {"name": "KARMAPLEDGE Chakra Tree of Life", "image": None, "price": 32.65},
-    "B0F8J3GJDQ": {"name": "Survival Kit Advent Calendar for Men", "image": None, "price": None},
-    "B0FY7R1TQ3": {"name": "LOVERY Luxury Perfume Advent Calendar for Women", "image": None, "price": None},
-    "B0FQFMDMDC": {"name": "Evvy Vaginal Health Test, 2 Pack", "image": None, "price": None},
-    "B0B75T46L8": {"name": "Viome Full Body Intelligence Test", "image": None, "price": 299},
-    "B0BX78DC84": {"name": "Pixie Menstrual Cup & Disc Boiler Sterilizer", "image": None, "price": None},
-    "B0BLSVBMVY": {"name": "Pixie Menstrual Disc Kit", "image": None, "price": 39.95},
-    "B0DS1MRGBY": {"name": "Pixie Disc + Applicator Bundle (2 discs)", "image": "https://m.media-amazon.com/images/I/41q9jytlCRL.jpg", "price": 39.95},
-    "B00LWE69NU": {"name": "Flex Reusable Disc", "image": None, "price": 34.95},
-    "B07YQBWVGF": {"name": "Cora Overnight Pads, 72 count", "image": None, "price": None},
-    "B06XKP5Z1X": {"name": "Cora Organic Tampons, 36 Super", "image": "https://m.media-amazon.com/images/I/513g9-iXWuL.jpg", "price": 15.72},
-    "B07JK78TM7": {"name": "Cora Organic Tampons Multipack, 36 count", "image": "https://m.media-amazon.com/images/I/51xnyUNlRLL.jpg", "price": 18.49},
-    "B0DZ2J1GS1": {"name": "Comfytemp Cordless Heating Belt", "image": None, "price": None},
-    "B09PTGQ4CK": {"name": "Menstruation Crustacean Lobster Heating Plush", "image": "https://m.media-amazon.com/images/I/415wJ3X6BsL.jpg", "price": 22.96},
-    "B0CFPRZHYM": {"name": "OQQ 3 Piece Bodysuits", "image": None, "price": 24.85},
-    "B005F1ATJQ": {"name": "Ancient Minerals Magnesium Bath Flakes", "image": "https://m.media-amazon.com/images/I/81iSrDwN9zL.jpg", "price": 13},
-    "B098TV9THH": {"name": "Arabella Bouquets, 25 Pink Roses, Fresh Flowers for Delivery", "image": None, "price": None},
-    "B000LQJKI6": {"name": "GuyLian Belgian Chocolate Seashells, 8.82 oz, 22 pc", "image": None, "price": 17.99},
-    "B00KWX688S": {"name": "Benchmark Bouquets Flowering Fields, With Vase (Fresh Cut Flowers)", "image": "https://m.media-amazon.com/images/I/51qWQlCf7DL.jpg", "price": 44.95},
-
-    "B0CPD78HL2": {"name": "L. Cotton Tampons Regular/Super Multipack, 84 Count", "image": "https://m.media-amazon.com/images/I/41BHbONOpRL.jpg", "price": 26.99},
-    "B018E6TE1C": {"name": "Veeda 100% Natural Cotton Tampons, Super, 48 Count", "image": "https://m.media-amazon.com/images/I/41oeZzmpZOL.jpg", "price": 14.95},
-    "B081CKP4SN": {"name": "wegreeco Charcoal Reusable Menstrual Pads, 6 Pack", "image": "https://image-cdn.ubuy.com/500_500_100/6aa5e9e3674e5e6a4c0b284c-wegreeco-charcoal-reusable-menstrual.jpg", "price": 13.99},
-    "B08L7NSWCX": {"name": "Pixie Organic Cotton Cloth Reusable Pads, Overnight, 3 Count", "image": "https://m.media-amazon.com/images/I/41S5vwTfRfL.jpg", "price": 34.95},
-    "B0CGQ3YW9M": {"name": "Pixie Menstrual Disc Applicator", "image": "https://m.media-amazon.com/images/I/71wsCQ8rqFL.jpg", "price": 9.95},
-    "B0F2J966QL": {"name": "Eight Saints Firm Intentions Anti Aging Neck Cream, 2 oz", "image": "https://m.media-amazon.com/images/I/31dBLwcpiDL._AC_CX679_.jpg", "price": 27.2},
-    "B0DB9K83N3": {"name": "Theraworx Relief for Muscle Cramps Foam, 7.1 oz, 2 Count", "image": "https://m.media-amazon.com/images/I/71I8l-xNSGL._AC_SL128_.jpg", "price": 33.98},
-    "B0F1QHNFJP": {"name": "Magnum Solace Nighttime Magnesium Lotion with Arnica", "image": "https://m.media-amazon.com/images/I/71odD-7TWBL._SY355_.jpg", "price": 14.99},
-    "B0DJYXR31R": {"name": "Mama Bear Oasis Magnesium Cream, Lavender", "image": "https://m.media-amazon.com/images/I/61cJLs8LyvL.jpg", "price": 34.99},
-    "B0BZRJM2BG": {"name": "Balm of Gilead Neuropathy Rubbing Oil, Frankincense & Sweet Myrrh, 2 fl oz", "image": "https://m.media-amazon.com/images/I/81DCdkhfJgL._AC_SL128_.jpg", "price": 28.99},
-    "B087258KHP": {"name": "Balm of Gilead Manuka Eczema Honey Cream", "image": "https://m.media-amazon.com/images/I/81U6eeEd+DL.jpg", "price": 24.99},
-    "B0BNJRJP6M": {"name": "Balm of Gilead Foot Healing Cream, Frankincense & Sweet Myrrh", "image": "https://m.media-amazon.com/images/I/81tl2sBvnFL.jpg", "price": 24.99},
-    "B0FK5CJXRX": {"name": "vilicert Heating Pad for Period Cramps, 12 x 24 in", "image": "https://m.media-amazon.com/images/I/412I3WyKOiL.jpg", "price": 28.47},
-    "B0DCLVWKVT": {"name": "Genesis Wild Yam Cream for Women, Organic", "image": "https://m.media-amazon.com/images/I/41FC417otZL.jpg", "price": 23.97},
-    "B09S2Y1G7B": {"name": "Rael Herbal Heating Patches, Large, 8 Count", "image": "https://m.media-amazon.com/images/I/41VRs4zqCGL.jpg", "price": 15.99},
-    "B0FD771S38": {"name": "Vevmon Cotton Underwear, High Waisted, 5 Pack", "image": "https://static.slickdealscdn.com/attachment/6/2/0/0/0/9/450x450/20732811.thumb", "price": 14.99},
-    "B09JKDWS6H": {"name": "Molasus Women's Cotton Underwear, High Waisted", "image": "https://m.media-amazon.com/images/I/61JMK2+2WvL._AC_SX569_.jpg", "price": 20.53},
-    "B0B836FZFB": {"name": "Rael Disposable Period Underwear, Organic Cotton Cover, L-XL, 20 Count", "image": "https://m.media-amazon.com/images/S/aplus-media-library-service-media/ad11ae50-cbb9-42f1-99ba-9b68cdbcec0e.__CR0,0,1464,600_PT0_SX1464_V1___.jpg", "price": 27.99},
-    "B0DT5M5DHD": {"name": "C Classy Hanging Car Air Freshener, 2 Pack", "image": "https://images.price.tools/images/c-classy-car-air-freshener-hanging-m-prCwcZpK2.jpg", "price": 11.99},
-    "B09HT62WR4": {"name": "HDCRYSTALGIFTS Crystal Suncatchers, Wind Chime Style", "image": "https://m.media-amazon.com/images/I/516Kb1PPJML.jpg", "price": 16.99},
-    "B0CNTSVB7Q": {"name": "Biteyz Turkish Delight, Vegan Candy Gift Box, 36 Pieces", "image": "https://m.media-amazon.com/images/I/71hdxt1ciDL._SX569_.jpg", "price": 25.99},
-    "B0FDM3GC7M": {"name": "Godiva Signature Truffle Gift Box, 8 Piece", "image": "https://m.media-amazon.com/images/I/71RWc6tWanL._SX569_.jpg", "price": 22.0},    "B002D2JYYG": {"name": "Integrative Therapeutics Cortisol Manager, 30 Tablets", "image": "https://cloudinary.images-iherb.com/image/upload/f_auto,q_auto:eco/images/itt/itt00381/v/8.jpg", "price": 26.75},
-    "B0DGVVB8HW": {"name": "EcoBlossom Menstrual Cup & Disc Applicator, Purple", "image": "https://m.media-amazon.com/images/I/71KMzQlwi9L._AC_SX569_.jpg", "price": 14.99},
-    "B0GT1LQD2Q": {"name": "Gentle Patches Cortisol Support Patches, 30 Pack", "image": "https://gentlepatches.com/cdn/shop/files/GentlePatches-Dopamine-50.jpg?v=1760017728", "price": 19.5},
-    "B0CVG37WJH": {"name": "Basic Vigor Migraine Stick Super Bundle, 3 Pack", "image": "https://migrastil.com/cdn/shop/files/3MigraineStickBundle.jpg?v=1761851439&width=1200", "price": 29.87},
-    "B0D1H31PRY": {"name": "Genesis Wild Yam Roll On Oil for Women, Organic", "image": "https://genesisholistichealth.net/cdn/shop/files/Frame_2147223831_9.jpg?v=1744398409&width=750", "price": 19.99},
-    "B0DY9Z9FTZ": {"name": "Rael Roll-On Cream for Feminine Care, 1.7 oz", "image": "https://www.getrael.com/cdn/shop/files/SITE_GetRael_Cramp-Roll-On_Main-Image_1.png?v=1774890854", "price": 9.79},
-    "B0FTGKQZT6": {"name": "Eva Naturals Peptide Serum + Derma Roller Kit, 2 oz", "image": "https://cdn.shopify.com/s/files/1/0677/2405/0712/files/71wsjggjB-L._SL1500_300x300.jpg?v=1779150316", "price": 25.99},
-    "B0GX7X6ZKL": {"name": "CHOOSE-US Neck Massager with Heat, Cordless", "image": "https://chooseus-shop.com/__l5e/assets-v1/a34f0252-3f79-4ee0-8122-f9d30f5337c3/product-hero.webp", "price": 29.99},
-    "B0FR24YSSM": {"name": "PretiHom Automatic Rotating Curling Iron, 1.1 in Barrel", "image": "https://m.media-amazon.com/images/I/31TAG5h0PyL._SL500_.jpg", "price": 21.99},
-    "B06W5PD1KY": {"name": "Pure Daily Care NuDerma Skin Therapy Wand", "image": "https://m.media-amazon.com/images/I/41DoH3XBrjL._AC_CX679_.jpg", "price": 79.95},
-    "B07YNL9VWM": {"name": "Joellyne Naturals Wild Yam & Dong Quai Cream, 3.4 oz", "image": "https://m.media-amazon.com/images/I/71KXFdoo7xL._AC_SX569_.jpg", "price": 28.01},
-    "B0CMDJNG4L": {"name": "Rael Hormone Balance Inositol Powder, 30 Servings", "image": "https://cdn1.tilga.com/md/prod/2/925/57424166.27348.jpg", "price": 22.49},
-    "B0F517J8JR": {"name": "NEESHI Hormone Balancing Dark Cacao Spread", "image": "https://neeshi.com/cdn/shop/files/The_Spoonful_of_Daily_Calm_Neeshi_Dark_Cacao_Spread.png?v=1787674984&width=130", "price": 24},
-    "B0DHWFWSVF": {"name": "Olay Super Cream with Sunscreen SPF 30, 1.7 oz", "image": "https://m.media-amazon.com/images/I/71RR9Gj9iEL._SL1500_.jpg", "price": 34.94},
-    "B0GD6R7CFJ": {"name": "BIODANCE Hydrogel Eye Patches, Collagen Peptide, 60 Count", "image": "https://koreanskincarepicks.com/wp-content/uploads/2026/09/99.jpg.jpeg", "price": 23},
-    "B0DYJMQKLJ": {"name": "Lifnatty Tulip Night Light in Glass Dome", "image": "https://i.justbid-media.com/uNON2J0YtF1HnDH5I636kfEIT97p0D1fw3uFMHYeSng/rs:fit:1080:1080/quality:75/plain/s3://goldrush-app-media-production/item_images/4225925/06ede8b7-6271-48d1-a281-7f36aa7fd0d4.jpg", "price": 19.99},
-    "B0CC5R3S9V": {"name": "Mikasol Gold Dipped Real 24K Gold Rose", "image": "https://m.media-amazon.com/images/I/41BlY16XKTL._SL500_.jpg", "price": 100.37},
-    "B0DPWYG9Y8": {"name": "ECO PERIOD Seamless Period Panties, Heavy Flow", "image": "https://m.media-amazon.com/images/I/711ow1lFEWL.jpg", "price": 32.99},
-    "B0CRDH79BK": {"name": "Kvitko Period Underwear, 3 Layers Breathable", "image": "https://image-cdn.ubuy.com/500_500_100/6ab7ce96cfbb8a06e70afee6-period-underwear-for-women-3-layers.jpg", "price": 19.99},
-    "B0H1GBWV98": {"name": "Pixie Organic Cotton Gusset Period Underwear, Black", "image": "https://cdn.shopify.com/s/files/1/0530/6692/4190/files/seamless-underwear.jpg", "price": 32.95},
-    "B0FG1QTBGL": {"name": "Flygo Girls Fuzzy Pants Set, Fleece", "image": "https://m.media-amazon.com/images/I/81ZQWGezEFL._AC_SX569_.jpg", "price": 34.27},
-    "B01N0RSCBI": {"name": "Chesapeake Bay Balance + Harmony Candle, Water Lily Pear", "image": "https://m.media-amazon.com/images/I/31tH8haFOpL._SL500_.jpg", "price": 14.99},
-    "B0D8HQHXK1": {"name": "CULACEE Obsidian Crystal Energy Candle, HEAL", "image": "https://m.media-amazon.com/images/I/41TzRka9a4L._SL500_.jpg", "price": 16.99},
-    "B0CLDN4BRM": {"name": "SWCANDY Shower Steamers Aromatherapy, 8 Pcs", "image": "https://image-cdn.ubuy.com/500_500_100/6abdf616343f27cf5a016963-swcandy-shower-steamers-aromatherapy.jpg", "price": 9.99},
-    "B07TT5RQ2P": {"name": "Benatu Essential Oil Blends Roll On Set, 3 Bottles", "image": "https://m.media-amazon.com/images/I/71QqKIY-jVL._AC_SL1500_.jpg", "price": 16.58},
-    "B0D7MRCJRL": {"name": "Touchat Faux Rabbit Fur Throw Blanket, Cream White, 50 x 60", "image": "https://m.media-amazon.com/images/I/81xPqU+MDmL._AC_SX569_.jpg", "price": 30.99},
-    "B0DBLLK8YG": {"name": "Rislobx Bling Car Vent Clip Fresheners, 4 Pcs, Gold", "image": "https://cdn1.tilga.com/md/prod/3/4767/137999243.6148.jpg", "price": 11.54},
-    "B08ZJJ3BVV": {"name": "Sea Turtle Lava Bead Car Mirror Charm", "image": "https://m.media-amazon.com/images/I/61L2gKGyKgL._AC_SL128_.jpg", "price": 23.99},
-    "B0HDQK47F9": {"name": "LAKRIDS BY BÜLOW Advent Calendar, Chocolate-Covered Licorice", "image": "https://media.zenobuilder.com/upload/cezbjtktbc/2025-winter-adventcalendar-94882626.png", "price": 69.99},
-    "B0CX7FDWCC": {"name": "Lindt Holiday Teddy Bear Chocolate Advent Calendar, 4.5 oz", "image": "https://m.media-amazon.com/images/I/51EwtMMddZL.jpg", "price": 13.97},
-    "B0FJ2V6K2G": {"name": "Pukka Organic Tea Advent Calendar 2025", "image": "https://image-cdn.ubuy.com/500_500_100/6abf011b6b5b3c33420de4b9-pukka-christmas-tea-sampler-selection.jpg", "price": 28.18},
-    "B0HBXM4173": {"name": "GODIVA Limited Edition Luxury Chocolate Advent Calendar 2026, 24 pc", "image": "https://www.godiva.com/cdn/shop/files/HOL26_24pc_City_AdventCalendar_16355_03_1000px_with_Copy.jpg?v=1787258170&width=800", "price": 46.4},
-    "B0H5KMGWR6": {"name": "The Body Shop Advent Calendar Gift Set, Set of 24", "image": "https://m.media-amazon.com/images/I/81s2MS8KpmL._AC_SX679_.jpg", "price": 111},
-    "B0G616FHRW": {"name": "LAKRIDS BY BÜLOW Love Selection Box", "image": "https://cdn11.bigcommerce.com/s-tnw7k0ssup/images/stencil/1280w/products/227/949/PR1328BI963_501365_clone_SELECTION_BOX_LOVE_2026_COLOR_SZ7__94387.1783323174.png?c=1", "price": 49.99},
-    "B081ZG4898": {"name": "Ethel M Taste of Las Vegas Collection, 16-Piece Gift Box", "image": "https://cdn.media.amplience.net/i/marsethelm/collection-taste-of-las-vegas-tin_img_01_170288?%24i%24=&w=1152&fmt=auto&qlt=default", "price": 45},
-    "B0CLT9Y2ZK": {"name": "GuyLian Belgian Dark Chocolate Seashells, 20 pc", "image": "https://m.media-amazon.com/images/I/91TIHEkctuL._SX342_.jpg", "price": 18.99},
-    "B07WT6GP2F": {"name": "Lindt Mini Pralines Gift Box, 6.2 oz", "image": "https://www.candystore.com/cdn/shop/products/lindt-mini-pralines-chocolates-1q23-wmark.jpg?v=1677494783&width=196", "price": 14.62},
-    "B0G4S8JJRS": {"name": "Estée Lauder Favorites Gift Set, 3 Piece", "image": "https://5thave-img-cdn.santasmartnetwork.com/pf/dc83aeba-f736-3206-b87f-f97bfd6adae2.jpg?x-oss-process=image/resize,w_1080/quality,q_75/format,webp", "price": 62.69},
-    "B0GM36TY3S": {"name": "MAÏA Ceremonial Cacao, High Flavanol, 30 Servings", "image": "https://cdn.shopify.com/s/files/1/0643/8279/5984/files/front_2_0c4b595f-fb55-4059-946d-d22e5e5e7536.webp?v=1732722195", "price": 32.95},
-    "B0G1S4KBS6": {"name": "Beforeyouspeak Period Coffee, 7 Count", "image": "https://cdn.shopify.com/s/files/1/0589/3292/0484/products/beforeyouspeack-period-coffee-1_700x700_crop_center.jpg.webp?v=1659409617", "price": 14.99},
+    "B0CX7FDWCC": {"name": "Lindt Holiday Teddy Bear Chocolate Advent Calendar, 4.5 oz", "image": "/images/catalog/B0CX7FDWCC.jpg", "price": 13.97},
+    "B07WT6GP2F": {"name": "Lindt Mini Pralines Gift Box, 6.2 oz", "image": "/images/catalog/B07WT6GP2F.jpg", "price": 14.62},
+    "B0G1S4KBS6": {"name": "Beforeyouspeak Period Coffee, 7 Count", "image": "/images/catalog/B0G1S4KBS6.jpg", "price": 14.99},
+    "B000LQJKI6": {"name": "GuyLian Belgian Chocolate Seashells, 8.82 oz, 22 pc", "image": "/images/catalog/B000LQJKI6.jpg", "price": 17.99},
+    "B0CP48QKPS": {"name": "Sarah's Candy Factory Belgian Chocolate Gift Box", "image": "/images/catalog/B0CP48QKPS.jpg", "price": 17.99},
+    "B0CLT9Y2ZK": {"name": "GuyLian Belgian Dark Chocolate Seashells, 20 pc", "image": "/images/catalog/B0CLT9Y2ZK.jpg", "price": 18.99},
+    "B0FDM3GC7M": {"name": "Godiva Signature Truffle Gift Box, 8 Piece", "image": "/images/catalog/B0FDM3GC7M.jpg", "price": 22},
+    "B0CMDJNG4L": {"name": "Rael Hormone Balance Inositol Powder, 30 Servings", "image": "/images/catalog/B0CMDJNG4L.jpg", "price": 22.49},
+    "B0F517J8JR": {"name": "NEESHI Hormone Balancing Dark Cacao Spread", "image": "/images/catalog/B0F517J8JR.jpg", "price": 24},
+    "B0H7K1RTY1": {"name": "Tilz Hot Chocolate Station", "image": "/images/catalog/B0H7K1RTY1.jpg", "price": 24.99},
+    "B0CNTSVB7Q": {"name": "Biteyz Turkish Delight, Vegan Candy Gift Box, 36 Pieces", "image": "/images/catalog/B0CNTSVB7Q.jpg", "price": 25.99},
+    "B002D2JYYG": {"name": "Integrative Therapeutics Cortisol Manager, 30 Tablets", "image": "/images/catalog/B002D2JYYG.jpg", "price": 26.75},
+    "B0FJ2V6K2G": {"name": "Pukka Organic Tea Advent Calendar 2025", "image": "/images/catalog/B0FJ2V6K2G.jpg", "price": 28.18},
+    "B0D5FZGY8W": {"name": "O Positiv URO Vaginal Probiotics for Women, 60 Count", "image": "/images/catalog/B0D5FZGY8W.jpg", "price": 28.97},
+    "B0GM36TY3S": {"name": "MA\u00cfA Ceremonial Cacao, High Flavanol, 30 Servings", "image": "/images/catalog/B0GM36TY3S.jpg", "price": 32.95},
+    "B07GY22VLW": {"name": "Live Conscious Collagen Peptides Powder", "image": "/images/catalog/B07GY22VLW.jpg", "price": 34},
+    "B081ZG4898": {"name": "Ethel M Taste of Las Vegas Collection, 16-Piece Gift Box", "image": "/images/catalog/B081ZG4898.jpg", "price": 45},
+    "B0HBXM4173": {"name": "GODIVA Limited Edition Luxury Chocolate Advent Calendar 2026, 24 pc", "image": "/images/catalog/B0HBXM4173.jpg", "price": 46.4},
+    "B0HF6S81XH": {"name": "Anomaly Daily Immunity Mix, 28 Servings", "image": "/images/catalog/B0HF6S81XH.jpg", "price": 49.99},
+    "B0G616FHRW": {"name": "LAKRIDS BY B\u00dcLOW Love Selection Box", "image": "/images/catalog/B0G616FHRW.jpg", "price": 49.99},
+    "B0HDQK47F9": {"name": "LAKRIDS BY B\u00dcLOW Advent Calendar, Chocolate-Covered Licorice", "image": "/images/catalog/B0HDQK47F9.jpg", "price": 69.99},
+    "B0FHBXCCLM": {"name": "Dona Tea Library", "image": "/images/catalog/B0FHBXCCLM.jpg", "price": 79},
+    "B0DY9Z9FTZ": {"name": "Rael Roll-On Cream for Feminine Care, 1.7 oz", "image": "/images/catalog/B0DY9Z9FTZ.jpg", "price": 9.79},
+    "B0CGQ3YW9M": {"name": "Pixie Menstrual Disc Applicator", "image": "/images/catalog/B0CGQ3YW9M.jpg", "price": 9.95},
+    "B0DBLLK8YG": {"name": "Rislobx Bling Car Vent Clip Fresheners, 4 Pcs, Gold", "image": "/images/catalog/B0DBLLK8YG.jpg", "price": 11.54},
+    "B005F1ATJQ": {"name": "Ancient Minerals Magnesium Bath Flakes", "image": "/images/catalog/B005F1ATJQ.jpg", "price": 13},
+    "B0GGNN6PK4": {"name": "Atsidexa 4-in-1 Beaded Charging Cable, Pure Pearl", "image": "/images/catalog/B0GGNN6PK4.jpg", "price": 13.99},
+    "B018E6TE1C": {"name": "Veeda 100% Natural Cotton Tampons, Super, 48 Count", "image": "/images/catalog/B018E6TE1C.jpg", "price": 14.95},
+    "B07QTFTCV2": {"name": "PAVOI Crystal Solitaire CZ Choker Necklace", "image": "/images/catalog/B07QTFTCV2.jpg", "price": 14.95},
+    "B0FD771S38": {"name": "Vevmon Cotton Underwear, High Waisted, 5 Pack", "image": "/images/catalog/B0FD771S38.jpg", "price": 14.99},
+    "B0DGVVB8HW": {"name": "EcoBlossom Menstrual Cup & Disc Applicator, Purple", "image": "/images/catalog/B0DGVVB8HW.jpg", "price": 14.99},
+    "B01N0RSCBI": {"name": "Chesapeake Bay Balance + Harmony Candle, Water Lily Pear", "image": "/images/catalog/B01N0RSCBI.jpg", "price": 14.99},
+    "B06XKP5Z1X": {"name": "Cora Organic Tampons, 36 Super", "image": "/images/catalog/B06XKP5Z1X.jpg", "price": 15.72},
+    "B09S2Y1G7B": {"name": "Rael Herbal Heating Patches, Large, 8 Count", "image": "/images/catalog/B09S2Y1G7B.jpg", "price": 15.99},
+    "B0GXC53GZ8": {"name": "AIFUFAND Cyperus Rotundus Oil", "image": "/images/catalog/B0GXC53GZ8.jpg", "price": 15.99},
+    "B07TT5RQ2P": {"name": "Benatu Essential Oil Blends Roll On Set, 3 Bottles", "image": "/images/catalog/B07TT5RQ2P.jpg", "price": 16.58},
+    "B09HT62WR4": {"name": "HDCRYSTALGIFTS Crystal Suncatchers, Wind Chime Style", "image": "/images/catalog/B09HT62WR4.jpg", "price": 16.99},
+    "B0D8HQHXK1": {"name": "CULACEE Obsidian Crystal Energy Candle, HEAL", "image": "/images/catalog/B0D8HQHXK1.jpg", "price": 16.99},
+    "B07KY49QSD": {"name": "Naisture 15 Min Pamper Me Kit", "image": "/images/catalog/B07KY49QSD.jpg", "price": 16.99},
+    "B0DVQ8W9SH": {"name": "Ammoya Naturals Turmeric & Kojic Acid Soap 2 Bars", "image": "/images/catalog/B0DVQ8W9SH.jpg", "price": 17.99},
+    "B07JK78TM7": {"name": "Cora Organic Tampons Multipack, 36 count", "image": "/images/catalog/B07JK78TM7.jpg", "price": 18.49},
+    "B083C6BYG9": {"name": "Rael Slim Applicator Tampons, Organic Cotton, 40 Count", "image": "/images/catalog/B083C6BYG9.jpg", "price": 18.99},
+    "B0GT1LQD2Q": {"name": "Gentle Patches Cortisol Support Patches, 30 Pack", "image": "/images/catalog/B0GT1LQD2Q.jpg", "price": 19.5},
+    "B0C1YG33PD": {"name": "BouZaFoFa Portable Heating Pad for Cramps", "image": "/images/catalog/B0C1YG33PD.jpg", "price": 19.99},
+    "B0D1H31PRY": {"name": "Genesis Wild Yam Roll On Oil for Women, Organic", "image": "/images/catalog/B0D1H31PRY.jpg", "price": 19.99},
+    "B0DYJMQKLJ": {"name": "Lifnatty Tulip Night Light in Glass Dome", "image": "/images/catalog/B0DYJMQKLJ.jpg", "price": 19.99},
+    "B0CRDH79BK": {"name": "Kvitko Period Underwear, 3 Layers Breathable", "image": "/images/catalog/B0CRDH79BK.jpg", "price": 19.99},
+    "B08T7DSZYD": {"name": "e.l.f. SKIN Holy Hydration Skincare Mini Kit", "image": "/images/catalog/B08T7DSZYD.jpg", "price": 20},
+    "B09JKDWS6H": {"name": "Molasus Women's Cotton Underwear, High Waisted", "image": "/images/catalog/B09JKDWS6H.jpg", "price": 20.53},
+    "B07T9N5T79": {"name": "PAVOI 14K Gold Plated CZ Tennis Bracelet", "image": "/images/catalog/B07T9N5T79.jpg", "price": 20.95},
+    "B0H4NM3DC1": {"name": "WoodWick Cherry Blossom & Vanilla Candle", "image": "/images/catalog/B0H4NM3DC1.jpg", "price": 20.99},
+    "B0FR24YSSM": {"name": "PretiHom Automatic Rotating Curling Iron, 1.1 in Barrel", "image": "/images/catalog/B0FR24YSSM.jpg", "price": 21.99},
+    "B09PTGQ4CK": {"name": "Menstruation Crustacean Lobster Heating Plush", "image": "/images/catalog/B09PTGQ4CK.jpg", "price": 22.96},
+    "B0GD6R7CFJ": {"name": "BIODANCE Hydrogel Eye Patches, Collagen Peptide, 60 Count", "image": "/images/catalog/B0GD6R7CFJ.jpg", "price": 23},
+    "B0DCLVWKVT": {"name": "Genesis Wild Yam Cream for Women, Organic", "image": "/images/catalog/B0DCLVWKVT.jpg", "price": 23.97},
+    "B08ZJJ3BVV": {"name": "Sea Turtle Lava Bead Car Mirror Charm", "image": "/images/catalog/B08ZJJ3BVV.jpg", "price": 23.99},
+    "B0DNZF4ZL4": {"name": "Mewaii Strawberry Cow Plush", "image": "/images/catalog/B0DNZF4ZL4.jpg", "price": 23.99},
+    "B0BLT5XT9R": {"name": "New Miuz Moon Milk Bath Soak", "image": "/images/catalog/B0BLT5XT9R.jpg", "price": 23.99},
+    "B0CFPRZHYM": {"name": "OQQ 3 Piece Bodysuits", "image": "/images/catalog/B0CFPRZHYM.jpg", "price": 24.85},
+    "B087258KHP": {"name": "Balm of Gilead Manuka Eczema Honey Cream", "image": "/images/catalog/B087258KHP.jpg", "price": 24.99},
+    "B0BNJRJP6M": {"name": "Balm of Gilead Foot Healing Cream, Frankincense & Sweet Myrrh", "image": "/images/catalog/B0BNJRJP6M.jpg", "price": 24.99},
+    "B0FTGKQZT6": {"name": "Eva Naturals Peptide Serum + Derma Roller Kit, 2 oz", "image": "/images/catalog/B0FTGKQZT6.jpg", "price": 25.99},
+    "B0CPD78HL2": {"name": "L. Cotton Tampons Regular/Super Multipack, 84 Count", "image": "/images/catalog/B0CPD78HL2.jpg", "price": 26.99},
+    "B0G5Q443HD": {"name": "LXTMMRLJQ Cat Stained Glass Suncatcher", "image": "/images/catalog/B0G5Q443HD.jpg", "price": 26.99},
+    "B0H714TLPH": {"name": "Sakura Cat Plush USB Heating Pad", "image": "/images/catalog/B0H714TLPH.jpg", "price": 26.99},
+    "B0F2J966QL": {"name": "Eight Saints Firm Intentions Anti Aging Neck Cream, 2 oz", "image": "/images/catalog/B0F2J966QL.jpg", "price": 27.2},
+    "B0B836FZFB": {"name": "Rael Disposable Period Underwear, Organic Cotton Cover, L-XL, 20 Count", "image": "/images/catalog/B0B836FZFB.jpg", "price": 27.99},
+    "B0GK2PMLW1": {"name": "Blooskim GHK-Cu Tallow Honey Balm", "image": "/images/catalog/B0GK2PMLW1.jpg", "price": 27.99},
+    "B07YNL9VWM": {"name": "Joellyne Naturals Wild Yam & Dong Quai Cream, 3.4 oz", "image": "/images/catalog/B07YNL9VWM.jpg", "price": 28.01},
+    "B0FK5CJXRX": {"name": "vilicert Heating Pad for Period Cramps, 12 x 24 in", "image": "/images/catalog/B0FK5CJXRX.jpg", "price": 28.47},
+    "B0BZRJM2BG": {"name": "Balm of Gilead Neuropathy Rubbing Oil, Frankincense & Sweet Myrrh, 2 fl oz", "image": "/images/catalog/B0BZRJM2BG.jpg", "price": 28.99},
+    "B0CVG37WJH": {"name": "Basic Vigor Migraine Stick Super Bundle, 3 Pack", "image": "/images/catalog/B0CVG37WJH.jpg", "price": 29.87},
+    "B0GX7X6ZKL": {"name": "CHOOSE-US Neck Massager with Heat, Cordless", "image": "/images/catalog/B0GX7X6ZKL.jpg", "price": 29.99},
+    "B0F1K99T6R": {"name": "FOLKOR LIFE Rose Quartz Crystal Tree", "image": "/images/catalog/B0F1K99T6R.jpg", "price": 29.99},
+    "B0HHN2N9DL": {"name": "Quibark Epsom Bath Salts Gift Set", "image": "/images/catalog/B0HHN2N9DL.jpg", "price": 29.99},
+    "B07YMKC6NF": {"name": "Stargazer Barn 15 Stem Rainbow Tulips Bouquet", "image": "/images/catalog/B07YMKC6NF.jpg", "price": 29.99},
+    "B07H15GPZG": {"name": "Stargazer Barn 10 Stem Sunflower Bouquet", "image": "/images/catalog/B07H15GPZG.jpg", "price": 30.04},
+    "B07GZXM7X7": {"name": "Stargazer Barn 15 Stem Pink Tulips Bouquet", "image": "/images/catalog/B07GZXM7X7.jpg", "price": 30.06},
+    "B0D7MRCJRL": {"name": "Touchat Faux Rabbit Fur Throw Blanket, Cream White, 50 x 60", "image": "/images/catalog/B0D7MRCJRL.jpg", "price": 30.99},
+    "B09Y8SV5RY": {"name": "KARMAPLEDGE Chakra Tree of Life", "image": "/images/catalog/B09Y8SV5RY.jpg", "price": 32.65},
+    "B0H1GBWV98": {"name": "Pixie Organic Cotton Gusset Period Underwear, Black", "image": "/images/catalog/B0H1GBWV98.jpg", "price": 32.95},
+    "B0GYCTJZ65": {"name": "Drawelry Rose Flower Tree Lamp", "image": "/images/catalog/B0GYCTJZ65.jpg", "price": 32.95},
+    "B0DPWYG9Y8": {"name": "ECO PERIOD Seamless Period Panties, Heavy Flow", "image": "/images/catalog/B0DPWYG9Y8.jpg", "price": 32.99},
+    "B0DB9K83N3": {"name": "Theraworx Relief for Muscle Cramps Foam, 7.1 oz, 2 Count", "image": "/images/catalog/B0DB9K83N3.jpg", "price": 33.98},
+    "B0GQ2BT3WG": {"name": "Flex Plant Plus Disc, 24 Count", "image": "/images/catalog/B0GQ2BT3WG.jpg", "price": 33.99},
+    "B0FG1QTBGL": {"name": "Flygo Girls Fuzzy Pants Set, Fleece", "image": "/images/catalog/B0FG1QTBGL.jpg", "price": 34.27},
+    "B0DHWFWSVF": {"name": "Olay Super Cream with Sunscreen SPF 30, 1.7 oz", "image": "/images/catalog/B0DHWFWSVF.jpg", "price": 34.94},
+    "B00LWE69NU": {"name": "Flex Reusable Disc", "image": "/images/catalog/B00LWE69NU.jpg", "price": 34.95},
+    "B08L7NSWCX": {"name": "Pixie Organic Cotton Cloth Reusable Pads, Overnight, 3 Count", "image": "/images/catalog/B08L7NSWCX.jpg", "price": 34.95},
+    "B0DJYXR31R": {"name": "Mama Bear Oasis Magnesium Cream, Lavender", "image": "/images/catalog/B0DJYXR31R.jpg", "price": 34.99},
+    "B07NF7XG17": {"name": "ART BLAZE Carved Candle, Purple", "image": "/images/catalog/B07NF7XG17.jpg", "price": 35.97},
+    "B081FHFN4C": {"name": "Oscar Candles Swan Candle", "image": "/images/catalog/B081FHFN4C.jpg", "price": 36.95},
+    "B0D7P58742": {"name": "Anthonic Teddy Bear with Preserved Rose", "image": "/images/catalog/B0D7P58742.jpg", "price": 36.99},
+    "B0BLSVBMVY": {"name": "Pixie Menstrual Disc Kit", "image": "/images/catalog/B0BLSVBMVY.jpg", "price": 39.95},
+    "B0DS1MRGBY": {"name": "Pixie Disc + Applicator Bundle (2 discs)", "image": "/images/catalog/B0DS1MRGBY.jpg", "price": 39.95},
+    "B0HHJB27VJ": {"name": "blunique Faux Fur Throw Blanket", "image": "/images/catalog/B0HHJB27VJ.jpg", "price": 39.99},
+    "B0CJLXNGX6": {"name": "GLAMOUR BOUTIQUE 16 Forever Purple Roses in Heart Box", "image": "/images/catalog/B0CJLXNGX6.jpg", "price": 41.36},
+    "B0DNM83ZK7": {"name": "Benchmark Bouquets Tulips with Glass Vase", "image": "/images/catalog/B0DNM83ZK7.jpg", "price": 44.92},
+    "B00KWX688S": {"name": "Benchmark Bouquets Flowering Fields, With Vase (Fresh Cut Flowers)", "image": "/images/catalog/B00KWX688S.jpg", "price": 44.95},
+    "B0C9LCM3HW": {"name": "FLEX Reusable Menstrual Disc Starter Bundle", "image": "/images/catalog/B0C9LCM3HW.jpg", "price": 49.97},
+    "B0DX852TG1": {"name": "FLOWER TODAY USA 24 Roses Bouquet", "image": "/images/catalog/B0DX852TG1.jpg", "price": 49.99},
+    "B0H9471ZVK": {"name": "ZSP Electric Gua Sha & Red Light Face Massager", "image": "/images/catalog/B0H9471ZVK.jpg", "price": 49.99},
+    "B0G4S8JJRS": {"name": "Est\u00e9e Lauder Favorites Gift Set, 3 Piece", "image": "/images/catalog/B0G4S8JJRS.jpg", "price": 62.69},
+    "B0BG5KDYMC": {"name": "NATROSES 27 Preserved Roses in a Box", "image": "/images/catalog/B0BG5KDYMC.jpg", "price": 62.72},
+    "B06W5PD1KY": {"name": "Pure Daily Care NuDerma Skin Therapy Wand", "image": "/images/catalog/B06W5PD1KY.jpg", "price": 79.95},
+    "B0CC5R3S9V": {"name": "Mikasol Gold Dipped Real 24K Gold Rose", "image": "/images/catalog/B0CC5R3S9V.jpg", "price": 100.37},
+    "B0H5KMGWR6": {"name": "The Body Shop Advent Calendar Gift Set, Set of 24", "image": "/images/catalog/B0H5KMGWR6.jpg", "price": 111},
+    "B07VTDXFDC": {"name": "Aromatherapy Associates Ultimate Wellbeing Bath & Shower Oil Set", "image": "/images/catalog/B07VTDXFDC.jpg", "price": 199.99},
+    "B0B75T46L8": {"name": "Viome Full Body Intelligence Test", "image": "/images/catalog/B0B75T46L8.jpg", "price": 299},
+    "B0FGB2NS3C": {"name": "Philips Lumea 9000 Series IPL Hair Removal Device", "image": "/images/catalog/B0FGB2NS3C.jpg", "price": 579.95},
+    "B07M5X4D3P": {"name": "iRESTORE Professional Laser Hair Growth System", "image": "/images/catalog/B07M5X4D3P.jpg", "price": 899},
+    "B0F8J3GJDQ": {"name": "Survival Kit Advent Calendar for Men", "image": "/images/catalog/B0F8J3GJDQ.jpg", "price": None},
+    "B0FY7R1TQ3": {"name": "LOVERY Luxury Perfume Advent Calendar for Women", "image": "/images/catalog/B0FY7R1TQ3.jpg", "price": None},
+    "B0FQFMDMDC": {"name": "Evvy Vaginal Health Test, 2 Pack", "image": "/images/catalog/B0FQFMDMDC.jpg", "price": None},
+    "B0BX78DC84": {"name": "Pixie Menstrual Cup & Disc Boiler Sterilizer", "image": "/images/catalog/B0BX78DC84.jpg", "price": None},
+    "B07YQBWVGF": {"name": "Cora Overnight Pads, 72 count", "image": "/images/catalog/B07YQBWVGF.jpg", "price": None},
+    "B0DZ2J1GS1": {"name": "Comfytemp Cordless Heating Belt", "image": "/images/catalog/B0DZ2J1GS1.jpg", "price": None},
+    "B098TV9THH": {"name": "Arabella Bouquets, 25 Pink Roses, Fresh Flowers for Delivery", "image": "/images/catalog/B098TV9THH.jpg", "price": None},
+    "B0CNC67C8B": {"name": "Diamond Tennis Bracelet, 20 Carat Lab Grown, Platinum, 7 Inch", "image": None, "price": 10000},
 }
 
 

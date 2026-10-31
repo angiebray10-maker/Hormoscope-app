@@ -52,8 +52,14 @@ const VIS_OPTIONS = [
   // reversing the old never-shared rule. Off unless she ticks it, and
   // it reaches only a linked partner inside the app, never a view link.
   { id: 'share_intimacy', label: 'My intimacy log' },
+  // v58 (Angelita, Oct 31, 2026): her daily log answers and her note
+  // are choices too, in the same checklist, off unless she ticks them.
+  // They save through the same partner_visibility update as every
+  // other toggle here.
+  { id: 'share_daily_log', label: 'Share my daily log' },
+  { id: 'include_note', label: 'Include my note' },
 ];
-const DEFAULT_VIS = { phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true, share_journal: false, share_intimacy: false };
+const DEFAULT_VIS = { phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true, share_journal: false, share_intimacy: false, share_daily_log: false, include_note: false };
 
 // The face beside a partner's name. Falls back to a neutral initial
 // disc for accounts that have no picture (legacy partners).
@@ -90,7 +96,7 @@ function VisibilityChecklist({ vis, onToggle }) {
           </button>
         );
       })}
-      <p className="text-[#E6E0EE] text-xs mt-1" style={poppins}>Your journal and your intimacy log are private unless you choose to share them, and only if you tick them above. Your journal follows its tick everywhere, including a partner view link. Your intimacy log follows its tick for a linked partner inside the app.</p>
+      <p className="text-[#E6E0EE] text-xs mt-1" style={poppins}>Your journal and your intimacy log are private unless you choose to share them, and only if you tick them above. Your journal follows its tick everywhere, including a partner view link. Your intimacy log follows its tick for a linked partner inside the app. Your daily log is shared only if you tick it above, and your note is included only if you tick that too.</p>
     </div>
   );
 }

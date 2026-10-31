@@ -1,43 +1,38 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Calendar, X, Lock, Pencil } from 'lucide-react';
+import { Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Calendar, Lock } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
-import { PHASE_PAIRS, phaseTint, phaseForDate } from '../lib/phases';
+import { PHASE_PAIRS, PHASE_NAMES, phaseTint, phaseForDate } from '../lib/phases';
+import FloatingCarousel from '../components/FloatingCarousel';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#C9B8F0';
-// v55: phase colors come from the pair system (lib/phases.js), never
-// hard coded here. Period tint is the menstrual pair primary; the
-// ovulation tint is the ovulatory pair secondary (the green), with a
-// lighter tint of the same green for the day numbers.
 const MENSTRUAL_TINT = PHASE_PAIRS.menstrual.primary;
 const OVULATION_TINT = PHASE_PAIRS.ovulatory.secondary;
-const OVULATION_TEXT = '#7ED3A6';
-// The pretty blue for logged days (Angelita, Oct 30, 2026, fix list
-// item 20): any day she logged anything, a journal entry or a Home
-// mood/symptom quick log, lights up in this blue on the little
-// calendar and on the big Vault calendar. Kept clearly apart from
-// the ovulation green (#5DBB8A) the small calendar already uses.
+// The pretty blue for logged days (Angelita, Oct 30, 2026): any day she
+// logged anything lights up in this blue on the Journal calendars.
 const LOGGED_BLUE = '#74B9FF';
-const JOURNAL_PREVIEW_IMG = '/pro-screenshots/journal.png';
-// Journal ENTRY text only (Angelita, Oct 29, fix list item 16): her own
-// handwriting feel, Architects Daughter (the 8C sample), self-hosted in
-// src/fonts so it renders offline in the WebView. Headings stay
-// Poiret One and all other journal UI text stays Poppins; the
-// .journal-handwriting class in index.css carries the app pink ink
-// (#F74093) and the slight italic tilt (about 8 degrees, synthesized
-// oblique, entry text only).
+// Journal ENTRY text only (Angelita, Oct 29): her own handwriting feel,
+// Architects Daughter, self-hosted. Headings stay Poiret One and all
+// other journal UI text stays Poppins; the .journal-handwriting class
+// in index.css carries the app pink ink (#F74093) and the slight tilt.
 const SERIF = "'Architects Daughter', 'Poppins', cursive";
+const POPPINS = { fontFamily: 'Poppins, sans-serif' };
+const POIRET = { fontFamily: "'Poiret One', sans-serif" };
+const FLOW_OPTIONS = ['light', 'medium', 'heavy'];
+
+const todayISO = () => new Date().toISOString().split('T')[0];
+const fmtDayLong = (dateStr) => new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+const fmtTime = (iso) => (iso ? new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '');
 
 function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [cycleLogs, setCycleLogs] = useState([]);
   const [intimacyLogs, setIntimacyLogs] = useState([]);
   const [dashboard, setDashboard] = useState(null);
-  const [journalDays, setJournalDays] = useState([]);
+  const [loggedDays, setLoggedDays] = useState([]);
 
-  /* eslint-disable */
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -50,17 +45,12 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
         setCycleLogs(c.data || []);
         setIntimacyLogs(i.data || []);
         setDashboard(d.data || null);
-        setJournalDays(j.data?.journal_days || []);
+        setLoggedDays(j.data?.logged_days || []);
       } catch (err) { logger.error('Failed to fetch calendar data:', err); }
     };
     if (token) fetchData();
   }, [token]);
-  /* eslint-enable */
 
-  // Same ovulation math as the big Calendar tab (Angelita, Oct 17: the
-  // small corner calendar needs the green ovulation days lit up too).
-  // Next period comes from the dashboard when available, otherwise it is
-  // projected forward from her last period start and cycle length.
   const getNextPeriodDate = () => {
     if (dashboard?.cycle_info?.next_period_date) return dashboard.cycle_info.next_period_date;
     if (!user?.last_period_date) return null;
@@ -74,9 +64,6 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
   const ovulationWindow = () => {
     const npd = getNextPeriodDate();
     if (!npd) return null;
-    // v56: ovulation anchors to the period START + 14 days, so
-    // from the next period date that is minus (cycle length - 14),
-    // not minus 14.
     const cycleLen = user?.cycle_length || 28;
     const ov = new Date(npd + 'T00:00:00');
     ov.setDate(ov.getDate() - (cycleLen - 14));
@@ -103,36 +90,36 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
   const y = currentMonth.getFullYear(), m = currentMonth.getMonth();
   const firstDay = new Date(y, m, 1).getDay();
   const days = new Date(y, m + 1, 0).getDate();
-  const fmt = (d) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const fmt = (d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   const isPeriod = (d) => cycleLogs.some(l => l.date === fmt(d) && l.is_period);
   const isIntimacy = (d) => intimacyLogs.some(l => l.date === fmt(d));
-  // Logged days in blue (item 20): a journal entry that day, or any
-  // cycle log that day (her Home moods, symptoms and quick logs).
-  const loggedSet = new Set([...journalDays, ...cycleLogs.map((l) => l.date).filter(Boolean)]);
+  const loggedSet = new Set(loggedDays);
   const isLogged = (d) => loggedSet.has(fmt(d));
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
 
   return (
     <div className="rounded-xl p-2.5 w-56" style={{ background: 'rgba(20,15,30,0.97)', border: '1px solid rgba(255,79,154,0.2)', backdropFilter: 'blur(20px)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
       <div className="flex items-center justify-between mb-1.5">
-        <button onClick={() => setCurrentMonth(new Date(y, m-1))} className="p-0.5 text-white/70"><ChevronLeft className="w-3 h-3" /></button>
-        <span className="text-[9px] text-white/80" style={{ fontFamily: 'Poppins, sans-serif' }}>{currentMonth.toLocaleDateString('en-US',{month:'short',year:'numeric'})}</span>
-        <button onClick={() => setCurrentMonth(new Date(y, m+1))} className="p-0.5 text-white/70"><ChevronRight className="w-3 h-3" /></button>
+        <button onClick={() => setCurrentMonth(new Date(y, m - 1))} className="p-0.5 text-white/70"><ChevronLeft className="w-3 h-3" /></button>
+        <span className="text-[9px] text-white/80" style={POPPINS}>{currentMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+        <button onClick={() => setCurrentMonth(new Date(y, m + 1))} className="p-0.5 text-white/70"><ChevronRight className="w-3 h-3" /></button>
       </div>
       <div className="grid grid-cols-7 gap-px">
-        {['S','M','T','W','T','F','S'].map((d, i) => <span key={`dow-${i}-${d}`} className="text-[7px] text-center text-white/25" style={{fontFamily:'Poppins,sans-serif'}}>{d}</span>)}
-        {Array.from({length:firstDay}).map((_,i) => <span key={`e${i}`} />)}
-        {Array.from({length:days},(_,i)=>i+1).map(day => {
-          const ds = fmt(day), sel = selectedDate===ds, td = ds===today;
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <span key={`dow-${i}-${d}`} className="text-[7px] text-center text-white/25" style={POPPINS}>{d}</span>)}
+        {Array.from({ length: firstDay }).map((_, i) => <span key={`e${i}`} />)}
+        {Array.from({ length: days }, (_, i) => i + 1).map(day => {
+          const ds = fmt(day), sel = selectedDate === ds, td = ds === today;
           const ov = !sel && !isPeriod(day) && isOvulation(day);
           const pk = ov && isPeak(day);
           const logged = isLogged(day);
+          const tint = phaseTint(phaseForDate(ds, user?.last_period_date, user?.cycle_length || 28));
           return (
             <button key={day} onClick={() => { onSelectDate(ds); onClose(); }}
-              className="relative w-6 h-6 flex items-center justify-center rounded text-[8px]"
-              style={{ background: sel?'#FF4F9A':isPeriod(day)?`${MENSTRUAL_TINT}40`:pk?`${OVULATION_TINT}66`:ov?`${OVULATION_TINT}38`:logged?'rgba(116,185,255,0.20)':td?'rgba(255,255,255,0.08)':'transparent', color: sel?'#fff':phaseTint(phaseForDate(ds, user?.last_period_date, user?.cycle_length || 28)), fontFamily:'Poppins,sans-serif', border: logged && !sel ? `1px solid ${LOGGED_BLUE}` : '1px solid transparent' }}>
+              className="relative w-6 h-6 flex flex-col items-center justify-center rounded text-[8px]"
+              style={{ background: sel ? '#FF4F9A' : isPeriod(day) ? `${MENSTRUAL_TINT}40` : pk ? `${OVULATION_TINT}66` : ov ? `${OVULATION_TINT}38` : logged ? 'rgba(116,185,255,0.20)' : td ? 'rgba(255,255,255,0.08)' : 'transparent', color: sel ? '#fff' : tint, opacity: 1, fontFamily: 'Poppins, sans-serif', border: logged && !sel ? `1px solid ${LOGGED_BLUE}` : '1px solid transparent' }}>
               {day}
-              {isIntimacy(day) && <Heart className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5" style={{color:'#FF4F9A'}} fill="#FF4F9A" />}
+              {logged && !sel && <span aria-hidden="true" style={{ width: 8, height: 2, borderRadius: 2, background: tint, marginTop: 1 }} />}
+              {isIntimacy(day) && <Heart className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5" style={{ color: '#FF4F9A' }} fill="#FF4F9A" />}
             </button>
           );
         })}
@@ -141,18 +128,15 @@ function MiniCalendar({ token, user, selectedDate, onSelectDate, onClose }) {
   );
 }
 
-// The big Vault calendar (Angelita, Oct 30, 2026, fix list item 20):
-// the same month-by-month calendar as the little one, only bigger,
-// shown inside the unlocked Vault. Every logged day is outlined in
-// the same pretty blue, and tapping a logged day opens her book to
-// that day below. Month arrows move one month at a time.
-function VaultCalendar({ loggedDays, selectedDate, onSelectDay, phaseColorFor, focusMonth }) {
+// The month calendar for Browse your days: month by month, every
+// logged day outlined in blue with a phase accent in that day's phase
+// color, day numbers at full opacity. Tapping a logged day selects it
+// and the full day view above shows it.
+function BrowseCalendar({ loggedDays, selectedDate, onSelectDay, phaseColorFor, focusMonth }) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const d = selectedDate ? new Date(selectedDate + 'T12:00:00') : new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
-  // The Journal browse year view can point this calendar at a
-  // chosen month (tap a month name over there to land here).
   useEffect(() => {
     if (focusMonth) setCurrentMonth(new Date(focusMonth.getFullYear(), focusMonth.getMonth(), 1));
   }, [focusMonth]);
@@ -160,69 +144,65 @@ function VaultCalendar({ loggedDays, selectedDate, onSelectDay, phaseColorFor, f
   const firstDay = new Date(y, m, 1).getDay();
   const days = new Date(y, m + 1, 0).getDate();
   const fmt = (d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
   const logged = loggedDays || new Set();
   return (
-    <div className="rounded-2xl p-4 mb-6" style={{ background: 'rgba(20,15,30,0.85)', border: '1px solid rgba(116,185,255,0.25)' }} data-testid="vault-calendar">
+    <div className="rounded-2xl p-4 mb-6" style={{ background: 'rgba(20,15,30,0.85)', border: '1px solid rgba(116,185,255,0.25)' }} data-testid="journal-calendar">
       <div className="flex items-center justify-between mb-3">
-        <button onClick={() => setCurrentMonth(new Date(y, m - 1))} className="p-1.5 text-white/70" aria-label="Previous month" data-testid="vault-cal-prev">
+        <button onClick={() => setCurrentMonth(new Date(y, m - 1))} className="p-1.5 text-white/70" aria-label="Previous month" data-testid="journal-cal-prev">
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <span className="text-sm text-white/85" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        <span className="text-sm text-white/85" style={POPPINS}>
           {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </span>
-        <button onClick={() => setCurrentMonth(new Date(y, m + 1))} className="p-1.5 text-white/70" aria-label="Next month" data-testid="vault-cal-next">
+        <button onClick={() => setCurrentMonth(new Date(y, m + 1))} className="p-1.5 text-white/70" aria-label="Next month" data-testid="journal-cal-next">
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1">
         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-          <span key={`vdow-${i}-${d}`} className="text-[10px] text-center text-white/30 py-1" style={{ fontFamily: 'Poppins, sans-serif' }}>{d}</span>
+          <span key={`bdow-${i}-${d}`} className="text-[10px] text-center text-white/30 py-1" style={POPPINS}>{d}</span>
         ))}
-        {Array.from({ length: firstDay }).map((_, i) => <span key={`ve${i}`} />)}
+        {Array.from({ length: firstDay }).map((_, i) => <span key={`be${i}`} />)}
         {Array.from({ length: days }, (_, i) => i + 1).map((day) => {
           const ds = fmt(day);
           const isLoggedDay = logged.has(ds);
           const sel = selectedDate === ds;
           const td = ds === today;
+          const tint = phaseColorFor ? phaseColorFor(ds) : '#fff';
           return (
             <button
               key={day}
               onClick={() => { if (isLoggedDay) onSelectDay(ds); }}
               disabled={!isLoggedDay}
-              className="h-11 flex items-center justify-center rounded-lg text-sm"
+              className="h-11 flex flex-col items-center justify-center rounded-lg text-sm"
               style={{
                 background: sel ? LOGGED_BLUE : isLoggedDay ? 'rgba(116,185,255,0.15)' : 'transparent',
                 border: isLoggedDay ? `2px solid ${LOGGED_BLUE}` : '2px solid transparent',
-                // v57: the day NUMBER wears that day's phase tint
-                // (the same color her peach wears for the phase),
-                // one rule on every calendar; the blue logged
-                // marking and the white/plain outline stand.
-                color: sel ? '#0B0B1E' : phaseColorFor ? phaseColorFor(ds) : isLoggedDay ? '#DCEEFF' : td ? '#fff' : 'rgba(255,255,255,0.35)',
-                opacity: sel || isLoggedDay || td ? 1 : 0.55,
+                color: sel ? '#0B0B1E' : tint,
+                opacity: 1,
                 fontFamily: 'Poppins, sans-serif',
                 fontWeight: sel ? 600 : 400,
               }}
-              data-testid={`vault-cal-day-${ds}`}
+              data-testid={`journal-cal-day-${ds}`}
             >
               {day}
+              {isLoggedDay && <span aria-hidden="true" style={{ width: 14, height: 3, borderRadius: 3, background: sel ? '#0B0B1E' : tint, marginTop: 2 }} />}
             </button>
           );
         })}
       </div>
-      <p className="text-[11px] mt-3 text-center" style={{ fontFamily: 'Poppins, sans-serif', color: '#9CC8F5' }}>
-        Days outlined in blue are days you logged something. Tap one to open your book to that day.
+      <p className="text-[11px] mt-3 text-center" style={{ ...POPPINS, color: '#9CC8F5' }}>
+        Days outlined in blue are days you logged something. The little line under a day wears that day&apos;s phase color. Tap one to open it.
       </p>
     </div>
   );
 }
 
-// The YEAR view for Browse your days (v57, Angelita, Oct 31,
-// 2026): all twelve months small at once, the big picture of her
-// whole year. Logged days carry the same Vault blue marking and
-// phase tinted numbers as the month calendar; tapping a marked
-// day opens that day the same way, and tapping a month name jumps
-// the month view to that month.
+// The year view for Browse your days: all twelve months small at
+// once. Logged days carry the same blue marking and phase tinted
+// numbers; tapping a marked day opens that day, and tapping a month
+// name jumps the month view to that month.
 function YearCalendar({ year, onYearChange, loggedDays, selectedDate, phaseColorFor, onSelectDay, onPickMonth }) {
   const logged = loggedDays || new Set();
   const months = Array.from({ length: 12 }, (_, i) => i);
@@ -232,7 +212,7 @@ function YearCalendar({ year, onYearChange, loggedDays, selectedDate, phaseColor
         <button onClick={() => onYearChange(year - 1)} className="p-1.5 text-white/70" aria-label="Previous year" data-testid="year-cal-prev">
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <span className="text-sm text-white/85" style={{ fontFamily: 'Poppins, sans-serif' }}>{year}</span>
+        <span className="text-sm text-white/85" style={POPPINS}>{year}</span>
         <button onClick={() => onYearChange(year + 1)} className="p-1.5 text-white/70" aria-label="Next year" data-testid="year-cal-next">
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -247,7 +227,7 @@ function YearCalendar({ year, onYearChange, loggedDays, selectedDate, phaseColor
               <button
                 onClick={() => onPickMonth(new Date(year, m, 1))}
                 className="text-[11px] text-white/80 mb-1 underline decoration-white/20 underline-offset-2"
-                style={{ fontFamily: 'Poppins, sans-serif' }}
+                style={POPPINS}
                 data-testid={`year-cal-month-${m}`}
               >
                 {new Date(year, m, 1).toLocaleDateString('en-US', { month: 'long' })}
@@ -267,8 +247,9 @@ function YearCalendar({ year, onYearChange, loggedDays, selectedDate, phaseColor
                       style={{
                         background: sel ? LOGGED_BLUE : isLoggedDay ? 'rgba(116,185,255,0.20)' : 'transparent',
                         border: isLoggedDay ? `1px solid ${LOGGED_BLUE}` : '1px solid transparent',
+                        borderBottom: isLoggedDay ? `2px solid ${phaseColorFor ? phaseColorFor(ds) : LOGGED_BLUE}` : undefined,
                         color: sel ? '#0B0B1E' : phaseColorFor ? phaseColorFor(ds) : '#CFC3CC',
-                        opacity: sel || isLoggedDay ? 1 : 0.5,
+                        opacity: 1,
                         fontFamily: 'Poppins, sans-serif',
                         fontWeight: isLoggedDay ? 600 : 400,
                       }}
@@ -283,7 +264,7 @@ function YearCalendar({ year, onYearChange, loggedDays, selectedDate, phaseColor
           );
         })}
       </div>
-      <p className="text-[11px] mt-3 text-center" style={{ fontFamily: 'Poppins, sans-serif', color: '#9CC8F5' }}>
+      <p className="text-[11px] mt-3 text-center" style={{ ...POPPINS, color: '#9CC8F5' }}>
         Your whole year at a glance. Days outlined in blue are days you logged something. Tap one to open that day.
       </p>
     </div>
@@ -291,425 +272,305 @@ function YearCalendar({ year, onYearChange, loggedDays, selectedDate, phaseColor
 }
 
 export default function JournalPage() {
-  const { token, user } = useAuth();
-  const [entries, setEntries] = useState([]);
-  const [writing, setWriting] = useState(false);
-  const [currentEntry, setCurrentEntry] = useState('');
-  const [currentTitle, setCurrentTitle] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [loadTimedOut, setLoadTimedOut] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
+  const { token, user, updateUser } = useAuth();
+  const [selectedDate, setSelectedDate] = useState(todayISO());
   const [showCal, setShowCal] = useState(false);
-  const [isIntimate, setIsIntimate] = useState(false);
-  // Which entry is open in the editor for changes (null = a new page).
-  // The save/edit/cancel code read this state for a long time without
-  // it ever being declared; v49 declares it (see handleNewEntryClick).
-  const [editingId, setEditingId] = useState(null);
-  // The journal reads like a book: one day per page. Page 0 is the most
-  // recent day with entries; turning a page moves one day at a time.
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageNotice, setPageNotice] = useState('');
-
-  // Her first name, so the app speaks to her like a person, not a
-  // username (Angelita, Oct 17). Falls back quietly when there is none.
-  const firstName = (user?.name || '').trim().split(/\s+/).filter(Boolean)[0] || null;
-  const todayISO = () => new Date().toISOString().split('T')[0];
-
-  // ---- The Vault (Angelita, Oct 17) ----
-  // The book now holds today's page only. Everything before today is a
-  // sealed day, and sealed days open only in the vault, behind a
-  // password she sets herself. The password lives in this component's
-  // state just long enough to unlock, and closing the vault clears it
-  // and the sealed days from memory: locked means locked.
-  const [vaultOpen, setVaultOpen] = useState(false);
-  const [vaultHasPw, setVaultHasPw] = useState(null); // null = not asked yet
-  const [vaultBusy, setVaultBusy] = useState(false);
-  const [vaultError, setVaultError] = useState('');
-  const [vaultPw, setVaultPw] = useState('');       // unlock field
-  const [vaultNew1, setVaultNew1] = useState('');   // set form: new password
-  const [vaultNew2, setVaultNew2] = useState('');   // set form: say it again
-  const [vaultDays, setVaultDays] = useState(null); // sealed days, once unlocked
-  const [vaultPage, setVaultPage] = useState(0);
-  // Item 20: every day she logged anything (journal or quick logs),
-  // for the big Vault calendar, plus the day she last tapped there.
-  const [vaultLoggedDays, setVaultLoggedDays] = useState(null);
-  const [vaultSelectedDate, setVaultSelectedDate] = useState(null);
-  const [showChangePw, setShowChangePw] = useState(false);
-  const [changeCur, setChangeCur] = useState('');
-  const [changeNew, setChangeNew] = useState('');
-  const [changeMsg, setChangeMsg] = useState('');
-
-  // Browse your days (v57, Angelita, Oct 31, 2026): a month calendar
-  // right here in the Journal tab, so she can look back without the
-  // vault detour. It reuses the Vault calendar above and the same
-  // dates-only logged-days endpoint (a journal entry OR any day log
-  // lights the day Vault blue); tapping a blue day fetches that whole
-  // day from GET /journal/day/{date} and opens it below the calendar.
-  const [browseLoggedDays, setBrowseLoggedDays] = useState(null);
-  const [browseDay, setBrowseDay] = useState(null); // {date, entries, logs}
-  const [browseBusy, setBrowseBusy] = useState(false);
-  // Month or year at a glance (v57): she can switch between the
-  // month calendar and the whole year in Browse your days.
+  const [dayData, setDayData] = useState({ entries: [], logs: [], intimacy: null });
+  const [dayLoading, setDayLoading] = useState(true);
+  const [dayError, setDayError] = useState(false);
+  const [allLogs, setAllLogs] = useState([]);
+  const [intimacyLogs, setIntimacyLogs] = useState([]);
+  const [cycleStats, setCycleStats] = useState(null);
+  const [loggedDays, setLoggedDays] = useState(null);
+  // The note: the writing area in the day view. Saving it files a
+  // journal entry to the selected day, and that entry IS the day's
+  // journal entry, shown in the day view below.
+  const [note, setNote] = useState('');
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteIntimate, setNoteIntimate] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const [noteError, setNoteError] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
+  const [flowChoice, setFlowChoice] = useState('medium');
+  const [periodBusy, setPeriodBusy] = useState(false);
+  const [partnerNames, setPartnerNames] = useState('');
+  const [intimacyBusy, setIntimacyBusy] = useState(false);
+  const [intimacyMsg, setIntimacyMsg] = useState('');
+  // Browse your days: month or year at a glance.
   const [browseView, setBrowseView] = useState('month'); // month | year
   const [browseYear, setBrowseYear] = useState(() => new Date().getFullYear());
   const [browseFocus, setBrowseFocus] = useState(null);
-  // The phase tint for any date, from her own cycle record: the
-  // color her peach wears for that day's phase.
-  const phaseColorFor = (ds) => phaseTint(phaseForDate(ds, user?.last_period_date, user?.cycle_length || 28));
 
-  useEffect(() => {
+  const firstName = (user?.name || '').trim().split(/\s+/).filter(Boolean)[0] || null;
+  const auth = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }), [token]);
+  const phaseColorFor = useCallback(
+    (ds) => phaseTint(phaseForDate(ds, user?.last_period_date, user?.cycle_length || 28)),
+    [user?.last_period_date, user?.cycle_length]
+  );
+  const selectedPhase = phaseForDate(selectedDate, user?.last_period_date, user?.cycle_length || 28);
+  const selectedPhaseColor = phaseTint(selectedPhase);
+
+  // Same refresh CalendarPage does on mount: pull the fresh user
+  // record so last_period_date is current and phase colors paint
+  // right, instead of the stale copy from sign-in.
+  const refreshUser = useCallback(async () => {
     if (!token) return;
-    axios.get(`${API}/journal/logged-days`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
-      .then((res) => setBrowseLoggedDays(new Set(res.data?.logged_days || [])))
-      .catch(() => setBrowseLoggedDays(new Set()));
-  }, [token]);
-
-  const handleBrowseSelect = async (dateStr) => {
-    if (dateStr >= todayISO()) {
-      setBrowseDay(null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    setBrowseBusy(true);
     try {
-      const res = await axios.get(`${API}/journal/day/${dateStr}`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setBrowseDay({ date: dateStr, entries: res.data?.entries || [], logs: res.data?.logs || [] });
-    } catch (err) { logger.error('Browse day failed:', err); }
-    finally { setBrowseBusy(false); }
-  };
-
-  const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-
-  /* eslint-disable */
-  useEffect(() => { if (token) fetchEntries(); else setLoading(false); }, [token]);
-  /* eslint-enable */
-
-  // Safety net: never spin forever. If the backend is asleep and both the
-  // journal fetch and the premium check are still pending after 20 seconds,
-  // stop and show the retry UI instead.
-  useEffect(() => {
-    if (!loading) return;
-    const t = setTimeout(() => setLoadTimedOut(true), 20000);
-    return () => clearTimeout(t);
-  }, [loading]);
-
-  const handleRetry = () => {
-    setLoadError(false);
-    setLoadTimedOut(false);
-    setLoading(true);
-    fetchEntries();
-  };
-
-  // The Journal and the Journal Vault are hers alone.
-
-  // Normalize-or-default for GET /journal, both backend generations:
-  // the old one returns a plain array of ALL her entries (the book then
-  // pages every day, newest first, exactly as it used to); the new one
-  // returns an object whose entries are today's page. Anything else,
-  // or any field that is not an array, becomes an empty list, so no
-  // undefined ever reaches state.
-  const normalizeJournalPayload = (data) => {
-    if (Array.isArray(data)) return data;
-    return Array.isArray(data?.entries) ? data.entries : [];
-  };
-
-  const fetchEntries = async () => {
-    setLoadError(false);
-    try {
-      const res = await axios.get(`${API}/journal`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setEntries(normalizeJournalPayload(res.data));
-    } catch (err) {
-      logger.error('Failed to fetch journal entries:', err);
-      setLoadError(true);
-    } finally { setLoading(false); }
-  };
-
-  // Group entries into book pages: one page per day, newest day first.
-  // Within a page, entries read newest first.
-  const pages = useMemo(() => {
-    const byDay = new Map();
-    [...entries]
-      .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
-      .forEach((e) => {
-        const day = (e.created_at || '').split('T')[0];
-        if (!day) return;
-        if (!byDay.has(day)) byDay.set(day, []);
-        byDay.get(day).push(e);
+      const res = await axios.get(`${API}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { _t: Date.now() },
+        timeout: 15000
       });
-    return [...byDay.entries()]
-      .map(([date, dayEntries]) => ({ date, entries: dayEntries }))
-      .sort((a, b) => b.date.localeCompare(a.date));
-  }, [entries]);
+      if (res.data) updateUser(res.data);
+    } catch (err) { logger.error('Refresh user error:', err); }
+  }, [token, updateUser]);
 
-  // Keep the page pointer valid when entries are added or deleted.
-  useEffect(() => {
-    if (pageIndex > 0 && pageIndex >= pages.length) setPageIndex(Math.max(0, pages.length - 1));
-  }, [pages, pageIndex]);
-
-  const handleSave = async () => {
-    if (!currentEntry.trim()) return;
-    setSaving(true);
-    setSaveError(false);
+  const fetchLoggedDays = useCallback(async () => {
+    if (!token) return;
     try {
-      const title = currentTitle.trim() || new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-      if (editingId) {
-        // Editing an existing page: same entry, same day, words updated.
-        await axios.put(`${API}/journal/${editingId}`, {
-          title, content: currentEntry
-        }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      } else {
-        await axios.post(`${API}/journal`, {
-          title,
-          content: currentEntry,
-          is_intimate: isIntimate
-        }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      }
-      setCurrentEntry(''); setCurrentTitle(''); setIsIntimate(false); setWriting(false);
-      setEditingId(null);
-      setPageIndex(0); // the entry lives on today's page, the first page
-      fetchEntries();
+      const res = await axios.get(`${API}/journal/logged-days`, auth);
+      // logged_days includes intimacy days (Package B contract).
+      setLoggedDays(new Set(res.data?.logged_days || []));
     } catch (err) {
-      // Never fail silently: keep her words on screen and tell her plainly.
-      logger.error('Failed to save journal entry:', err);
-      setSaveError(true);
-    } finally { setSaving(false); }
-  };
+      logger.error('Logged days failed:', err);
+      setLoggedDays(new Set());
+    }
+  }, [token, auth]);
 
-  const handleEditEntry = (entry) => {
-    setEditingId(entry.id);
-    setCurrentTitle(entry.title || '');
-    setCurrentEntry(entry.content || '');
-    setIsIntimate(!!entry.is_intimate);
-    setSaveError(false);
-    setWriting(true);
+  const fetchAllLogs = useCallback(async () => {
+    if (!token) return;
+    try {
+      const [c, i] = await Promise.all([
+        axios.get(`${API}/cycle-logs`, auth).catch(() => ({ data: [] })),
+        axios.get(`${API}/intimacy-logs`, auth).catch(() => ({ data: [] }))
+      ]);
+      setAllLogs(Array.isArray(c.data) ? c.data : []);
+      setIntimacyLogs(Array.isArray(i.data) ? i.data : []);
+    } catch (err) { logger.error('Fetch logs failed:', err); }
+  }, [token, auth]);
+
+  const fetchCycleStats = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${API}/cycle-stats`, auth);
+      setCycleStats(res.data);
+    } catch (err) { logger.error('Cycle stats failed:', err); }
+  }, [token, auth]);
+
+  const fetchDay = useCallback(async (dateStr) => {
+    if (!token) { setDayLoading(false); return; }
+    setDayError(false);
+    try {
+      const res = await axios.get(`${API}/journal/day/${dateStr}`, auth);
+      setDayData({
+        entries: Array.isArray(res.data?.entries) ? res.data.entries : [],
+        logs: Array.isArray(res.data?.logs) ? res.data.logs : [],
+        intimacy: Array.isArray(res.data?.intimacy) ? res.data.intimacy : null
+      });
+    } catch (err) {
+      logger.error('Fetch journal day failed:', err);
+      setDayError(true);
+      setDayData({ entries: [], logs: [], intimacy: null });
+    } finally { setDayLoading(false); }
+  }, [token, auth]);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([fetchDay(selectedDate), fetchLoggedDays(), fetchAllLogs(), fetchCycleStats()]);
+  }, [fetchDay, fetchLoggedDays, fetchAllLogs, fetchCycleStats, selectedDate]);
+
+  useEffect(() => { refreshUser(); }, [refreshUser]);
+  useEffect(() => { fetchLoggedDays(); fetchAllLogs(); fetchCycleStats(); }, [fetchLoggedDays, fetchAllLogs, fetchCycleStats]);
+  useEffect(() => { setDayLoading(true); fetchDay(selectedDate); }, [fetchDay, selectedDate]);
+
+  // The day's intimacy, from the day endpoint when it carries it,
+  // otherwise from the intimacy logs list.
+  const dayIntimacy = useMemo(() => {
+    if (Array.isArray(dayData.intimacy)) return dayData.intimacy;
+    return intimacyLogs.filter((l) => l.date === selectedDate);
+  }, [dayData.intimacy, intimacyLogs, selectedDate]);
+  const intimacyLog = dayIntimacy[0] || null;
+
+  useEffect(() => {
+    setPartnerNames(intimacyLog?.partners || '');
+    setIntimacyMsg('');
+    // Only reset the names field when a different day's log loads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intimacyLog?.id, selectedDate]);
+
+  const periodLog = useMemo(() => dayData.logs.find((l) => l.is_period) || null, [dayData.logs]);
+
+  const handleSelectDay = (dateStr) => {
+    setSelectedDate(dateStr);
+    setNote(''); setNoteTitle(''); setNoteIntimate(false); setNoteError(false); setNoteSaved(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDelete = async (id) => {
+  const shiftDay = (delta) => {
+    const d = new Date(selectedDate + 'T12:00:00');
+    d.setDate(d.getDate() + delta);
+    handleSelectDay(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  };
+
+  const handleSaveNote = async () => {
+    if (!note.trim() || savingNote) return;
+    setSavingNote(true); setNoteError(false); setNoteSaved(false);
     try {
-      await axios.delete(`${API}/journal/${id}`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setEntries(entries.filter(e => e.id !== id));
+      await axios.post(`${API}/journal`, {
+        title: noteTitle.trim() || new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+        content: note,
+        is_intimate: noteIntimate,
+        date: selectedDate
+      }, auth);
+      setNote(''); setNoteTitle(''); setNoteIntimate(false);
+      setNoteSaved(true);
+      await Promise.all([fetchDay(selectedDate), fetchLoggedDays()]);
+    } catch (err) {
+      logger.error('Failed to save journal entry:', err);
+      setNoteError(true);
+    } finally { setSavingNote(false); }
+  };
+
+  const handleDeleteEntry = async (id) => {
+    if (!window.confirm('Delete this entry?')) return;
+    try {
+      await axios.delete(`${API}/journal/${id}`, auth);
+      await Promise.all([fetchDay(selectedDate), fetchLoggedDays()]);
     } catch (err) { logger.error('Failed to delete journal entry:', err); }
   };
 
-  const handleToggleIntimate = async (entry) => {
+  const handleDeleteLog = async (id) => {
+    if (!window.confirm('Delete this log?')) return;
     try {
-      const res = await axios.put(`${API}/journal/${entry.id}/intimate`, { is_intimate: !entry.is_intimate },
-        { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setEntries(entries.map(e => e.id === entry.id ? { ...e, is_intimate: res.data.is_intimate } : e));
-    } catch (err) { logger.error('Failed to toggle intimate flag:', err); }
+      await axios.delete(`${API}/cycle-logs/${id}`, auth);
+      await refreshAll();
+      refreshUser();
+    } catch (err) { logger.error('Failed to delete cycle log:', err); }
   };
 
-  const handleDateSelect = (dateStr) => {
-    setSelectedDate(dateStr);
-    // The book only holds today's page now. A past day lives in the
-    // vault, so point her there warmly instead of turning a page.
-    const idx = pages.findIndex(p => p.date === dateStr);
-    if (idx >= 0) {
-      setPageIndex(idx);
-      setPageNotice('');
-    } else if (dateStr < todayISO()) {
-      setPageNotice('That day is saved in Browse your days below, and sealed in your vault too.');
-      setTimeout(() => setPageNotice(''), 4000);
-    } else {
-      const label = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-      setPageNotice(`No journal page for ${label} yet.`);
-      setTimeout(() => setPageNotice(''), 3000);
-    }
-  };
-
-  const openVault = async () => {
-    setVaultOpen(true);
-    setVaultError('');
-    if (vaultHasPw === null) {
-      try {
-        const res = await axios.get(`${API}/journal/vault/status`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-        setVaultHasPw(!!res.data?.has_password);
-      } catch (err) {
-        logger.error('Vault status failed:', err);
-        setVaultError('Your vault could not be reached. The server may be waking up, close this and try again in a moment.');
-      }
-    }
-  };
-
-  const closeVault = () => {
-    // Closing locks it again: password fields and sealed days leave memory.
-    setVaultOpen(false);
-    setVaultPw(''); setVaultNew1(''); setVaultNew2('');
-    setChangeCur(''); setChangeNew(''); setChangeMsg('');
-    setShowChangePw(false);
-    setVaultDays(null); setVaultPage(0); setVaultError('');
-    setVaultLoggedDays(null); setVaultSelectedDate(null);
-  };
-
-  const unlockVault = async (password) => {
-    setVaultBusy(true); setVaultError('');
+  const handleLogPeriod = async () => {
+    if (periodBusy) return;
+    setPeriodBusy(true);
     try {
-      const [entriesRes, logsRes] = await Promise.all([
-        axios.post(`${API}/journal/vault/entries`, { password }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }),
-        axios.get(`${API}/cycle-logs`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }).catch(() => ({ data: [] })),
-      ]);
-      // A sealed day is any day before today with something in it: her
-      // writing (from the unlock call), her quick logs (the same cycle
-      // logs the Calendar reads), and/or that day's companion
-      // exchanges, which seal with the day. Newest sealed day first.
-      const vaultData = entriesRes.data || {};
-      const today = todayISO();
-      const byDay = new Map();
-      const dayOf = (d) => {
-        if (!byDay.has(d)) byDay.set(d, { date: d, entries: [], logs: [], companion: [] });
-        return byDay.get(d);
-      };
-      [...(vaultData.entries || [])]
-        .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
-        .forEach((e) => {
-          const d = (e.created_at || '').split('T')[0];
-          if (d && d < today) dayOf(d).entries.push(e);
-        });
-      (logsRes.data || []).forEach((l) => {
-        if (l.date && l.date < today) dayOf(l.date).logs.push(l);
+      // Same payload shape the Calendar day view uses.
+      await axios.post(`${API}/cycle-logs`, {
+        date: selectedDate,
+        is_period: true,
+        flow: flowChoice
+      }, auth);
+      await refreshAll();
+      refreshUser();
+    } catch (err) { logger.error('Log period error:', err); }
+    finally { setPeriodBusy(false); }
+  };
+
+  const handleRemovePeriod = async () => {
+    if (!periodLog || periodBusy) return;
+    if (!window.confirm('Remove the period day for this day?')) return;
+    setPeriodBusy(true);
+    try {
+      await axios.delete(`${API}/cycle-logs/${periodLog.id}`, auth);
+      await refreshAll();
+      refreshUser();
+    } catch (err) { logger.error('Remove period error:', err); }
+    finally { setPeriodBusy(false); }
+  };
+
+  const handleMarkIntimacy = async () => {
+    if (intimacyBusy) return;
+    setIntimacyBusy(true); setIntimacyMsg('');
+    try {
+      await axios.post(`${API}/intimacy-logs`, { date: selectedDate }, auth);
+      await Promise.all([fetchDay(selectedDate), fetchAllLogs(), fetchLoggedDays()]);
+    } catch (err) { logger.error('Log intimacy error:', err); setIntimacyMsg("That didn't save. Try again in a moment."); }
+    finally { setIntimacyBusy(false); }
+  };
+
+  const handleSavePartners = async () => {
+    if (intimacyBusy || !intimacyLog) return;
+    setIntimacyBusy(true); setIntimacyMsg('');
+    try {
+      await axios.post(`${API}/intimacy-logs/update-partners`, {
+        date: selectedDate,
+        partners: partnerNames.trim()
+      }, auth);
+      setIntimacyMsg('Saved.');
+      await fetchAllLogs();
+    } catch (err) { logger.error('Update partners error:', err); setIntimacyMsg("That didn't save. Try again in a moment."); }
+    finally { setIntimacyBusy(false); }
+  };
+
+  const handleDeleteIntimacy = async () => {
+    if (!intimacyLog || intimacyBusy) return;
+    if (!window.confirm('Remove the intimacy mark for this day?')) return;
+    setIntimacyBusy(true); setIntimacyMsg('');
+    try {
+      await axios.delete(`${API}/intimacy-logs/${intimacyLog.id}`, auth);
+      await Promise.all([fetchDay(selectedDate), fetchAllLogs(), fetchLoggedDays()]);
+    } catch (err) { logger.error('Remove intimacy error:', err); }
+    finally { setIntimacyBusy(false); }
+  };
+
+  // Mood / energy trend: the latest mood:N and energy:N snapshot per
+  // logged day, oldest first, from the same symptom prefixes the
+  // quick log writes.
+  const trendDays = useMemo(() => {
+    const byDate = new Map();
+    [...allLogs]
+      .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''))
+      .forEach((l) => {
+        if (!l.date) return;
+        const S = Array.isArray(l.symptoms) ? l.symptoms : [];
+        const moodTag = S.find((s) => typeof s === 'string' && s.startsWith('mood:'));
+        const energyTag = S.find((s) => typeof s === 'string' && s.startsWith('energy:'));
+        if (!moodTag && !energyTag) return;
+        const cur = byDate.get(l.date) || { date: l.date, mood: null, energy: null };
+        if (moodTag) { const v = parseInt(moodTag.slice(5), 10); if (!Number.isNaN(v)) cur.mood = v; }
+        if (energyTag) { const v = parseInt(energyTag.slice(7), 10); if (!Number.isNaN(v)) cur.energy = v; }
+        byDate.set(l.date, cur);
       });
-      Object.entries(vaultData.companion || {}).forEach(([d, exs]) => {
-        if (d && d < today) dayOf(d).companion = exs || [];
-      });
-      setVaultDays([...byDay.values()].sort((a, b) => b.date.localeCompare(a.date)));
-      setVaultPage(0);
-      // Item 20: the big calendar's blue days. The dates endpoint is
-      // the full history (journal days plus quick log days, today
-      // included); if it cannot be reached, fall back to the sealed
-      // days plus every cycle log date this unlock already fetched.
-      try {
-        const daysRes = await axios.get(`${API}/journal/logged-days`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-        setVaultLoggedDays(new Set(daysRes.data?.logged_days || []));
-      } catch (daysErr) {
-        logger.error('Vault logged days failed, using sealed days:', daysErr);
-        const fallback = new Set([...byDay.keys(), ...(logsRes.data || []).map((l) => l.date).filter(Boolean)]);
-        setVaultLoggedDays(fallback);
-      }
-      setVaultSelectedDate(null);
-    } catch (err) {
-      const detail = err?.response?.data?.detail;
-      setVaultError(typeof detail === 'string' ? detail : 'That did not open your vault. The server may be waking up, give it a moment and try again.');
-    } finally { setVaultBusy(false); }
+    return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-14);
+  }, [allLogs]);
+
+  // Cycle progression chart, mirroring the Calendar page: both the
+  // bleeding length and the cycle length, month to month, newest
+  // first, with her usual as a dashed line on each track.
+  const chartCycles = useMemo(() => (cycleStats?.recent_cycles || []).slice().reverse(), [cycleStats]);
+  const periodCompleted = (c, i) => {
+    if (i > 0) return true;
+    const end = new Date(c.start + 'T00:00:00');
+    end.setDate(end.getDate() + (c.period_length || 1) - 1);
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    return end < t;
   };
+  const bleedMax = Math.max(10, ...chartCycles.map((c) => c.period_length || 0));
+  const cycleRowsForChart = chartCycles.filter((c) => c.cycle_length);
+  const cycleMax = Math.max(40, ...cycleRowsForChart.map((c) => c.cycle_length || 0));
+  const monthLabel = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
-  const handleSetVaultPassword = async () => {
-    if (vaultNew1.length < 4) { setVaultError('Your vault password needs at least 4 characters.'); return; }
-    if (vaultNew1 !== vaultNew2) { setVaultError('Those two do not match. Type them once more, slowly.'); return; }
-    setVaultBusy(true); setVaultError('');
-    try {
-      await axios.post(`${API}/journal/vault/set`, { password: vaultNew1 }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setVaultHasPw(true);
-      const pw = vaultNew1;
-      setVaultNew1(''); setVaultNew2('');
-      await unlockVault(pw); // she just set it, so open the vault for her
-    } catch (err) {
-      const detail = err?.response?.data?.detail;
-      setVaultError(typeof detail === 'string' ? detail : 'That did not save. The server may be waking up, try again.');
-      setVaultBusy(false);
-    }
-  };
-
-  const handleChangeVaultPassword = async () => {
-    if (changeNew.length < 4) { setChangeMsg('Your new vault password needs at least 4 characters.'); return; }
-    setVaultBusy(true); setChangeMsg('');
-    try {
-      await axios.post(`${API}/journal/vault/set`, { current_password: changeCur, password: changeNew }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setChangeCur(''); setChangeNew('');
-      setChangeMsg('Your vault password is changed.');
-    } catch (err) {
-      const detail = err?.response?.data?.detail;
-      setChangeMsg(typeof detail === 'string' ? detail : 'That did not change. Try again in a moment.');
-    } finally { setVaultBusy(false); }
-  };
-
-  // Item 20: tapping a blue day on the big Vault calendar opens the
-  // book to that day. A sealed day turns the vault book to its page;
-  // today closes the vault back to today's page in the journal book.
-  const handleVaultCalSelect = (dateStr) => {
-    setVaultSelectedDate(dateStr);
-    const idx = (vaultDays || []).findIndex((d) => d.date === dateStr);
-    if (idx >= 0) {
-      setVaultPage(idx);
-    } else if (dateStr >= todayISO()) {
-      closeVault();
-    }
-  };
-
-  const fmtDayLong = (dateStr) => new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-  const fmtTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
-  if (loading && !loadTimedOut && !loadError) return (
-    <div className="relative min-h-screen" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }}>
-      <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.12, transform: 'translateX(10px)' }} />
-      </div>
-      <div className="relative max-w-2xl mx-auto px-5 pt-6">
-        <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Your pages</p>
-        <h1 className="text-3xl text-white mb-10" style={{ fontFamily: "'Poiret One', sans-serif" }}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
-        <div className="flex flex-col items-center pt-10">
-          <div className="cycle-orb orb-follicular w-12 h-12 mb-4" />
-          <p className="text-white/80 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening your journal...</p>
-          <p className="text-white/30 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>Your words live here.</p>
-        </div>
+  const trendRow = (label, key) => (
+    <div className="mb-4" data-testid={`journal-trend-${key}`}>
+      <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-2" style={POPPINS}>{label}</p>
+      <div className="flex items-end gap-2 overflow-x-auto pb-1">
+        {trendDays.map((d) => {
+          const v = d[key];
+          const tint = phaseColorFor(d.date);
+          return (
+            <div key={`${key}-${d.date}`} className="flex flex-col items-center gap-1 shrink-0" title={`${d.date}: ${v == null ? 'not logged' : `${v}/5`}`}>
+              <span className="text-[10px] text-white/80" style={POPPINS}>{v == null ? '·' : v}</span>
+              <div className="w-5 rounded-full" style={{ height: v == null ? 6 : 8 + (v / 5) * 30, background: v == null ? 'rgba(255,255,255,0.10)' : tint }} />
+              <span className="text-[9px] text-white/40" style={POPPINS}>{new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
-
-  if (loadTimedOut || loadError) return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen px-6 text-center overflow-hidden">
-      <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.12, transform: 'translateX(10px)' }} />
-      </div>
-      <p className="relative text-white/80 text-sm mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Couldn&apos;t load your journal.</p>
-      <p className="relative text-white/70 text-xs mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>The server might be waking up. Try again in a moment.</p>
-      <button
-        onClick={handleRetry}
-        className="relative px-6 py-3 rounded-full text-white text-sm font-medium"
-        style={{ background: '#FF4F9A', fontFamily: 'Poppins, sans-serif' }}
-      >
-        Try Again
-      </button>
-    </div>
-  );
-
-  // v49 (Angelita, Oct 26: "I pushed the journal plus and nothing
-  // happened"). Root cause: the editor's Save button label and the save
-  // handler read an `editingId` state that was never declared anywhere
-  // in this file, so the moment the editor rendered it threw and the
-  // whole page unmounted to a blank screen: the tap looked like it did
-  // nothing at all. The state is declared now, and opening the editor
-  // for a new page also clears any half-finished edit and scrolls the
-  // editor into view, so the tap always visibly does its job.
-  const handleNewEntryClick = () => {
-    setEditingId(null);
-    setCurrentEntry('');
-    setCurrentTitle('');
-    setIsIntimate(false);
-    setSaveError(false);
-    setWriting(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   return (
     <div className="relative min-h-screen pb-40 lg:ml-64" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="journal-page">
-      {/* Her life stages line, baby to old lady, faded to a soft outline
-          behind the journal (Angelita, Oct 26, 2026). v54 (Oct 29): she
-          asked for it back DOWN low where it was before v50, tight and
-          clear of the wording, not up under the text, so the bottom
-          anchoring from v49 is restored. Decorative only, kept faint so
-          every word on the page stays easy to read. Oct 30 (item 13
-          completion): every placement of this artwork also carries a
-          small explicit nudge to the RIGHT (translateX(10px), about
-          1 to 2 percent of the strip) so the baby at the left edge is
-          not cut off. */}
       <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true" data-testid="journal-life-stages-backdrop">
         <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.13, transform: 'translateX(10px)' }} />
       </div>
-      {/* Decorative flowers */}
       <div className="absolute top-0 left-0 w-full h-64 pointer-events-none overflow-hidden opacity-20">
         <div className="absolute top-4 left-4 text-2xl" style={{ color: '#f4a7b9' }}>✿</div>
         <div className="absolute top-12 right-8 text-xl" style={{ color: '#c9b8f0' }}>✿</div>
@@ -722,194 +583,263 @@ export default function JournalPage() {
         {/* Header Row */}
         <div className="flex items-start justify-between mb-1">
           <div>
-            <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Your pages</p>
-            <h1 className="text-3xl text-white" style={{ fontFamily: "'Poiret One', sans-serif" }}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
+            <p className="text-[10px] tracking-widest uppercase" style={{ ...POPPINS, color: '#f4a7b9' }}>Your pages</p>
+            <h1 className="text-3xl text-white" style={POIRET}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={openVault} className="flex items-center gap-1.5 h-8 px-3 rounded-full" style={{ border: `1px solid rgba(201,184,240,0.4)`, background: 'rgba(201,184,240,0.08)' }} data-testid="journal-vault-btn" aria-label="Open your vault">
-              <Lock className="w-3.5 h-3.5" style={{ color: GOLD }} />
-              <span className="text-[10px] whitespace-nowrap" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>{firstName ? `${firstName}'s Vault` : 'Your Vault'}</span>
-            </button>
-            {!writing && (
-              <button onClick={handleNewEntryClick} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(255,79,154,0.3)', background: 'rgba(255,79,154,0.1)' }} data-testid="new-entry-btn">
-                <Plus className="w-4 h-4" style={{ color: '#FF4F9A' }} />
-              </button>
-            )}
-            <button onClick={() => setShowCal(!showCal)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(201,184,240,0.3)', background: showCal ? 'rgba(201,184,240,0.15)' : 'rgba(201,184,240,0.05)' }} data-testid="toggle-calendar-btn">
-              <Calendar className="w-4 h-4" style={{ color: '#c9b8f0' }} />
-            </button>
-          </div>
+          <button onClick={() => setShowCal(!showCal)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ border: '1px solid rgba(201,184,240,0.3)', background: showCal ? 'rgba(201,184,240,0.15)' : 'rgba(201,184,240,0.05)' }} data-testid="toggle-calendar-btn" aria-label="Pick a day">
+            <Calendar className="w-4 h-4" style={{ color: '#c9b8f0' }} />
+          </button>
         </div>
 
-        {/* Today's Date */}
-        <button onClick={() => { setSelectedDate(new Date().toISOString().split('T')[0]); setWriting(true); }} className="mb-4">
-          <p className="text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }}>{todayStr}</p>
-        </button>
+        {showCal && (
+          <div className="absolute right-5 top-16 z-50">
+            <MiniCalendar token={token} user={user} selectedDate={selectedDate} onSelectDate={handleSelectDay} onClose={() => setShowCal(false)} />
+          </div>
+        )}
 
-        <div className="flex items-center justify-center gap-3 mt-1 mb-5" aria-hidden="true">
+        {/* The selected day: its date, and its phase name in its
+            phase color. Everything below belongs to this day. */}
+        <div className="flex items-center justify-between mt-3 mb-1" data-testid="journal-day-header">
+          <button onClick={() => shiftDay(-1)} className="p-1.5 text-white/70" aria-label="Previous day" data-testid="journal-prev-day">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <div className="text-center">
+            <p className="text-base" style={{ ...POIRET, color: '#F4D3DC' }}>{fmtDayLong(selectedDate)}</p>
+            <p className="text-xs mt-0.5" style={{ ...POPPINS, color: selectedPhaseColor }} data-testid="journal-day-phase">
+              {selectedPhase === 'unknown' ? PHASE_NAMES.unknown : `${PHASE_NAMES[selectedPhase] || PHASE_NAMES.unknown} phase`}
+            </p>
+            {selectedDate !== todayISO() && (
+              <button onClick={() => handleSelectDay(todayISO())} className="text-[11px] underline mt-0.5" style={{ ...POPPINS, color: '#CFC3CC' }} data-testid="journal-back-to-today">
+                Back to today
+              </button>
+            )}
+          </div>
+          <button onClick={() => shiftDay(1)} className="p-1.5 text-white/70" aria-label="Next day" data-testid="journal-next-day">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center gap-3 mt-2 mb-5" aria-hidden="true">
           <span style={{ height: '1px', width: '52px', background: 'linear-gradient(90deg, transparent, rgba(201,184,240,0.5))' }} />
           <span style={{ color: 'rgba(201,184,240,0.65)', fontSize: '11px' }}>✿</span>
           <span style={{ height: '1px', width: '52px', background: 'linear-gradient(90deg, rgba(201,184,240,0.5), transparent)' }} />
         </div>
 
-        {/* Mini Calendar Dropdown */}
-        {showCal && (
-          <div className="absolute right-5 top-16 z-50">
-            <MiniCalendar token={token} user={user} selectedDate={selectedDate} onSelectDate={handleDateSelect} onClose={() => setShowCal(false)} />
-          </div>
-        )}
+        {/* The day's questions: the full quick log set, filed to the
+            selected day. The answers ARE this day's journal entry. */}
+        <FloatingCarousel key={selectedDate} token={token} date={selectedDate} onLogged={refreshAll} />
 
-        {/* Writing Area */}
-        {writing && (
-          <div className="rounded-2xl mb-5 overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.2)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35)' }} data-testid="journal-editor">
-            {/* No ruled-line background: it started at the top of the box
-                while the text starts lower, so the words never sat on the
-                lines. Clean, even line spacing instead (28px), which
-                always matches the text. */}
-            <div className="relative p-4">
-              <input
-                type="text" value={currentTitle} onChange={(e) => setCurrentTitle(e.target.value)}
-                placeholder="Title..."
-                className="w-full bg-transparent border-none text-white text-sm mb-3 placeholder-white/20 outline-none"
-                style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '18px', borderBottom: '1px solid rgba(244,167,185,0.14)', paddingBottom: '8px' }}
-                data-testid="journal-title-input"
-              />
-              <textarea
-                value={currentEntry} onChange={(e) => { setCurrentEntry(e.target.value); if (saveError) setSaveError(false); }}
-                placeholder="Write whatever is on your mind..."
-                className="journal-handwriting w-full bg-transparent border-none min-h-[180px] resize-none outline-none placeholder-white/15"
-                style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}
-                autoFocus
-                data-testid="journal-content-input"
-              />
+        {/* Period and intimacy for this day */}
+        <div className="rounded-2xl p-4 mb-5" style={{ background: 'rgba(20,15,30,0.85)', border: '1px solid rgba(255,255,255,0.08)' }} data-testid="journal-day-marks">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Droplet className="w-4 h-4" style={{ color: MENSTRUAL_TINT }} fill={periodLog ? MENSTRUAL_TINT : 'transparent'} />
+              <span className="text-sm text-white" style={POPPINS}>Period day</span>
             </div>
-            {saveError && (
-              <p className="px-4 pb-2 text-xs" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="journal-save-error">
-                That didn&apos;t save. Your words are still here. The server may be waking up, give it a moment and tap Save again.
-              </p>
+            {periodLog ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs capitalize" style={{ ...POPPINS, color: '#F4D3DC' }}>Flow: {periodLog.flow || 'medium'}</span>
+                <button onClick={handleRemovePeriod} disabled={periodBusy} className="px-3 py-1.5 rounded-full text-xs disabled:opacity-40" style={{ ...POPPINS, color: '#CFC3CC', border: '1px solid rgba(255,255,255,0.2)' }} data-testid="period-remove-btn">
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1" role="group" aria-label="Flow">
+                  {FLOW_OPTIONS.map((f) => (
+                    <button key={f} onClick={() => setFlowChoice(f)} className="px-2.5 py-1 rounded-full text-[11px] capitalize" style={{ ...POPPINS, border: `1px solid ${flowChoice === f ? MENSTRUAL_TINT : 'rgba(255,255,255,0.12)'}`, background: flowChoice === f ? `${MENSTRUAL_TINT}22` : 'rgba(255,255,255,0.04)', color: flowChoice === f ? '#fff' : '#b8b8d1' }} data-testid={`flow-${f}`}>
+                      {f}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={handleLogPeriod} disabled={periodBusy} className="px-3 py-1.5 rounded-full text-xs text-white disabled:opacity-40" style={{ ...POPPINS, background: MENSTRUAL_TINT }} data-testid="period-add-btn">
+                  Log period day
+                </button>
+              </div>
             )}
-            <div className="flex gap-2 p-3 border-t border-white/5 items-center">
-              <button
-                onClick={() => setIsIntimate(!isIntimate)}
-                title={isIntimate ? 'Intimate' : 'Mark as intimate'}
-                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                style={{
-                  border: isIntimate ? `1px solid ${GOLD}` : '1px solid rgba(255,255,255,0.12)',
-                  background: isIntimate ? 'rgba(201,184,240,0.12)' : 'transparent'
-                }}
-                data-testid="intimate-toggle">
-                <Lock className="w-4 h-4" style={{ color: isIntimate ? GOLD : 'rgba(255,255,255,0.35)' }} />
-              </button>
-              <button onClick={() => { setWriting(false); setCurrentEntry(''); setCurrentTitle(''); setIsIntimate(false); setEditingId(null); }}
-                className="flex-1 py-2 rounded-full text-white/75 text-xs" style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.08)' }}>
-                Cancel
-              </button>
-              <button onClick={handleSave} disabled={saving || !currentEntry.trim()}
-                className="flex-1 py-2 rounded-full text-white text-xs font-medium disabled:opacity-40"
-                style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
-                data-testid="save-entry-btn">
-                {saving ? 'Saving...' : (editingId ? 'Save changes' : 'Save')}
-              </button>
-            </div>
           </div>
-        )}
 
-        {/* The book: one day per page, turn pages with Older / Newer */}
-        {pageNotice && (
-          <p className="text-center text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }} data-testid="journal-page-notice">{pageNotice}</p>
-        )}
-        {entries.length === 0 && !writing ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, rgba(255,79,154,0.14) 0%, rgba(255,79,154,0.03) 70%)', border: '1px solid rgba(244,167,185,0.18)' }}>
-              <p className="text-2xl" style={{ color: 'rgba(244,167,185,0.55)' }}>✿</p>
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Heart className="w-4 h-4" style={{ color: '#FF4F9A' }} fill={intimacyLog ? '#FF4F9A' : 'transparent'} />
+                <span className="text-sm text-white" style={POPPINS}>Intimate day</span>
+              </div>
+              {intimacyLog ? (
+                <button onClick={handleDeleteIntimacy} disabled={intimacyBusy} className="px-3 py-1.5 rounded-full text-xs disabled:opacity-40" style={{ ...POPPINS, color: '#CFC3CC', border: '1px solid rgba(255,255,255,0.2)' }} data-testid="intimacy-remove-btn">
+                  Remove
+                </button>
+              ) : (
+                <button onClick={handleMarkIntimacy} disabled={intimacyBusy} className="px-3 py-1.5 rounded-full text-xs text-white disabled:opacity-40" style={{ ...POPPINS, background: '#FF4F9A' }} data-testid="intimacy-add-btn">
+                  Mark intimate day
+                </button>
+              )}
             </div>
-            <p className="text-white/45 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing written yet today</p>
-            <p className="text-white/25 text-xs mt-1 px-8 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap + to write. Your past days are in Browse your days below, and sealed in your vault too.</p>
+            {intimacyLog && (
+              <div className="mt-3">
+                <label className="text-xs text-[#CFC3CC] block mb-2" style={POPPINS}>Partner name(s), separate with commas</label>
+                <input
+                  type="text"
+                  value={partnerNames}
+                  onChange={(e) => setPartnerNames(e.target.value)}
+                  placeholder="e.g. James, Michael"
+                  className="w-full rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', fontFamily: 'Poppins, sans-serif' }}
+                  data-testid="journal-partner-name-input"
+                />
+                <p className="text-[10px] text-[#CFC3CC] mt-1.5" style={POPPINS}>Completely private to you.</p>
+                <button onClick={handleSavePartners} disabled={intimacyBusy} className="px-4 py-1.5 rounded-full text-xs mt-2 disabled:opacity-40" style={{ ...POPPINS, color: '#F4D3DC', border: '1px solid rgba(244,167,185,0.4)', background: 'rgba(255,79,154,0.08)' }} data-testid="journal-partner-save-btn">
+                  Save names
+                </button>
+                {intimacyMsg && <p className="text-xs mt-2" style={{ ...POPPINS, color: '#CFC3CC' }} role="status">{intimacyMsg}</p>}
+              </div>
+            )}
           </div>
-        ) : pages.length > 0 ? (
-          <div data-testid="journal-book">
-            {(() => {
-              const page = pages[Math.min(pageIndex, pages.length - 1)];
-              return (
-                <>
-                  <div className="flex items-end justify-between mb-2 px-1">
-                    <p style={{ fontFamily: "'Poiret One', sans-serif", fontSize: '17px', color: '#F4D3DC', borderBottom: '1px solid rgba(201,184,240,0.35)', paddingBottom: '3px' }}>{fmtDayLong(page.date)}</p>
-                    <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>
-                      Page {Math.min(pageIndex, pages.length - 1) + 1} of {pages.length}
-                    </p>
+        </div>
+
+        {/* The note: her writing for this day, saved as this day's
+            journal entry. There is no separate entry place. */}
+        <div className="rounded-2xl mb-5 overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.2)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35)' }} data-testid="journal-note">
+          <div className="p-4">
+            <h2 className="text-lg text-white mb-3" style={POIRET}>Your note for this day</h2>
+            <input
+              type="text" value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)}
+              placeholder="Title (optional)"
+              className="w-full bg-transparent border-none text-white text-sm mb-3 placeholder-white/20 outline-none"
+              style={{ ...POIRET, fontSize: '16px', borderBottom: '1px solid rgba(244,167,185,0.14)', paddingBottom: '8px' }}
+              data-testid="journal-note-title"
+            />
+            <textarea
+              value={note} onChange={(e) => { setNote(e.target.value); if (noteError) setNoteError(false); if (noteSaved) setNoteSaved(false); }}
+              placeholder="Write whatever is on your mind..."
+              className="journal-handwriting w-full bg-transparent border-none min-h-[140px] resize-none outline-none placeholder-white/15"
+              style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}
+              data-testid="journal-note-input"
+            />
+          </div>
+          {noteError && (
+            <p className="px-4 pb-2 text-xs" style={{ ...POPPINS, color: '#ff8fa3' }} data-testid="journal-note-error">
+              That didn&apos;t save. Your words are still here. Give it a moment and tap Save again.
+            </p>
+          )}
+          {noteSaved && (
+            <p className="px-4 pb-2 text-xs" style={{ ...POPPINS, color: '#7FD9A8' }} role="status" data-testid="journal-note-saved">Saved to this day.</p>
+          )}
+          <div className="flex gap-2 p-3 border-t border-white/5 items-center">
+            <button
+              onClick={() => setNoteIntimate(!noteIntimate)}
+              title={noteIntimate ? 'Intimate' : 'Mark as intimate'}
+              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+              style={{ border: noteIntimate ? `1px solid ${GOLD}` : '1px solid rgba(255,255,255,0.12)', background: noteIntimate ? 'rgba(201,184,240,0.12)' : 'transparent' }}
+              data-testid="journal-note-intimate-toggle">
+              <Lock className="w-4 h-4" style={{ color: noteIntimate ? GOLD : 'rgba(255,255,255,0.35)' }} />
+            </button>
+            <span className="text-[11px] text-white/50 flex-1" style={POPPINS}>{noteIntimate ? 'This note is marked intimate.' : 'Tap the lock to mark this note intimate.'}</span>
+            <button onClick={handleSaveNote} disabled={savingNote || !note.trim()}
+              className="px-6 py-2 rounded-full text-white text-xs font-medium disabled:opacity-40"
+              style={{ ...POPPINS, background: '#FF4F9A' }}
+              data-testid="journal-note-save">
+              {savingNote ? 'Saving...' : 'Save note'}
+            </button>
+          </div>
+        </div>
+
+        {/* Everything saved to this day: her entries, her answers,
+            her period and intimacy, each with its own delete. */}
+        <div data-testid="journal-day-saved">
+          <h2 className="text-xl text-white mb-3" style={POIRET}>Saved this day</h2>
+          {dayLoading ? (
+            <div className="flex flex-col items-center py-8">
+              <div className="cycle-orb orb-follicular w-10 h-10 mb-3" />
+              <p className="text-white/70 text-sm" style={POPPINS}>Opening this day...</p>
+            </div>
+          ) : dayError ? (
+            <div className="text-center py-8">
+              <p className="text-white/70 text-sm mb-3" style={POPPINS}>This day could not be opened just now.</p>
+              <button onClick={() => fetchDay(selectedDate)} className="px-6 py-2.5 rounded-full text-white text-sm" style={{ ...POPPINS, background: '#FF4F9A' }}>Try again</button>
+            </div>
+          ) : dayData.entries.length === 0 && dayData.logs.length === 0 && dayIntimacy.length === 0 ? (
+            <p className="text-white/50 text-sm leading-relaxed py-4" style={POPPINS} data-testid="journal-day-empty">
+              Nothing saved for this day yet. Answer the questions above, mark your period or an intimate moment, or write a note, and it will all be kept right here.
+            </p>
+          ) : (
+            <div className="relative rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: `3px solid ${selectedPhaseColor}`, background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
+              {dayData.entries.map((entry, i) => (
+                <div key={entry.id} className="p-4" style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`journal-entry-${entry.id}`}>
+                  <div className="flex items-start justify-between mb-1">
+                    <div>
+                      <h3 className="text-white text-sm" style={POIRET}>{entry.title}</h3>
+                      <p className="text-white/30 text-[10px] mt-0.5" style={POPPINS}>{fmtTime(entry.created_at)}</p>
+                    </div>
+                    <button onClick={() => handleDeleteEntry(entry.id)} className="text-white/30 hover:text-red-400 p-1" title="Delete this entry" data-testid={`delete-entry-${entry.id}`}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <div className="relative rounded-2xl overflow-hidden"
-                    style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: '3px solid rgba(255,79,154,0.5)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
-                    {page.entries.map((entry, i) => (
-                      <div key={entry.id} className="p-4"
-                        style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}}
-                        data-testid={`journal-entry-${entry.id}`}>
-                        <div className="flex items-start justify-between mb-1">
-                          <div>
-                            <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', sans-serif" }}>{entry.title}</h3>
-                            <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtTime(entry.created_at)}</p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => handleEditEntry(entry)}
-                              title="Edit this entry"
-                              className="p-1" data-testid={`edit-entry-${entry.id}`}>
-                              <Pencil className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.78)' }} />
-                            </button>
-                            <button onClick={() => handleToggleIntimate(entry)}
-                              title={entry.is_intimate ? 'Intimate' : 'Mark as intimate'}
-                              className="p-1" data-testid={`intimate-entry-${entry.id}`}>
-                              <Lock className="w-3.5 h-3.5" style={{ color: entry.is_intimate ? GOLD : 'rgba(255,255,255,0.15)' }} />
-                            </button>
-                            <button onClick={() => handleDelete(entry.id)} className="text-white/15 hover:text-red-400 p-1" data-testid={`delete-entry-${entry.id}`}>
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                  {entry.is_intimate && (
+                    <p className="text-[10px] tracking-widest uppercase mb-1" style={{ ...POPPINS, color: GOLD }}>Intimate</p>
+                  )}
+                  <p className="journal-handwriting whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}>{entry.content}</p>
+                </div>
+              ))}
+              {dayData.logs.length > 0 && (
+                <div className="p-4" style={dayData.entries.length > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}}>
+                  <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-2" style={POPPINS}>Logged this day</p>
+                  <div className="space-y-2">
+                    {dayData.logs.map((log) => (
+                      <div key={log.id} className="flex items-start justify-between gap-2" data-testid={`journal-log-${log.id}`}>
+                        <div>
+                          {log.is_period ? (
+                            <p className="text-[#FDF8FA] text-xs leading-relaxed capitalize" style={POPPINS}>Period day · Flow: {log.flow || 'medium'}</p>
+                          ) : (
+                            <>
+                              {log.notes && (
+                                <p className="text-[#FDF8FA] text-xs leading-relaxed whitespace-pre-wrap" style={POPPINS}>{log.notes}</p>
+                              )}
+                              {!log.notes && log.symptoms?.length > 0 && (
+                                <p className="text-[#FDF8FA] text-xs leading-relaxed" style={POPPINS}>{log.symptoms.join(', ')}</p>
+                              )}
+                              {log.flow && (
+                                <p className="text-[#CFC3CC] text-[11px] capitalize" style={POPPINS}>Period day · Flow: {log.flow}</p>
+                              )}
+                            </>
+                          )}
                         </div>
-                        {entry.is_intimate && (
-                          <p className="text-[10px] tracking-widest uppercase mb-1" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>
-                            Intimate
-                          </p>
-                        )}
-                        <p className="journal-handwriting whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}>{entry.content}</p>
+                        <button onClick={() => handleDeleteLog(log.id)} className="text-white/30 hover:text-red-400 p-1 shrink-0" title="Delete this log" data-testid={`delete-log-${log.id}`}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     ))}
-                    {/* Item 20: our peach, always on the book page,
-                        bottom right corner, very small but visible. */}
-                    <img src="/images/peach-mini.png" alt="" aria-hidden="true" className="absolute bottom-2 right-2 w-6 h-6 object-contain pointer-events-none" style={{ opacity: 0.9 }} data-testid="journal-book-peach-logo" />
                   </div>
-                  {/* Page-turn controls */}
-                  <div className="flex items-center justify-between mt-4">
-                    <button
-                      onClick={() => setPageIndex(Math.min(pageIndex + 1, pages.length - 1))}
-                      disabled={pageIndex >= pages.length - 1}
-                      className="flex items-center gap-1 px-4 py-2 rounded-full text-xs disabled:opacity-30"
-                      style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(201,184,240,0.25)', color: '#c9b8f0', background: 'rgba(201,184,240,0.05)' }}
-                      data-testid="journal-older-page-btn">
-                      <ChevronLeft className="w-4 h-4" /> Older day
-                    </button>
-                    <button
-                      onClick={() => setPageIndex(Math.max(pageIndex - 1, 0))}
-                      disabled={pageIndex <= 0}
-                      className="flex items-center gap-1 px-4 py-2 rounded-full text-xs disabled:opacity-30"
-                      style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,79,154,0.3)', color: '#f4a7b9', background: 'rgba(255,79,154,0.06)' }}
-                      data-testid="journal-newer-page-btn">
-                      Newer day <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        ) : null}
+                </div>
+              )}
+              {dayIntimacy.length > 0 && (
+                <div className="p-4" style={(dayData.entries.length > 0 || dayData.logs.length > 0) ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}}>
+                  <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-2" style={POPPINS}>Intimacy</p>
+                  {dayIntimacy.map((log) => (
+                    <div key={log.id} className="flex items-start justify-between gap-2" data-testid={`journal-intimacy-${log.id}`}>
+                      <p className="text-[#FDF8FA] text-xs leading-relaxed" style={POPPINS}>
+                        <Heart className="w-3 h-3 inline mr-1" style={{ color: '#FF4F9A' }} fill="#FF4F9A" />
+                        Intimate day{log.partners ? ` · with ${log.partners}` : ''}
+                      </p>
+                      <button onClick={handleDeleteIntimacy} className="text-white/30 hover:text-red-400 p-1 shrink-0" title="Delete this intimacy log" data-testid={`delete-intimacy-${log.id}`}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <img src="/images/peach-mini.png" alt="" aria-hidden="true" className="absolute bottom-2 right-2 w-6 h-6 object-contain pointer-events-none" style={{ opacity: 0.9 }} />
+            </div>
+          )}
+        </div>
 
-        {/* Browse your days (v57): the calendar lives here in the
-            Journal tab, month by month across all her past months.
-            Blue days hold saved data; tapping one opens the FULL day
-            below: her writing, her moods, every log answer and quick
-            log saved to that day. */}
+        {/* Browse your days: the calendars live here in the Journal
+            tab, month by month or the whole year. Blue days hold
+            saved data; tapping one selects it and the full day view
+            above shows it. */}
         <div className="mt-10" data-testid="journal-browse">
-          <h2 className="text-xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>Browse your days</h2>
-          <p className="text-white/50 text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
+          <h2 className="text-xl text-white mb-1" style={POIRET}>Browse your days</h2>
+          <p className="text-white/50 text-xs mb-4" style={POPPINS}>
             Every day you wrote something or logged something is outlined in blue.
           </p>
           <div className="flex gap-2 mb-4" role="tablist" aria-label="Calendar view">
@@ -934,10 +864,10 @@ export default function JournalPage() {
             ))}
           </div>
           {browseView === 'month' ? (
-            <VaultCalendar
-              loggedDays={browseLoggedDays}
-              selectedDate={browseDay?.date || null}
-              onSelectDay={handleBrowseSelect}
+            <BrowseCalendar
+              loggedDays={loggedDays}
+              selectedDate={selectedDate}
+              onSelectDay={handleSelectDay}
               phaseColorFor={phaseColorFor}
               focusMonth={browseFocus}
             />
@@ -945,286 +875,93 @@ export default function JournalPage() {
             <YearCalendar
               year={browseYear}
               onYearChange={setBrowseYear}
-              loggedDays={browseLoggedDays}
-              selectedDate={browseDay?.date || null}
+              loggedDays={loggedDays}
+              selectedDate={selectedDate}
               phaseColorFor={phaseColorFor}
-              onSelectDay={handleBrowseSelect}
+              onSelectDay={handleSelectDay}
               onPickMonth={(d) => { setBrowseFocus(d); setBrowseView('month'); }}
             />
           )}
-          {browseBusy && (
-            <p className="text-white/60 text-sm text-center py-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening that day...</p>
-          )}
-          {browseDay && !browseBusy && (
-            <div data-testid="journal-browse-day">
-              <div className="flex items-end justify-between mb-2 px-1">
-                <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: '#F4D3DC' }}>{fmtDayLong(browseDay.date)}</p>
-                <button
-                  onClick={() => setBrowseDay(null)}
-                  className="text-[11px] underline"
-                  style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}
-                  data-testid="journal-browse-close"
-                >
-                  Close day
-                </button>
-              </div>
-              <div className="relative rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: `3px solid ${LOGGED_BLUE}`, background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
-                {browseDay.entries.map((entry, i) => (
-                  <div key={entry.id} className="p-4" style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`browse-entry-${entry.id}`}>
-                    <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', sans-serif" }}>{entry.title}</h3>
-                    <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtTime(entry.created_at)}</p>
-                    {entry.is_intimate && (
-                      <p className="text-[10px] tracking-widest uppercase mt-1" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>
-                        Intimate
-                      </p>
-                    )}
-                    <p className="journal-handwriting whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}>{entry.content}</p>
-                  </div>
-                ))}
-                {browseDay.logs.length > 0 && (
-                  <div className="p-4" style={browseDay.entries.length > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}}>
-                    <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Logged this day</p>
-                    <div className="space-y-2">
-                      {browseDay.logs.map((log) => (
-                        <div key={log.id}>
-                          {log.notes && (
-                            <p className="text-[#FDF8FA] text-xs leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.notes}</p>
-                          )}
-                          {!log.notes && log.symptoms?.length > 0 && (
-                            <p className="text-[#FDF8FA] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.symptoms.join(', ')}</p>
-                          )}
-                          {log.flow && (
-                            <p className="text-[#CFC3CC] text-[11px] capitalize" style={{ fontFamily: 'Poppins, sans-serif' }}>Flow: {log.flow}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {browseDay.entries.length === 0 && browseDay.logs.length === 0 && (
-                  <p className="p-4 text-white/50 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing saved this day.</p>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
-      </div>
+        {/* Your history: the charts. Cycle progression mirrors the
+            Calendar page, and the mood and energy trend reads the
+            mood:N and energy:N tags back from her logged days. */}
+        <div className="mt-10" data-testid="journal-history">
+          <h2 className="text-xl text-white mb-1" style={POIRET}>Your history</h2>
+          <p className="text-white/50 text-xs mb-4" style={POPPINS}>Your cycles, your moods and your energy, month by month.</p>
 
-      {/* The Vault: her sealed days, behind a password only she knows.
-          Full-screen like the phase cards, above the bottom nav, and
-          data-no-swipe keeps the tab-swipe handler out while it is open. */}
-      {vaultOpen && (
-        <div className="fixed inset-0 z-[80] flex flex-col" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-no-swipe="true" data-testid="journal-vault">
-          {/* The same faded life stages line runs behind the vault,
-              down low like the journal page (v49 placement, restored
-              in v54 at her word). */}
-          <div className="absolute inset-x-0 bottom-0 pointer-events-none overflow-hidden" aria-hidden="true">
-            <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.10, transform: 'translateX(10px)' }} />
-          </div>
-          <div className="relative flex items-center justify-between px-5 py-4 max-w-2xl mx-auto w-full flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <Lock className="w-5 h-5" style={{ color: GOLD }} />
-              <h2 className="text-white text-xl" style={{ fontFamily: "'Poiret One', sans-serif" }}>{firstName ? `${firstName}'s Vault` : 'Your Vault'}</h2>
-            </div>
-            <button onClick={closeVault} aria-label="Close vault" className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white active:opacity-70">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="relative flex-1 overflow-y-auto px-5 pb-10">
-            <div className="max-w-2xl mx-auto">
-              <p className="text-sm leading-relaxed mb-5" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
-                When a day ends, everything you wrote and logged seals in here, safe. Only your vault password opens this vault.
+          <div className="rounded-2xl p-4 mb-5" style={{ background: 'rgba(20,15,30,0.85)', border: '1px solid rgba(255,255,255,0.08)' }} data-testid="journal-cycle-chart">
+            <h3 className="text-base text-white mb-1" style={POIRET}>Your cycles</h3>
+            <p className="text-[#CFC3CC] text-xs mb-4" style={POPPINS}>
+              How many days you bled, and how long each cycle ran. The dashed line on each track is your usual for that number.
+            </p>
+            {!cycleStats || chartCycles.length === 0 ? (
+              <p className="text-[#CFC3CC] text-xs leading-relaxed" style={POPPINS} data-testid="journal-cycle-chart-empty">
+                Your chart fills in as you log each period. Log the day your period starts and the day it finishes, and both lines begin here.
               </p>
-
-              {vaultDays ? (
-                <div data-testid="vault-unlocked">
-                  <VaultCalendar
-                    loggedDays={vaultLoggedDays}
-                    selectedDate={vaultSelectedDate || vaultDays[Math.min(vaultPage, Math.max(0, vaultDays.length - 1))]?.date || null}
-                    onSelectDay={handleVaultCalSelect}
-                    phaseColorFor={phaseColorFor}
-                  />
-                  {vaultDays.length === 0 ? (
-                    <div className="text-center py-16">
-                      <p className="text-3xl mb-3" style={{ color: 'rgba(201,184,240,0.25)' }}>✿</p>
-                      <p className="text-white/70 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing sealed yet.</p>
-                      <p className="text-white/25 text-xs mt-1" style={{ fontFamily: 'Poppins, sans-serif' }}>When today ends, it will be waiting here for you tomorrow.</p>
-                    </div>
-                  ) : (
-                    <>
-                      {(() => {
-                        const day = vaultDays[Math.min(vaultPage, vaultDays.length - 1)];
-                        return (
-                          <>
-                            <div className="flex items-end justify-between mb-2 px-1">
-                              <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: '#F4D3DC' }}>{fmtDayLong(day.date)}</p>
-                              <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}>
-                                Sealed day {Math.min(vaultPage, vaultDays.length - 1) + 1} of {vaultDays.length}
-                              </p>
-                            </div>
-                            <div className="relative rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: `3px solid ${GOLD}`, background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
-                              {day.entries.map((entry, i) => (
-                                <div key={entry.id} className="p-4" style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`vault-entry-${entry.id}`}>
-                                  <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', sans-serif" }}>{entry.title}</h3>
-                                  <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtTime(entry.created_at)}</p>
-                                  {entry.is_intimate && (
-                                    <p className="text-[10px] tracking-widest uppercase mt-1" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>
-                                      Intimate
-                                    </p>
-                                  )}
-                                  <p className="journal-handwriting whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}>{entry.content}</p>
-                                </div>
-                              ))}
-                              {day.logs.length > 0 && (
-                                <div className="p-4" style={day.entries.length > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}}>
-                                  <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Logged this day</p>
-                                  <div className="space-y-2">
-                                    {day.logs.map((log) => (
-                                      <div key={log.id}>
-                                        {log.notes && (
-                                          <p className="text-[#FDF8FA] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.notes}</p>
-                                        )}
-                                        {!log.notes && log.symptoms?.length > 0 && (
-                                          <p className="text-[#FDF8FA] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.symptoms.join(', ')}</p>
-                                        )}
-                                        {log.flow && (
-                                          <p className="text-[#CFC3CC] text-[11px] capitalize" style={{ fontFamily: 'Poppins, sans-serif' }}>Flow: {log.flow}</p>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              {/* Item 20: the peach rides on the vault book page too, bottom right, small but visible. */}
-                              <img src="/images/peach-mini.png" alt="" aria-hidden="true" className="absolute bottom-2 right-2 w-6 h-6 object-contain pointer-events-none" style={{ opacity: 0.9 }} data-testid="vault-day-peach-logo" />
-                            </div>
-                            <div className="flex items-center justify-between mt-4">
-                              <button
-                                onClick={() => setVaultPage(Math.min(vaultPage + 1, vaultDays.length - 1))}
-                                disabled={vaultPage >= vaultDays.length - 1}
-                                className="flex items-center gap-1 px-4 py-2 rounded-full text-xs disabled:opacity-30"
-                                style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(201,184,240,0.25)', color: '#c9b8f0', background: 'rgba(201,184,240,0.05)' }}
-                                data-testid="vault-older-btn">
-                                <ChevronLeft className="w-4 h-4" /> Older day
-                              </button>
-                              <button
-                                onClick={() => setVaultPage(Math.max(vaultPage - 1, 0))}
-                                disabled={vaultPage <= 0}
-                                className="flex items-center gap-1 px-4 py-2 rounded-full text-xs disabled:opacity-30"
-                                style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,79,154,0.3)', color: '#f4a7b9', background: 'rgba(255,79,154,0.06)' }}
-                                data-testid="vault-newer-btn">
-                                Newer day <ChevronRight className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </>
-                  )}
-
-                  {/* Change the vault password, from inside the vault */}
-                  <div className="mt-8 pt-5" style={{ borderTop: '1px solid rgba(201,184,240,0.12)' }}>
-                    {!showChangePw ? (
-                      <button onClick={() => setShowChangePw(true)} className="text-xs underline" style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }} data-testid="vault-change-toggle">
-                        Change vault password
-                      </button>
-                    ) : (
-                      <div data-testid="vault-change-form">
-                        <input
-                          type="password" value={changeCur} onChange={(e) => setChangeCur(e.target.value)}
-                          placeholder="Current vault password" autoComplete="current-password"
-                          className="w-full rounded-xl px-4 py-3 text-sm mb-3 outline-none placeholder-white/25 text-white"
-                          style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,184,240,0.25)' }}
-                        />
-                        <input
-                          type="password" value={changeNew} onChange={(e) => setChangeNew(e.target.value)}
-                          placeholder="New vault password" autoComplete="new-password"
-                          className="w-full rounded-xl px-4 py-3 text-sm mb-3 outline-none placeholder-white/25 text-white"
-                          style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,184,240,0.25)' }}
-                        />
-                        {changeMsg && (
-                          <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#c9b8f0' }}>{changeMsg}</p>
-                        )}
-                        <div className="flex gap-2">
-                          <button onClick={() => { setShowChangePw(false); setChangeMsg(''); setChangeCur(''); setChangeNew(''); }}
-                            className="flex-1 py-2.5 rounded-full text-white/75 text-xs" style={{ fontFamily: 'Poppins, sans-serif', border: '1px solid rgba(255,255,255,0.08)' }}>
-                            Cancel
-                          </button>
-                          <button onClick={handleChangeVaultPassword} disabled={vaultBusy || !changeCur || !changeNew}
-                            className="flex-1 py-2.5 rounded-full text-white text-xs font-medium disabled:opacity-40"
-                            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
-                            data-testid="vault-change-btn">
-                            {vaultBusy ? 'Saving...' : 'Save new password'}
-                          </button>
+            ) : (
+              <div className="space-y-4">
+                {chartCycles.map((c, i) => {
+                  const completed = periodCompleted(c, i);
+                  return (
+                    <div key={c.start} data-testid={`journal-cycle-row-${c.start}`}>
+                      <p className="text-[#E6E0EE] text-xs mb-1.5" style={POPPINS}>{monthLabel(c.start)}</p>
+                      {completed && c.period_length ? (
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-[#CFC3CC] text-[10px] w-12 shrink-0" style={POPPINS}>Bled</span>
+                          <div className="relative flex-1 h-3 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                            <div className="h-3 rounded-full" style={{ width: `${Math.max(4, (c.period_length / bleedMax) * 100)}%`, background: `linear-gradient(90deg, ${PHASE_PAIRS.menstrual.primary}, ${PHASE_PAIRS.menstrual.secondary})` }} />
+                            {cycleStats.avg_period_length ? (
+                              <div className="absolute -top-1 -bottom-1 border-l border-dashed border-white/70" style={{ left: `${(cycleStats.avg_period_length / bleedMax) * 100}%` }} />
+                            ) : null}
+                          </div>
+                          <span className="text-[#FDF8FA] text-[11px] w-14 shrink-0" style={POPPINS}>{c.period_length} day{c.period_length !== 1 ? 's' : ''}</span>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : vaultHasPw === null ? (
-                vaultError ? (
-                  <p className="text-xs text-center py-10" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="vault-error">{vaultError}</p>
-                ) : (
-                  <p className="text-white/70 text-sm text-center py-10" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening your vault...</p>
-                )
-              ) : vaultHasPw ? (
-                <div data-testid="vault-unlock-form">
-                  <p className="text-sm leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.65)' }}>
-                    Your sealed days are behind your vault password. Type it to open them.
-                  </p>
-                  <input
-                    type="password" value={vaultPw} onChange={(e) => { setVaultPw(e.target.value); if (vaultError) setVaultError(''); }}
-                    placeholder="Vault password" autoComplete="current-password"
-                    className="w-full rounded-xl px-4 py-3 text-sm mb-3 outline-none placeholder-white/25 text-white"
-                    style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,184,240,0.25)' }}
-                    data-testid="vault-password-input"
-                  />
-                  {vaultError && (
-                    <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="vault-error">{vaultError}</p>
-                  )}
-                  <button onClick={() => unlockVault(vaultPw)} disabled={vaultBusy || !vaultPw}
-                    className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
-                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
-                    data-testid="vault-unlock-btn">
-                    {vaultBusy ? 'Opening...' : 'Open my vault'}
-                  </button>
-                </div>
-              ) : (
-                <div data-testid="vault-set-form">
-                  <p className="text-sm leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.65)' }}>
-                    Set the password for your vault. You will need it to open your sealed days, so pick one you will remember. It is yours alone, and no one can reset it for you.
-                  </p>
-                  <input
-                    type="password" value={vaultNew1} onChange={(e) => { setVaultNew1(e.target.value); if (vaultError) setVaultError(''); }}
-                    placeholder="New vault password" autoComplete="new-password"
-                    className="w-full rounded-xl px-4 py-3 text-sm mb-3 outline-none placeholder-white/25 text-white"
-                    style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,184,240,0.25)' }}
-                    data-testid="vault-new-password-input"
-                  />
-                  <input
-                    type="password" value={vaultNew2} onChange={(e) => { setVaultNew2(e.target.value); if (vaultError) setVaultError(''); }}
-                    placeholder="Type it once more" autoComplete="new-password"
-                    className="w-full rounded-xl px-4 py-3 text-sm mb-3 outline-none placeholder-white/25 text-white"
-                    style={{ fontFamily: 'Poppins, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,184,240,0.25)' }}
-                    data-testid="vault-confirm-password-input"
-                  />
-                  {vaultError && (
-                    <p className="text-xs mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#ff8fa3' }} data-testid="vault-error">{vaultError}</p>
-                  )}
-                  <button onClick={handleSetVaultPassword} disabled={vaultBusy || !vaultNew1 || !vaultNew2}
-                    className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40"
-                    style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
-                    data-testid="vault-set-btn">
-                    {vaultBusy ? 'Setting...' : 'Set my vault password'}
-                  </button>
-                </div>
-              )}
-            </div>
+                      ) : null}
+                      {c.cycle_length ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#CFC3CC] text-[10px] w-12 shrink-0" style={POPPINS}>Cycle</span>
+                          <div className="relative flex-1 h-3 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                            <div className="h-3 rounded-full" style={{ width: `${Math.max(4, (c.cycle_length / cycleMax) * 100)}%`, background: `linear-gradient(90deg, ${PHASE_PAIRS.luteal.primary}, ${PHASE_PAIRS.luteal.secondary})` }} />
+                            {cycleStats.avg_cycle_length ? (
+                              <div className="absolute -top-1 -bottom-1 border-l border-dashed border-white/70" style={{ left: `${(cycleStats.avg_cycle_length / cycleMax) * 100}%` }} />
+                            ) : null}
+                          </div>
+                          <span className="text-[#FDF8FA] text-[11px] w-14 shrink-0" style={POPPINS}>{c.cycle_length} days</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {cycleStats && cycleRowsForChart.length >= 1 && (
+              <p className="text-[#E6E0EE] text-xs leading-relaxed mt-4" style={POPPINS}>
+                {cycleStats.cycles_tracked >= 1 ? `Your period usually lasts ${Math.round(cycleStats.avg_period_length)} days. ` : ''}
+                {`Your cycles average ${Math.round(cycleStats.avg_cycle_length)} days.`}
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-2xl p-4" style={{ background: 'rgba(20,15,30,0.85)', border: '1px solid rgba(255,255,255,0.08)' }} data-testid="journal-trend-chart">
+            <h3 className="text-base text-white mb-1" style={POIRET}>Mood and energy</h3>
+            <p className="text-[#CFC3CC] text-xs mb-4" style={POPPINS}>
+              Your most recent logged days. Each bar wears the color of that day&apos;s phase.
+            </p>
+            {trendDays.length === 0 ? (
+              <p className="text-[#CFC3CC] text-xs leading-relaxed" style={POPPINS} data-testid="journal-trend-empty">
+                Nothing here yet. When you answer the mood and energy questions above, your days begin to gather here.
+              </p>
+            ) : (
+              <>
+                {trendRow('Mood', 'mood')}
+                {trendRow('Energy', 'energy')}
+              </>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

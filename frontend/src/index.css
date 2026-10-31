@@ -54,6 +54,13 @@
     padding: 0;
 }
 
+/* Oct 31, 2026 (Angelita): the Poppins text needs to be smaller.
+   Tailwind sizes are rem based, so the root font size scales the
+   app's body text down one step, together. */
+html {
+    font-size: 15px;
+}
+
 body {
     font-family: 'Poppins', sans-serif;
     font-weight: 400;
@@ -148,8 +155,8 @@ h1, h2, h3, .heading {
    phase color. The day number is much smaller and sits low in
    the peach body, clear of the sunglasses and face. */
 .day-peach {
-  width: 168px;
-  height: 168px;
+  width: 132px;
+  height: 132px;
   position: relative;
   display: flex;
   align-items: center;

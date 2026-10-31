@@ -16,10 +16,10 @@ import { dailyAffirmation } from '../lib/affirmations';
 // and her own words for the pair. Colors all come from
 // PHASE_PAIRS / phaseTint, never restated here.
 const PHASE_LEGEND = [
-  { id: 'menstrual', words: 'Red and pink', name: 'Menstrual' },
-  { id: 'follicular', words: 'Blue and pink', name: 'Follicular' },
-  { id: 'ovulatory', words: 'Pink and green', name: 'Ovulation' },
-  { id: 'luteal', words: 'Pink and purple', name: 'Luteal' },
+  { id: 'menstrual', words: 'Red', name: 'Menstrual' },
+  { id: 'follicular', words: 'Blue', name: 'Follicular' },
+  { id: 'ovulatory', words: 'Green', name: 'Ovulation' },
+  { id: 'luteal', words: 'Purple', name: 'Luteal' },
 ];
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -493,7 +493,7 @@ export default function HomePage() {
             />
           )}
           {phase !== 'unknown' && (
-            <span className="day-peach-day" style={{ fontSize: 28 }}>{cycle.cycle_day || '?'}</span>
+            <span className="day-peach-day" style={{ fontSize: 24 }}>{cycle.cycle_day || '?'}</span>
           )}
         </div>
         </div>
@@ -517,7 +517,7 @@ export default function HomePage() {
       {phase !== 'unknown' && isEstimateState && cycle.next_period_date && (
         <div className="card p-4 mb-6" data-testid="home-estimate-note">
           <p className="text-[#E6E0EE] text-sm leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Estimated next period: {new Date(`${cycle.next_period_date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. This is an estimate based on a 28 day cycle because we do not know your exact cycle length yet. Log in the Calendar tab when your period starts and when it finishes. Once you log your period and how long it lasts, HORMOscope will start learning your own cycle. We will know your cycle length for sure after you log your next period start.
+            Estimated next period: {new Date(`${cycle.next_period_date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. This is an estimate while HORMOscope learns your cycle.
           </p>
         </div>
       )}
@@ -752,11 +752,10 @@ export default function HomePage() {
         <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-3 text-center" style={{ fontFamily: 'Poppins, sans-serif' }}>Your phase colors</p>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 max-w-sm mx-auto">
           {PHASE_LEGEND.map((row) => {
-            const pair = PHASE_PAIRS[row.id];
             return (
               <div key={row.id} className="flex items-center gap-2">
-                <span className="relative inline-block shrink-0" style={{ width: 24, height: 24 }}>
-                  <img src="/images/peach-mini.png" alt="" style={{ width: 24, height: 24, objectFit: 'contain', display: 'block' }} />
+                <span className="relative inline-block shrink-0" style={{ width: 36, height: 36 }}>
+                  <img src="/images/peach-mini.png" alt="" style={{ width: 36, height: 36, objectFit: 'contain', display: 'block' }} />
                   <span
                     aria-hidden="true"
                     style={{
@@ -766,11 +765,8 @@ export default function HomePage() {
                     }}
                   />
                 </span>
-                <span className="flex gap-1 shrink-0">
-                  <span className="w-2 h-2 rounded-full" style={{ background: pair.primary }} />
-                  <span className="w-2 h-2 rounded-full" style={{ background: pair.secondary }} />
-                </span>
-                <span className="text-[11px] text-[#CFC8DC]" style={{ fontFamily: 'Poppins, sans-serif' }}>{row.words}: {row.name}</span>
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: phaseTint(row.id) }} />
+                <span className="text-[13px] text-[#CFC8DC]" style={{ fontFamily: 'Poppins, sans-serif' }}>{row.words}: {row.name}</span>
               </div>
             );
           })}

@@ -6,13 +6,14 @@ import { ChevronLeft } from 'lucide-react';
 export const APP_MAP = [
   { group: 'Main tabs', items: [
     { to: '/', name: 'Home', desc: 'Your cycle day, phase, quick log and today\u2019s daily read.' },
-    { to: '/journal', name: 'Journal', desc: 'Your private daily journal: one day per page, saved to your day, and shared only if you choose.' },
-    { to: '/attunement', name: 'Attunement', desc: 'Attuned Partner Mode: invite your partner or sync cycles with your girlfriend.' },
+    { to: '/journal', name: 'Journal', desc: 'All your daily questions for any day, with your note, plus history calendars coloured by phase and the Your history chart of cycle lengths and mood and energy trends.' },
+    { to: '/attunement', name: 'Attunement', desc: 'Attuned Partner Mode: invite your partner or sync cycles with your girlfriend, and choose what to share, including your daily log and your note.' },
     { to: '/calendar', name: 'Calendar', desc: 'Periods, fertile window, symptoms and intimacy, past and future.' },
-    { to: '/profile', name: 'Profile', desc: 'Your details, what your partner can see, settings and account.' },
+    { to: '/profile', name: 'Profile', desc: 'Your details, settings and account.' },
   ]},
   { group: 'Partner', items: [
     { to: '/partner-hub', name: 'Partner Hub', desc: 'Where a partner enters an invite code and follows your cycle.' },
+    { to: '/attunement', name: 'Gift Catalog', desc: 'In Attunement: Food & Drink first, then Non Food & Drink, each sorted by price. Heart items onto your wishlist, and tap a product name to open it on Amazon.' },
   ]},
   { group: 'Help & about', items: [
     { to: '/guide', name: 'Instructional Guide', desc: 'How each part of the app works.' },

@@ -125,7 +125,7 @@ fake_db = FakeDB(REL, USERS)
 server.db = fake_db
 
 TEA = "B0FHBXCCLM"        # Dona Tea Library, Comfort Collection
-PADS = "B07NLSLP9K"       # Always Radiant, Comfort Collection
+PADS = "B07YQBWVGF"       # Cora Overnight Pads (was Always Radiant B07NLSLP9K until Angelita removed it from the catalog, Oct 31, 2026)
 BRACELET = "B0CNC67C8B"   # Diamond tennis bracelet, Romance Collection
 
 
@@ -263,7 +263,7 @@ async def main():
     # the Oct 30 to 31 batch with verified name, price and
     # picture, plus the 22 v57 ASINs that were already in
     # CATALOG_PRODUCTS but missing from the ID set).
-    results.append(("all server catalog ASINs accepted", accepted == len(server.CATALOG_PRODUCT_IDS) == 95))
+    results.append(("all server catalog ASINs accepted", accepted == len(server.CATALOG_PRODUCT_IDS) == 119))
 
     failed = [name for name, ok in results if not ok]
     for name, ok in results:

@@ -25,6 +25,7 @@ export default function GuidePage() {
           <section data-testid="guide-overview">
             <h2 className="text-xl sm:text-2xl text-white mb-3">What HORMOscope does</h2>
             <p className="mb-3">HORMOscope brings together cycle tracking, the calendar, your Daily Read, mood and symptom logging, phase guides and Attuned Partner Mode.</p>
+            <p className="mb-3">Science, not Stars. Your daily reads come from your cycle and what you log, not from astrology.</p>
           </section>
           <section data-testid="guide-verify">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Confirm your email</h2>
@@ -32,13 +33,14 @@ export default function GuidePage() {
           </section>
           <section data-testid="guide-home">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Home</h2>
-            <p className="mb-3">Home is your day at a glance. The day circle shows which day of your cycle you are on and which phase you are in. It glows with a slow, pulsing orb in your phase&apos;s colour: rose for your period, pink for follicular, gold around ovulation and lilac for luteal.</p>
+            <p className="mb-3">Home is your day at a glance. The day circle shows which day of your cycle you are on and which phase you are in. It glows with a slow, pulsing orb in your phase colour. Each phase has one colour everywhere in the app: red for menstrual, blue for follicular, green for ovulatory and purple for luteal.</p>
             <p className="mb-3">Under it you will see a one-line read of how today may feel, and your Daily Read. Tap See more to open the phase list, food and activity tips for where you are in your cycle.</p>
             <p className="mb-3">The orb also stays still if your phone is set to reduce motion.</p>
           </section>
           <section data-testid="guide-quicklog">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Quick log</h2>
-            <p className="mb-3">Under Log today there are 5 buttons: Mood, Energy, Symptoms, Cravings and Sleep. Tap one to open it and choose what fits. Every tap saves to today straight away and you will see a small Saved to today message. Mood starts with 8 core feelings; tap More feelings for the rest. Everything you log is kept on your Calendar.</p>
+            <p className="mb-3">The quick log is on Home, for today. Under Log today there are 5 buttons: Mood, Energy, Symptoms, Cravings and Sleep. Tap one to open it and choose what fits. Every tap saves to today straight away and you will see a small Saved to today message. Mood starts with 8 core feelings; tap More feelings for the rest.</p>
+            <p className="mb-3">The same questions also live in full in the Journal tab, where you can answer them for today or for any past day. Everything you log is kept in that day in your Journal, and on your Calendar.</p>
           </section>
           <section data-testid="guide-calendar">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Calendar</h2>
@@ -47,8 +49,11 @@ export default function GuidePage() {
           </section>
           <section data-testid="guide-journal">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Journal</h2>
-            <p className="mb-3">Your Journal is a book, one day per page. Write, tap Save, and use Older day, Newer day or the small calendar to move between pages.</p>
-            <p className="mb-3">Your entries are private, saved to your day, and shared only if you choose to share them with a partner linked in Attuned Partner Mode.</p>
+            <p className="mb-3">All of your daily questions live in the Journal tab, for every day. They cover your mood and feelings, your energy, symptoms, cravings, sleep, your period collection method, and supplements and vitamins.</p>
+            <p className="mb-3">The note inside the day&apos;s questions is where you write. There is no separate place for writing. The day&apos;s answers, together with your note, are that day&apos;s journal entry.</p>
+            <p className="mb-3">You can pick any past day and see everything you logged for it: your answers, your note, period days and intimate days. You can fill in a past day, change it, or delete an entry or a log whenever you want.</p>
+            <p className="mb-3">Your history is here too. Browse the calendars by month and by year, with days coloured by cycle phase: red for menstrual, blue for follicular, green for ovulatory and purple for luteal. The Your history chart shows your cycle lengths and your mood and energy trends over time.</p>
+            <p className="mb-3">Your entries are yours. They are only shared if you turn on the sharing choices in Attunement for a linked partner.</p>
           </section>
           <section data-testid="guide-attuned">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Attuned Partner Mode</h2>
@@ -57,12 +62,17 @@ export default function GuidePage() {
               <li><strong>Invite code:</strong> in Profile, tap Create &amp; share invite code and send it. Your partner signs up and enters the code in the Partner Hub.</li>
               <li><strong>Boyfriend or partner without a cycle:</strong> they see your phase, what it may feel like and how to show up for you.</li>
               <li><strong>Girlfriend sync:</strong> if you both track your cycles, the Attunement tab shows your two cycles side by side for the next 4 weeks and highlights the days your phases overlap.</li>
-              <li><strong>Visibility settings:</strong> in Profile, under My details, you choose exactly what your partner can see. Anything you switch off stays private to you.</li>
+              <li><strong>Sharing choices:</strong> in Attunement, you choose what your partner sees with toggles. Alongside the journal and intimacy choices, you can share my daily log and include my note. Those two start off, and they are only sent if you turn them on. Anything you leave unchecked is never sent, and it stays private to you.</li>
             </ul>
+          </section>
+          <section data-testid="guide-gifts">
+            <h2 className="text-xl sm:text-2xl text-white mb-3">Gift Catalog</h2>
+            <p className="mb-3">The Gift Catalog lives in Attunement. It has two groups: Food &amp; Drink first, then Non Food &amp; Drink, and each group is sorted by price.</p>
+            <p className="mb-3">Tap the heart on anything you like and it goes onto your wishlist. Tap a product name to open it on Amazon.</p>
           </section>
           <section data-testid="guide-profile">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Profile</h2>
-            <p className="mb-3">Profile holds your name and photo, My details (optional birthday, cycle situation, conditions like PMDD, PCOS or endometriosis, and partner visibility), reminders and your account. You can delete your account and data here at any time.</p>
+            <p className="mb-3">Profile holds your name and photo, My details (optional birthday, cycle situation, and conditions like PMDD, PCOS or endometriosis), reminders and your account. You can delete your account and data here at any time. What your partner can see is chosen in Attunement.</p>
             <p className="mb-3">Profile is also where the Founder&apos;s Note, this guide and the App Map live.</p>
           </section>
           <section data-testid="guide-appmap">

@@ -208,7 +208,10 @@ async def section_sync(results):
                     profile_photo="data:image/jpeg;base64,OWNERPHOTO",
                     partner_visibility={"phase": True, "mood_energy": True,
                                         "period_dates": True, "fertile_window": False,
-                                        "wishlist": True})
+                                        "wishlist": True,
+                                        # v58: her log data reaches a partner only
+                                        # with share_daily_log on.
+                                        "share_daily_log": True})
     partner = mk_user("u-partner", "Pam")
     db.users.docs += [dict(owner), dict(partner)]
     db.partner_relationships.docs.append(
@@ -262,10 +265,12 @@ async def section_sync(results):
     results.append(("both toggles off: side not shared", res["them"].get("shared") is False))
     results.append(("both toggles off: no log_days attached", "log_days" not in res["them"]))
 
-    # Phase on, mood off: days show, feelings do not.
+    # Phase on, mood off: days show, feelings do not. (v58: share_daily_log
+    # stays on so the days themselves are shared; mood_energy off is what
+    # strips the feelings detail.)
     db.users.docs[0]["partner_visibility"] = {
         "phase": True, "mood_energy": False, "period_dates": True,
-        "fertile_window": False, "wishlist": True}
+        "fertile_window": False, "wishlist": True, "share_daily_log": True}
     code, res = await call(server.get_partner_sync, dict(partner))
     ld = res["them"].get("log_days") or []
     results.append(("mood off: log days still returned", len(ld) == 28))
@@ -345,8 +350,11 @@ async def section_view(results):
     server.db = db
     today = date.today()
     lp = (today - timedelta(days=10)).isoformat()
+    # v58: all_on also turns on the two new sharing choices, so log-derived
+    # payload fields (feeling today, log days) and note text are served.
     all_on = {"phase": True, "mood_energy": True, "period_dates": True,
-              "fertile_window": True, "wishlist": True}
+              "fertile_window": True, "wishlist": True,
+              "share_daily_log": True, "include_note": True}
     owner = mk_user("u-view", "Vera", last_period_date=lp, cycle_length=28,
                     cycle_status="regular", profile_photo="data:image/jpeg;base64,VERAPHOTO",
                     partner_visibility=dict(all_on), boutique_visibility="private")
