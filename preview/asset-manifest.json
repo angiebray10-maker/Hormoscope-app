@@ -1,19 +1,23 @@
 {
   "files": {
-    "main.css": "/Hormoscope-app/preview/static/css/main.29e17224.css",
-    "main.js": "/Hormoscope-app/preview/static/js/main.200d3fec.js",
-    "static/js/469.98469507.chunk.js": "/Hormoscope-app/preview/static/js/469.98469507.chunk.js",
-    "static/js/338.cbbf6dd8.chunk.js": "/Hormoscope-app/preview/static/js/338.cbbf6dd8.chunk.js",
-    "static/media/Affair.woff": "/Hormoscope-app/preview/static/media/Affair.745af167e229a4bc88de.woff",
-    "static/media/Affair.woff2": "/Hormoscope-app/preview/static/media/Affair.868d5f3578627321ad56.woff2",
+    "main.css": "/Hormoscope-app/preview/static/css/main.0d0d8394.css",
+    "main.js": "/Hormoscope-app/preview/static/js/main.95b9b34c.js",
+    "static/js/551.34a33aba.chunk.js": "/Hormoscope-app/preview/static/js/551.34a33aba.chunk.js",
+    "static/js/256.7ac8afa1.chunk.js": "/Hormoscope-app/preview/static/js/256.7ac8afa1.chunk.js",
+    "static/js/640.7e337f66.chunk.js": "/Hormoscope-app/preview/static/js/640.7e337f66.chunk.js",
+    "static/js/617.0e0e97db.chunk.js": "/Hormoscope-app/preview/static/js/617.0e0e97db.chunk.js",
+    "static/media/architects-daughter-latin.woff2": "/Hormoscope-app/preview/static/media/architects-daughter-latin.5de24e6b8da9e468d901.woff2",
+    "static/media/architects-daughter-latin-ext.woff2": "/Hormoscope-app/preview/static/media/architects-daughter-latin-ext.8f5a408870c4a3ab855f.woff2",
     "index.html": "/Hormoscope-app/preview/index.html",
-    "main.29e17224.css.map": "/Hormoscope-app/preview/static/css/main.29e17224.css.map",
-    "main.200d3fec.js.map": "/Hormoscope-app/preview/static/js/main.200d3fec.js.map",
-    "469.98469507.chunk.js.map": "/Hormoscope-app/preview/static/js/469.98469507.chunk.js.map",
-    "338.cbbf6dd8.chunk.js.map": "/Hormoscope-app/preview/static/js/338.cbbf6dd8.chunk.js.map"
+    "main.0d0d8394.css.map": "/Hormoscope-app/preview/static/css/main.0d0d8394.css.map",
+    "main.95b9b34c.js.map": "/Hormoscope-app/preview/static/js/main.95b9b34c.js.map",
+    "551.34a33aba.chunk.js.map": "/Hormoscope-app/preview/static/js/551.34a33aba.chunk.js.map",
+    "256.7ac8afa1.chunk.js.map": "/Hormoscope-app/preview/static/js/256.7ac8afa1.chunk.js.map",
+    "640.7e337f66.chunk.js.map": "/Hormoscope-app/preview/static/js/640.7e337f66.chunk.js.map",
+    "617.0e0e97db.chunk.js.map": "/Hormoscope-app/preview/static/js/617.0e0e97db.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.29e17224.css",
-    "static/js/main.200d3fec.js"
+    "static/css/main.0d0d8394.css",
+    "static/js/main.95b9b34c.js"
   ]
 }

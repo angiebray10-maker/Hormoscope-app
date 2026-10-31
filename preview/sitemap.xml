@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Replace https://hormoscope.app with the real web domain before publishing. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://hormoscope.app/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://hormoscope.app/app-map.html</loc><priority>0.6</priority></url>
+  <url><loc>https://hormoscope.app/guide</loc><priority>0.5</priority></url>
+  <url><loc>https://hormoscope.app/founders-note</loc><priority>0.5</priority></url>
+  <url><loc>https://hormoscope.app/contact</loc><priority>0.3</priority></url>
+  <url><loc>https://hormoscope.app/privacy</loc><priority>0.3</priority></url>
+  <url><loc>https://hormoscope.app/terms</loc><priority>0.3</priority></url>
+</urlset>
