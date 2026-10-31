@@ -465,16 +465,25 @@ export default function HomePage() {
           the whole header is color coordinated with her phase
           pair: peach tint, glow, and phase name below. */}
       <div className="flex flex-col items-center mb-8">
-        <span className="text-[#E6E0EE] text-xs tracking-widest uppercase font-semibold mb-3">
-          {phase === 'unknown' ? 'CYCLE DAY' : 'YOU ARE ON DAY'}
-        </span>
+        {/* Bigger peach (Oct 31, 2026, later): the FULL wording
+            "You are on day N" now sits stacked inside the peach
+            itself, so the label above the peach is gone for a
+            known phase. No phase (unknown / no periods): the
+            neutral handling is unchanged, the CYCLE DAY label
+            stays above and the peach carries no wording, no
+            tint and no glow. */}
+        {phase === 'unknown' && (
+          <span className="text-[#E6E0EE] text-xs tracking-widest uppercase font-semibold mb-3">
+            CYCLE DAY
+          </span>
+        )}
         <div className="hs-orb-pulse rounded-full">
         <div className="day-peach" data-testid="day-circle">
           {phase !== 'unknown' && (
             <span
               className="day-peach-glow"
               data-testid="day-peach-glow"
-              style={{ background: `radial-gradient(circle, ${config.color}59 0%, ${config.color}30 42%, ${config.color2}26 62%, transparent 72%)` }}
+              style={{ background: `radial-gradient(circle, ${config.color}8C 0%, ${config.color}4D 42%, ${config.color2}38 62%, transparent 78%)` }}
             />
           )}
           <img src="/images/peach-mini.png" alt="" className="day-peach-img" />
@@ -490,7 +499,10 @@ export default function HomePage() {
             />
           )}
           {phase !== 'unknown' && (
-            <span className="day-peach-day" style={{ fontSize: 24 }}>{cycle.cycle_day || '?'}</span>
+            <span className="day-peach-words" data-testid="day-peach-words">
+              <span className="day-peach-words-top">You are on</span>
+              <span className="day-peach-words-day">day {cycle.cycle_day || '?'}</span>
+            </span>
           )}
         </div>
         </div>

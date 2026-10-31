@@ -153,10 +153,14 @@ h1, h2, h3, .heading {
    masked to the peach silhouette, so the art keeps its shading
    and detail (sunglasses stay dark) while its hue becomes the
    phase color. The day number is much smaller and sits low in
-   the peach body, clear of the sunglasses and face. */
+   the peach body, clear of the sunglasses and face.
+   Oct 31, 2026 (later, her clarified spec): the peach is BIGGER
+   (132px to 210px) and carries the FULL wording inside it,
+   "You are on" over "day N", stacked low in the peach body in
+   white Poppins (.day-peach-words). No bare number anymore. */
 .day-peach {
-  width: 132px;
-  height: 132px;
+  width: 210px;
+  height: 210px;
   position: relative;
   display: flex;
   align-items: center;
@@ -170,14 +174,19 @@ h1, h2, h3, .heading {
    gradient itself is set inline in HomePage from PHASE_PAIRS. */
 .day-peach-glow {
   position: absolute;
-  inset: -42%;
+  /* -25% keeps the untransformed box inside a 360px phone's
+     content width now that the peach is 210px; the pulse scale
+     still lets the light breathe past it visually. */
+  inset: -25%;
   border-radius: 50%;
   pointer-events: none;
   animation: dayPeachGlow 4.5s ease-in-out infinite;
 }
+/* Strengthened (Oct 31, 2026): the pulse must be plainly
+   visible, a clear breathing swing, not a shimmer. */
 @keyframes dayPeachGlow {
-  0%, 100% { opacity: 0.75; transform: scale(0.97); }
-  50% { opacity: 1; transform: scale(1.03); }
+  0%, 100% { opacity: 0.55; transform: scale(0.94); }
+  50% { opacity: 1; transform: scale(1.08); }
 }
 /* Oct 31, 2026: the spinning, fading decorative peaches are GONE
    (her decision). In their place, a soft light in the current
@@ -224,17 +233,33 @@ h1, h2, h3, .heading {
   display: block;
   position: relative;
 }
-.day-peach-day {
+/* The full wording inside the peach (Oct 31, 2026): "You are
+   on" over "day N", stacked and centered low in the peach body,
+   clear of the sunglasses, white Poppins with the same strong
+   shadow the bare number used so it reads over the art. */
+.day-peach-words {
   position: absolute;
   left: 50%;
-  top: 74%;
+  top: 71%;
   transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   font-family: 'Poppins', sans-serif;
-  font-weight: 600;
   color: #FFFFFF;
   text-shadow: 0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.55);
-  line-height: 1;
+  line-height: 1.05;
+  white-space: nowrap;
   pointer-events: none;
+}
+.day-peach-words-top {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.day-peach-words-day {
+  font-size: 36px;
+  font-weight: 600;
 }
 
 .cycle-orb::before {
