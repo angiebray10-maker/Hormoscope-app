@@ -259,7 +259,11 @@ async def main():
     # v50: the catalog grew from 27 to 30 (three newly identified
     # picks added Oct 27, 2026); the shipped-size literal follows it.
     # v56: 30 to 33 (three picks she sent Oct 30, 2026).
-    results.append(("all server catalog ASINs accepted", accepted == len(server.CATALOG_PRODUCT_IDS) == 33))
+    # v57 data completion (Oct 31, 2026): 33 to 95 (the rest of
+    # the Oct 30 to 31 batch with verified name, price and
+    # picture, plus the 22 v57 ASINs that were already in
+    # CATALOG_PRODUCTS but missing from the ID set).
+    results.append(("all server catalog ASINs accepted", accepted == len(server.CATALOG_PRODUCT_IDS) == 95))
 
     failed = [name for name, ok in results if not ok]
     for name, ok in results:

@@ -4572,6 +4572,12 @@ CATALOG_PRODUCT_IDS = {
     # Added Oct 27, 2026 (v50): her late-night picks that research
     # could identify. The unidentified ones stay out until named.
     "B098TV9THH", "B000LQJKI6", "B00KWX688S",
+    # The Oct 31, 2026 v57 products were in CATALOG_PRODUCTS but
+    # missing here; added so wishlist validation matches the catalog.
+    "B018E6TE1C", "B081CKP4SN", "B087258KHP", "B08L7NSWCX", "B09HT62WR4", "B09JKDWS6H", "B09S2Y1G7B", "B0B836FZFB", "B0BNJRJP6M", "B0BZRJM2BG", "B0CGQ3YW9M", "B0CNTSVB7Q", "B0CPD78HL2", "B0DB9K83N3", "B0DCLVWKVT", "B0DJYXR31R", "B0DT5M5DHD", "B0F1QHNFJP", "B0F2J966QL", "B0FD771S38", "B0FDM3GC7M", "B0FK5CJXRX",
+    # Added Oct 31, 2026 (v57 data completion): the rest of the
+    # Oct 30 to 31 batch with verified name, price and picture.
+    "B002D2JYYG", "B0DGVVB8HW", "B0GT1LQD2Q", "B0CVG37WJH", "B0D1H31PRY", "B0DY9Z9FTZ", "B0FTGKQZT6", "B0GX7X6ZKL", "B0FR24YSSM", "B06W5PD1KY", "B07YNL9VWM", "B0CMDJNG4L", "B0F517J8JR", "B0DHWFWSVF", "B0GD6R7CFJ", "B0DYJMQKLJ", "B0CC5R3S9V", "B0DPWYG9Y8", "B0CRDH79BK", "B0H1GBWV98", "B0FG1QTBGL", "B01N0RSCBI", "B0D8HQHXK1", "B0CLDN4BRM", "B07TT5RQ2P", "B0D7MRCJRL", "B0DBLLK8YG", "B08ZJJ3BVV", "B0HDQK47F9", "B0CX7FDWCC", "B0FJ2V6K2G", "B0HBXM4173", "B0H5KMGWR6", "B0G616FHRW", "B081ZG4898", "B0CLT9Y2ZK", "B07WT6GP2F", "B0G4S8JJRS", "B0GM36TY3S", "B0G1S4KBS6",
 }
 
 
@@ -4632,7 +4638,7 @@ CATALOG_PRODUCTS = {
     "B0FGB2NS3C": {"name": "Philips Lumea 9000 Series IPL Hair Removal Device", "image": None, "price": 579.95},
     "B07M5X4D3P": {"name": "iRESTORE Professional Laser Hair Growth System", "image": "https://m.media-amazon.com/images/I/31nSdU7iWZL.jpg", "price": 899},
     "B0CNC67C8B": {"name": "Diamond Tennis Bracelet, 20 Carat Lab Grown, Platinum, 7 Inch", "image": None, "price": None},
-    "B0HF6S81XH": {"name": "Angelita's Pick", "image": None, "price": None},
+    "B0HF6S81XH": {"name": "Anomaly Daily Immunity Mix, 28 Servings", "image": "https://tryanomalyhealth.com/cdn/shop/files/1.Hero_UnflavoredAdult_c5253503-4af9-4674-acca-c3657d16a01f.webp?v=1781545171&width=1000", "price": 49.99},
     "B07GY22VLW": {"name": "Live Conscious Collagen Peptides Powder", "image": "https://m.media-amazon.com/images/I/719PP+XVu1L._AC_SL128_.jpg", "price": 34.00},
     "B0D5FZGY8W": {"name": "O Positiv URO Vaginal Probiotics for Women, 60 Count", "image": "https://m.media-amazon.com/images/I/41Bj7UNMcZL.jpg", "price": 28.97},
     "B07VTDXFDC": {"name": "Aromatherapy Associates Ultimate Wellbeing Bath & Shower Oil Set", "image": None, "price": 199.99},
@@ -4678,7 +4684,46 @@ CATALOG_PRODUCTS = {
     "B0DT5M5DHD": {"name": "C Classy Hanging Car Air Freshener, 2 Pack", "image": "https://images.price.tools/images/c-classy-car-air-freshener-hanging-m-prCwcZpK2.jpg", "price": 11.99},
     "B09HT62WR4": {"name": "HDCRYSTALGIFTS Crystal Suncatchers, Wind Chime Style", "image": "https://m.media-amazon.com/images/I/516Kb1PPJML.jpg", "price": 16.99},
     "B0CNTSVB7Q": {"name": "Biteyz Turkish Delight, Vegan Candy Gift Box, 36 Pieces", "image": "https://m.media-amazon.com/images/I/71hdxt1ciDL._SX569_.jpg", "price": 25.99},
-    "B0FDM3GC7M": {"name": "Godiva Signature Truffle Gift Box, 8 Piece", "image": "https://m.media-amazon.com/images/I/71RWc6tWanL._SX569_.jpg", "price": 22.0},
+    "B0FDM3GC7M": {"name": "Godiva Signature Truffle Gift Box, 8 Piece", "image": "https://m.media-amazon.com/images/I/71RWc6tWanL._SX569_.jpg", "price": 22.0},    "B002D2JYYG": {"name": "Integrative Therapeutics Cortisol Manager, 30 Tablets", "image": "https://cloudinary.images-iherb.com/image/upload/f_auto,q_auto:eco/images/itt/itt00381/v/8.jpg", "price": 26.75},
+    "B0DGVVB8HW": {"name": "EcoBlossom Menstrual Cup & Disc Applicator, Purple", "image": "https://m.media-amazon.com/images/I/71KMzQlwi9L._AC_SX569_.jpg", "price": 14.99},
+    "B0GT1LQD2Q": {"name": "Gentle Patches Cortisol Support Patches, 30 Pack", "image": "https://gentlepatches.com/cdn/shop/files/GentlePatches-Dopamine-50.jpg?v=1760017728", "price": 19.5},
+    "B0CVG37WJH": {"name": "Basic Vigor Migraine Stick Super Bundle, 3 Pack", "image": "https://migrastil.com/cdn/shop/files/3MigraineStickBundle.jpg?v=1761851439&width=1200", "price": 29.87},
+    "B0D1H31PRY": {"name": "Genesis Wild Yam Roll On Oil for Women, Organic", "image": "https://genesisholistichealth.net/cdn/shop/files/Frame_2147223831_9.jpg?v=1744398409&width=750", "price": 19.99},
+    "B0DY9Z9FTZ": {"name": "Rael Roll-On Cream for Feminine Care, 1.7 oz", "image": "https://www.getrael.com/cdn/shop/files/SITE_GetRael_Cramp-Roll-On_Main-Image_1.png?v=1774890854", "price": 9.79},
+    "B0FTGKQZT6": {"name": "Eva Naturals Peptide Serum + Derma Roller Kit, 2 oz", "image": "https://cdn.shopify.com/s/files/1/0677/2405/0712/files/71wsjggjB-L._SL1500_300x300.jpg?v=1779150316", "price": 25.99},
+    "B0GX7X6ZKL": {"name": "CHOOSE-US Neck Massager with Heat, Cordless", "image": "https://chooseus-shop.com/__l5e/assets-v1/a34f0252-3f79-4ee0-8122-f9d30f5337c3/product-hero.webp", "price": 29.99},
+    "B0FR24YSSM": {"name": "PretiHom Automatic Rotating Curling Iron, 1.1 in Barrel", "image": "https://m.media-amazon.com/images/I/31TAG5h0PyL._SL500_.jpg", "price": 21.99},
+    "B06W5PD1KY": {"name": "Pure Daily Care NuDerma Skin Therapy Wand", "image": "https://m.media-amazon.com/images/I/41DoH3XBrjL._AC_CX679_.jpg", "price": 79.95},
+    "B07YNL9VWM": {"name": "Joellyne Naturals Wild Yam & Dong Quai Cream, 3.4 oz", "image": "https://m.media-amazon.com/images/I/71KXFdoo7xL._AC_SX569_.jpg", "price": 28.01},
+    "B0CMDJNG4L": {"name": "Rael Hormone Balance Inositol Powder, 30 Servings", "image": "https://cdn1.tilga.com/md/prod/2/925/57424166.27348.jpg", "price": 22.49},
+    "B0F517J8JR": {"name": "NEESHI Hormone Balancing Dark Cacao Spread", "image": "https://neeshi.com/cdn/shop/files/The_Spoonful_of_Daily_Calm_Neeshi_Dark_Cacao_Spread.png?v=1787674984&width=130", "price": 24},
+    "B0DHWFWSVF": {"name": "Olay Super Cream with Sunscreen SPF 30, 1.7 oz", "image": "https://m.media-amazon.com/images/I/71RR9Gj9iEL._SL1500_.jpg", "price": 34.94},
+    "B0GD6R7CFJ": {"name": "BIODANCE Hydrogel Eye Patches, Collagen Peptide, 60 Count", "image": "https://koreanskincarepicks.com/wp-content/uploads/2026/09/99.jpg.jpeg", "price": 23},
+    "B0DYJMQKLJ": {"name": "Lifnatty Tulip Night Light in Glass Dome", "image": "https://i.justbid-media.com/uNON2J0YtF1HnDH5I636kfEIT97p0D1fw3uFMHYeSng/rs:fit:1080:1080/quality:75/plain/s3://goldrush-app-media-production/item_images/4225925/06ede8b7-6271-48d1-a281-7f36aa7fd0d4.jpg", "price": 19.99},
+    "B0CC5R3S9V": {"name": "Mikasol Gold Dipped Real 24K Gold Rose", "image": "https://m.media-amazon.com/images/I/41BlY16XKTL._SL500_.jpg", "price": 100.37},
+    "B0DPWYG9Y8": {"name": "ECO PERIOD Seamless Period Panties, Heavy Flow", "image": "https://m.media-amazon.com/images/I/711ow1lFEWL.jpg", "price": 32.99},
+    "B0CRDH79BK": {"name": "Kvitko Period Underwear, 3 Layers Breathable", "image": "https://image-cdn.ubuy.com/500_500_100/6ab7ce96cfbb8a06e70afee6-period-underwear-for-women-3-layers.jpg", "price": 19.99},
+    "B0H1GBWV98": {"name": "Pixie Organic Cotton Gusset Period Underwear, Black", "image": "https://cdn.shopify.com/s/files/1/0530/6692/4190/files/seamless-underwear.jpg", "price": 32.95},
+    "B0FG1QTBGL": {"name": "Flygo Girls Fuzzy Pants Set, Fleece", "image": "https://m.media-amazon.com/images/I/81ZQWGezEFL._AC_SX569_.jpg", "price": 34.27},
+    "B01N0RSCBI": {"name": "Chesapeake Bay Balance + Harmony Candle, Water Lily Pear", "image": "https://m.media-amazon.com/images/I/31tH8haFOpL._SL500_.jpg", "price": 14.99},
+    "B0D8HQHXK1": {"name": "CULACEE Obsidian Crystal Energy Candle, HEAL", "image": "https://m.media-amazon.com/images/I/41TzRka9a4L._SL500_.jpg", "price": 16.99},
+    "B0CLDN4BRM": {"name": "SWCANDY Shower Steamers Aromatherapy, 8 Pcs", "image": "https://image-cdn.ubuy.com/500_500_100/6abdf616343f27cf5a016963-swcandy-shower-steamers-aromatherapy.jpg", "price": 9.99},
+    "B07TT5RQ2P": {"name": "Benatu Essential Oil Blends Roll On Set, 3 Bottles", "image": "https://m.media-amazon.com/images/I/71QqKIY-jVL._AC_SL1500_.jpg", "price": 16.58},
+    "B0D7MRCJRL": {"name": "Touchat Faux Rabbit Fur Throw Blanket, Cream White, 50 x 60", "image": "https://m.media-amazon.com/images/I/81xPqU+MDmL._AC_SX569_.jpg", "price": 30.99},
+    "B0DBLLK8YG": {"name": "Rislobx Bling Car Vent Clip Fresheners, 4 Pcs, Gold", "image": "https://cdn1.tilga.com/md/prod/3/4767/137999243.6148.jpg", "price": 11.54},
+    "B08ZJJ3BVV": {"name": "Sea Turtle Lava Bead Car Mirror Charm", "image": "https://m.media-amazon.com/images/I/61L2gKGyKgL._AC_SL128_.jpg", "price": 23.99},
+    "B0HDQK47F9": {"name": "LAKRIDS BY BÜLOW Advent Calendar, Chocolate-Covered Licorice", "image": "https://media.zenobuilder.com/upload/cezbjtktbc/2025-winter-adventcalendar-94882626.png", "price": 69.99},
+    "B0CX7FDWCC": {"name": "Lindt Holiday Teddy Bear Chocolate Advent Calendar, 4.5 oz", "image": "https://m.media-amazon.com/images/I/51EwtMMddZL.jpg", "price": 13.97},
+    "B0FJ2V6K2G": {"name": "Pukka Organic Tea Advent Calendar 2025", "image": "https://image-cdn.ubuy.com/500_500_100/6abf011b6b5b3c33420de4b9-pukka-christmas-tea-sampler-selection.jpg", "price": 28.18},
+    "B0HBXM4173": {"name": "GODIVA Limited Edition Luxury Chocolate Advent Calendar 2026, 24 pc", "image": "https://www.godiva.com/cdn/shop/files/HOL26_24pc_City_AdventCalendar_16355_03_1000px_with_Copy.jpg?v=1787258170&width=800", "price": 46.4},
+    "B0H5KMGWR6": {"name": "The Body Shop Advent Calendar Gift Set, Set of 24", "image": "https://m.media-amazon.com/images/I/81s2MS8KpmL._AC_SX679_.jpg", "price": 111},
+    "B0G616FHRW": {"name": "LAKRIDS BY BÜLOW Love Selection Box", "image": "https://cdn11.bigcommerce.com/s-tnw7k0ssup/images/stencil/1280w/products/227/949/PR1328BI963_501365_clone_SELECTION_BOX_LOVE_2026_COLOR_SZ7__94387.1783323174.png?c=1", "price": 49.99},
+    "B081ZG4898": {"name": "Ethel M Taste of Las Vegas Collection, 16-Piece Gift Box", "image": "https://cdn.media.amplience.net/i/marsethelm/collection-taste-of-las-vegas-tin_img_01_170288?%24i%24=&w=1152&fmt=auto&qlt=default", "price": 45},
+    "B0CLT9Y2ZK": {"name": "GuyLian Belgian Dark Chocolate Seashells, 20 pc", "image": "https://m.media-amazon.com/images/I/91TIHEkctuL._SX342_.jpg", "price": 18.99},
+    "B07WT6GP2F": {"name": "Lindt Mini Pralines Gift Box, 6.2 oz", "image": "https://www.candystore.com/cdn/shop/products/lindt-mini-pralines-chocolates-1q23-wmark.jpg?v=1677494783&width=196", "price": 14.62},
+    "B0G4S8JJRS": {"name": "Estée Lauder Favorites Gift Set, 3 Piece", "image": "https://5thave-img-cdn.santasmartnetwork.com/pf/dc83aeba-f736-3206-b87f-f97bfd6adae2.jpg?x-oss-process=image/resize,w_1080/quality,q_75/format,webp", "price": 62.69},
+    "B0GM36TY3S": {"name": "MAÏA Ceremonial Cacao, High Flavanol, 30 Servings", "image": "https://cdn.shopify.com/s/files/1/0643/8279/5984/files/front_2_0c4b595f-fb55-4059-946d-d22e5e5e7536.webp?v=1732722195", "price": 32.95},
+    "B0G1S4KBS6": {"name": "Beforeyouspeak Period Coffee, 7 Count", "image": "https://cdn.shopify.com/s/files/1/0589/3292/0484/products/beforeyouspeack-period-coffee-1_700x700_crop_center.jpg.webp?v=1659409617", "price": 14.99},
 }
 
 
