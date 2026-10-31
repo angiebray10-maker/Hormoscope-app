@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Heart, Sun, ShieldAlert, Cookie, BedDouble, Droplet, X, Check } from 'lucide-react';
+import { Heart, Sun, ShieldAlert, Cookie, BedDouble, Droplet, Pill, X, Check } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 
@@ -105,6 +105,8 @@ function SectionTitle({ Icon, color, children }) {
 // negative ones included) comes first, then symptoms, cravings, collection,
 // energy and sleep, all in the same scrollable sheet. Every control still saves to
 // today the moment it is tapped, exactly like the per-category dialogs did.
+// Supplements joined Oct 31, 2026 as a free text group (her question:
+// "What supplements are you taking right now?"), saved the same way.
 function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
   // No mood is pre-picked (Angelita, Oct 20, 2026): the old default of
   // 3 (Okay) meant an emotion-only log also recorded a mood she never
@@ -118,6 +120,17 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
   const [collection, setCollection] = useState([]);
   const [sleepHours, setSleepHours] = useState(7);
   const [sleepQuality, setSleepQuality] = useState('okay');
+  // Supplements (Angelita, Oct 31, 2026): a free text group in the
+  // same snapshot system as every other group, following the
+  // collection pattern (a sheet section, not a row button). Her
+  // answer to "What supplements are you taking right now?" is saved
+  // as one `supplements:<her words>` tag with the readable label in
+  // notes, so the Journal day page reads it back like any other
+  // group. supplementsSavedRef holds the last saved (or prefilled)
+  // text, so Done / close can tell whether the box holds unsaved
+  // words and carry them in a final save, the way the note is kept.
+  const [supplements, setSupplements] = useState('');
+  const supplementsSavedRef = useRef('');
   const [note, setNote] = useState('');
   // The group she touched most recently. Done uses it for the final save
   // that carries her note, the way the old per-category Done did.
@@ -138,8 +151,9 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
   // from view, even though the records were on the server. Now the
   // sheet reads today's logs on open and replays them in saved order:
   // each save in here is a full snapshot of its group (mood+feelings,
-  // symptoms, cravings, collection, energy, sleep), so the latest
-  // snapshot per group is what she sees, including an emptied group.
+  // symptoms, cravings, collection, energy, sleep, supplements), so
+  // the latest snapshot per group is what she sees, including an
+  // emptied group.
   useEffect(() => {
     let live = true;
     (async () => {
@@ -152,7 +166,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
         const todays = (Array.isArray(res.data) ? res.data : [])
           .filter((l) => l.date === todayISO())
           .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
-        let pMood; let pEmos; let pEnergy; let pSyms; let pCravs; let pColls; let pHours; let pQual;
+        let pMood; let pEmos; let pEnergy; let pSyms; let pCravs; let pColls; let pHours; let pQual; let pSupp;
         const seen = {};
         for (const l of todays) {
           const S = Array.isArray(l.symptoms) ? l.symptoms : [];
@@ -182,6 +196,10 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
           if (S.some((s) => typeof s === 'string' && s.startsWith('collection:')) || notes.startsWith('No collection')) {
             pColls = tags('collection:'); seen.collection = true;
           }
+          const supp = tags('supplements:')[0];
+          if (supp !== undefined || notes.startsWith('No supplements')) {
+            pSupp = supp; seen.supplements = true;
+          }
           const plain = S.filter((s) => SYMPTOM_OPTIONS.includes(s));
           if (plain.length > 0 || notes.startsWith('No symptoms')) {
             pSyms = plain; seen.symptoms = true;
@@ -195,6 +213,11 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
         if (seen.sleep) {
           if (pHours !== undefined && !Number.isNaN(pHours)) setSleepHours(pHours);
           if (pQual !== undefined && SLEEP_QUALITY.includes(pQual)) setSleepQuality(pQual);
+        }
+        if (seen.supplements) {
+          const t = pSupp || '';
+          setSupplements(t);
+          supplementsSavedRef.current = t;
         }
       } catch (err) {
         // A failed read-back must not block logging: the sheet still
@@ -214,6 +237,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
     const colls = ov.collection !== undefined ? ov.collection : collection;
     const hours = ov.sleepHours !== undefined ? ov.sleepHours : sleepHours;
     const qual = ov.sleepQuality !== undefined ? ov.sleepQuality : sleepQuality;
+    const suppText = (ov.supplements !== undefined ? ov.supplements : supplements).trim();
     let payloadSymptoms = [];
     let label = '';
     switch (kind) {
@@ -245,6 +269,10 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
       case 'sleep':
         payloadSymptoms = [`sleep:${hours}h`, `sleep_quality:${qual}`];
         label = `${hours}h, ${qual}`;
+        break;
+      case 'supplements':
+        payloadSymptoms = suppText ? [`supplements:${suppText}`] : [];
+        label = suppText ? `Supplements: ${suppText}` : 'No supplements';
         break;
       default:
         break;
@@ -321,8 +349,26 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
     saveNow('sleep', { sleepQuality: q });
   };
 
+  // The supplements box saves as its own group snapshot, like every
+  // other group. The section has its own Save button (typing cannot
+  // save on a tap the way chips do), and Done / close below carry
+  // any words she typed but never saved, so they are not lost.
+  const handleSupplementsSave = async () => {
+    setLastKind('supplements');
+    await saveNow('supplements', {});
+    supplementsSavedRef.current = supplements.trim();
+  };
+
+  const saveUnsavedSupplements = async () => {
+    if (supplements.trim() !== supplementsSavedRef.current) {
+      await saveNow('supplements', {});
+      supplementsSavedRef.current = supplements.trim();
+    }
+  };
+
   // Done closes the sheet. If she typed a note, one last save carries it.
   const handleDone = async () => {
+    await saveUnsavedSupplements();
     if (note.trim()) {
       await saveNow(lastKind, {});
       setTimeout(onClose, 500);
@@ -334,7 +380,9 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
   // Closing any other way (the X, or a tap outside) used to throw a
   // typed note away without a word (Oct 19-20 audit). It now takes
   // the same last save Done does, so the note is never silently lost.
+  // Unsaved supplements words ride along the same way.
   const handleCloseRequest = async () => {
+    await saveUnsavedSupplements();
     if (note.trim()) {
       await saveNow(lastKind, {});
     }
@@ -503,6 +551,35 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
               ))}
             </div>
           </div>
+
+          {/* Supplements (Angelita, Oct 31, 2026): her exact question,
+              answered in her own words. Free text, saved to today as
+              its own group snapshot through the same /cycle-logs
+              path as every group above. */}
+          <SectionTitle Icon={Pill} color="#7FD9A8">Supplements</SectionTitle>
+          <p className="text-white text-sm mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            What supplements are you taking right now?
+          </p>
+          <textarea
+            value={supplements}
+            onChange={(e) => { setSupplements(e.target.value); setLastKind('supplements'); }}
+            placeholder="e.g. Magnesium at night, vitamin D, collagen peptides"
+            rows={2}
+            className="input-dark text-sm"
+            style={{ fontFamily: 'Poppins, sans-serif' }}
+            data-testid="supplements-input"
+            aria-label="What supplements are you taking right now?"
+          />
+          <button
+            type="button"
+            onClick={handleSupplementsSave}
+            disabled={saveState === 'saving'}
+            className="px-4 py-1.5 rounded-full text-xs mt-2 disabled:opacity-40"
+            style={{ ...chip(false, '#7FD9A8'), fontFamily: 'Poppins, sans-serif' }}
+            data-testid="supplements-save"
+          >
+            Save supplements
+          </button>
 
           <textarea
             value={note}
