@@ -1,7 +1,8 @@
 import React from 'react';
 
 // Tab footer (Angelita, Oct 26, 2026, v50; size and trademark line
-// set by Angelita, Oct 31, 2026): at the very bottom of the scroll on
+// set by Angelita, Oct 31, 2026; logo widened 260 to 320 the same day
+// at her word, still faded): at the very bottom of the scroll on
 // Home, Calendar, and Profile only, our peach logo rests FADED in the
 // backdrop, professional like a trademark footer, big enough to read
 // clearly, the exact same on each tab, with the trademark line under
@@ -14,7 +15,7 @@ export default function TabFooter() {
         src="/images/logo.png"
         alt=""
         aria-hidden="true"
-        style={{ width: 260, height: 'auto', opacity: 0.55 }}
+        style={{ width: 320, height: 'auto', opacity: 0.55 }}
       />
       <p className="mt-3 text-[11px] tracking-wide" style={{ color: '#8E89A3', fontFamily: 'Poppins, sans-serif' }}>
         HORMOscope&trade; &copy; 2026. All rights reserved.
