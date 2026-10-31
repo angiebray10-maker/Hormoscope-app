@@ -52,7 +52,21 @@ function fmtCommentDate(iso) {
 function ProductCard({ product, children }) {
   const price = formatPrice(product.price);
   return (
-    <div className="rounded-2xl p-4 mb-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }} data-testid={`product-${product.asin}`}>
+    <div className="relative overflow-hidden rounded-2xl p-4 mb-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }} data-testid={`product-${product.asin}`}>
+      {/* Founder banner (restyled Oct 31, 2026, Angelita): the pink
+          circled pill is gone. Her words now sit on a little ribbon
+          across the top corner of the card, mellow yellow with bold
+          FOR SALE sign lettering. Same ribbon in the catalog and in
+          wishlists, since the same row serves both. */}
+      {product.banner && (
+        <div
+          aria-hidden="true"
+          data-testid={`founder-banner-${product.asin}`}
+          style={{ position: 'absolute', top: 30, right: -62, transform: 'rotate(45deg)', background: '#EFC65C', color: '#3A2A00', fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '4px 62px', boxShadow: '0 2px 8px rgba(0,0,0,0.35)', zIndex: 5, whiteSpace: 'nowrap', pointerEvents: 'none' }}
+        >
+          {product.banner}
+        </div>
+      )}
       <div className="flex gap-3">
         {product.image ? (
           // CONTAIN fit, never cover (Angelita, Oct 31, 2026): with
@@ -83,21 +97,9 @@ function ProductCard({ product, children }) {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          {/* Founder banners (Angelita, Oct 31, 2026): eight products
-              carry a banner field in the catalog, in her exact words
-              (favorites, personal recommendations, and her personal
-              wish item). This small pink-outlined label sits above
-              the product name, in the catalog and in wishlists alike,
-              since the same row serves both. */}
-          {product.banner && (
-            <span
-              className="inline-block px-2.5 py-1 rounded-full text-[11px] font-medium mb-2"
-              style={{ ...poppins, color: HOT, background: 'transparent', border: '1.5px solid #FF4F9A' }}
-              data-testid={`founder-banner-${product.asin}`}
-            >
-              {product.banner}
-            </span>
-          )}
+          {/* Founder banner text lives on the corner ribbon at the
+              top of this card (see ProductCard top). */}
+
           {/* The product NAME is the Amazon link (Angelita, Oct 26, 2026):
               no buy wording, no view wording, no button label at all
               until she picks a word she likes. Same tagged link, same

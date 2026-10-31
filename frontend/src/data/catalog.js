@@ -23,8 +23,8 @@
 // Four advent calendars are cross-listed (see FEATURED_TOP_OF
 // below): three chocolate ones also top the Chocolates section
 // and the Pukka tea one tops Drinks, so those sections display
-// 12 and 5 rows while the distinct product count stays 119. Eight products carry a banner (the
-// banner field): her words sit in a small pink outlined label
+// 12 and 5 rows while the distinct product count stays 119. Nine products carry a banner (the
+// banner field): her words sit in a mellow yellow corner ribbon in bold FOR SALE sign lettering
 // above the product name. The two wild yam creams in Beauty from
 // the Inside Out sit side by side among them.
 // Oct 31, 2026 (her order): every product photo is a LOCAL file
@@ -142,14 +142,14 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0FQFMDMDC', name: 'Evvy Vaginal Health Test, 2 Pack', blurb: 'At home vaginal microbiome test with a clinician reviewed report.', image: '/images/catalog/B0FQFMDMDC.jpg', price: 169, section: 'Beauty from the Inside Out' },
   { asin: 'B0B75T46L8', name: 'Viome Full Body Intelligence Test', blurb: '3 in 1 kit (blood, saliva, stool) with 50+ health scores, gut microbiome and biological age.', image: '/images/catalog/B0B75T46L8.jpg', price: 299, section: 'Beauty from the Inside Out' },
   { asin: 'B005F1ATJQ', name: 'Ancient Minerals Magnesium Bath Flakes', blurb: 'Pure magnesium chloride bath flakes for a relaxing soak, 1.65 lb bag.', image: '/images/catalog/B005F1ATJQ.jpg', price: 13, section: 'Beauty from the Inside Out' },
-  { asin: 'B0DVQ8W9SH', name: 'Ammoya Naturals Turmeric & Kojic Acid Soap 2 Bars', blurb: 'Turmeric and kojic acid cleansing soap for face and body, 2 bars.', image: '/images/catalog/B0DVQ8W9SH.jpg', price: 17.99, section: 'Beauty from the Inside Out' },
+  { asin: 'B0DVQ8W9SH', name: 'Ammoya Naturals Turmeric & Kojic Acid Soap 2 Bars', blurb: 'Turmeric and kojic acid cleansing soap for face and body, 2 bars.', image: '/images/catalog/B0DVQ8W9SH.jpg', price: 17.99, banner: "HORMOscope's founder's personal favorite", section: 'Beauty from the Inside Out' },
   { asin: 'B0BLT5XT9R', name: 'New Miuz Moon Milk Bath Soak', blurb: 'Cleansing sage milk bath soak with lavender and chamomile, for a relaxing soak.', image: '/images/catalog/B0BLT5XT9R.jpg', price: 23.99, section: 'Beauty from the Inside Out' },
   { asin: 'B0DY9Z9FTZ', name: 'Rael Roll-On Cream for Feminine Care, 1.7 oz', blurb: 'Camphor and menthol roll on with ginger and turmeric; fast absorbing with a cooling sensation for period care.', image: '/images/catalog/B0DY9Z9FTZ.jpg', price: 9.79, section: 'Beauty from the Inside Out' },
   { asin: 'B0GXC53GZ8', name: 'AIFUFAND Cyperus Rotundus Oil', blurb: 'Plant based hair removal oil with a rose quartz roll on, 60 mL.', image: '/images/catalog/B0GXC53GZ8.jpg', price: 15.99, section: 'Beauty from the Inside Out' },
-  { asin: 'B0D1H31PRY', name: 'Genesis Wild Yam Roll On Oil for Women, Organic', blurb: 'Organic wild yam roll on with chaste tree and red clover. Vegan friendly, unscented, made in USA.', image: '/images/catalog/B0D1H31PRY.jpg', price: 19.99, section: 'Beauty from the Inside Out' },
   { asin: 'B0GD6R7CFJ', name: 'BIODANCE Hydrogel Eye Patches, Collagen Peptide, 60 Count', blurb: 'Hydrogel under eye patches with collagen peptide for wrinkles and fine lines.', image: '/images/catalog/B0GD6R7CFJ.jpg', price: 23, section: 'Beauty from the Inside Out' },
   { asin: 'B0DCLVWKVT', name: 'Genesis Wild Yam Cream for Women, Organic', blurb: 'Organic wild yam cream for women.', image: '/images/catalog/B0DCLVWKVT.jpg', price: 23.97, banner: "HORMOscope's founder's personal favorite", section: 'Beauty from the Inside Out' },
-  { asin: 'B07YNL9VWM', name: 'Joellyne Naturals Wild Yam & Dong Quai Cream, 3.4 oz', blurb: 'Wild yam and dong quai cream, 3000 mg.', image: '/images/catalog/B07YNL9VWM.jpg', price: 28.01, banner: "HORMOscope's founder's personal favorite", section: 'Beauty from the Inside Out' },
+  { asin: 'B0D1H31PRY', name: 'Genesis Wild Yam Roll On Oil for Women, Organic', blurb: 'Organic wild yam roll on with chaste tree and red clover. Vegan friendly, unscented, made in USA.', image: '/images/catalog/B0D1H31PRY.jpg', price: 19.99, banner: "HORMOscope's founder's personal favorite", section: 'Beauty from the Inside Out' },
+  { asin: 'B07YNL9VWM', name: 'Joellyne Naturals Wild Yam & Dong Quai Cream, 3.4 oz', blurb: 'Wild yam and dong quai cream, 3000 mg.', image: '/images/catalog/B07YNL9VWM.jpg', price: 28.01, section: 'Beauty from the Inside Out' },
   { asin: 'B087258KHP', name: 'Balm of Gilead Manuka Eczema Honey Cream', blurb: 'Manuka honey moisturizer with grass fed tallow for sensitive skin, eczema, psoriasis and dermatitis.', image: '/images/catalog/B087258KHP.jpg', price: 24.99, section: 'Beauty from the Inside Out' },
   { asin: 'B0BNJRJP6M', name: 'Balm of Gilead Foot Healing Cream, Frankincense & Sweet Myrrh', blurb: 'Deeply nourishing foot moisturizer for sensitive and diabetic skin.', image: '/images/catalog/B0BNJRJP6M.jpg', price: 24.99, section: 'Beauty from the Inside Out' },
   { asin: 'B0FTGKQZT6', name: 'Eva Naturals Peptide Serum + Derma Roller Kit, 2 oz', blurb: 'Collagen peptide serum with a 0.25mm titanium derma roller microneedling kit, for face and scalp.', image: '/images/catalog/B0FTGKQZT6.jpg', price: 25.99, section: 'Beauty from the Inside Out' },
