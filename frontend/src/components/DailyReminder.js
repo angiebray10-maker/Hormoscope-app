@@ -91,7 +91,7 @@ export default function DailyReminder({ cycleDay, phase, userName }) {
         {/* Dismiss button */}
         <button
           onClick={handleDismiss}
-          className="w-full mt-6 py-3 rounded-full bg-gradient-to-r from-[#F4D3DC] to-[#E8A4B8] text-[#12090E] font-medium text-sm tracking-wider"
+          className="w-full mt-6 py-3 rounded-full bg-transparent border-[1.5px] border-[#E8A4B8] text-[#F4D3DC] font-medium text-sm tracking-wider"
         >
           Let&apos;s Go
         </button>

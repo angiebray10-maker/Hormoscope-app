@@ -360,9 +360,9 @@ export default function ChatPage() {
               data-testid="chat-send-btn"
               onClick={handleSend}
               disabled={(!input.trim() && !selectedImage) || loading}
-              className="w-8 h-8 p-0 rounded-full bg-[#ff8fab] hover:bg-[#ff8fab]/80 transition-all flex-shrink-0"
+              className="w-8 h-8 p-0 rounded-full bg-transparent border border-[#ff8fab] hover:bg-[#ff8fab]/10 transition-all flex-shrink-0"
             >
-              <Send className="w-4 h-4 text-[#1a1a2e]" />
+              <Send className="w-4 h-4 text-[#ff8fab]" />
             </Button>
           </div>
         </div>

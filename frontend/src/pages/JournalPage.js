@@ -956,7 +956,7 @@ export default function JournalPage() {
                   Remove
                 </button>
               ) : (
-                <button onClick={handleMarkIntimacy} disabled={intimacyBusy} className="px-3 py-1.5 rounded-full text-xs text-white disabled:opacity-40" style={{ ...POPPINS, background: '#FF4F9A' }} data-testid="intimacy-add-btn">
+                <button onClick={handleMarkIntimacy} disabled={intimacyBusy} className="px-3 py-1.5 rounded-full text-xs text-white disabled:opacity-40" style={{ ...POPPINS, background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="intimacy-add-btn">
                   Mark intimate day
                 </button>
               )}
@@ -1027,7 +1027,7 @@ export default function JournalPage() {
             <span className="text-[11px] text-white/50 flex-1" style={POPPINS}>{noteIntimate ? 'This note is marked intimate.' : 'Tap the lock to mark this note intimate.'}</span>
             <button onClick={handleSaveNote} disabled={savingNote || !note.trim()}
               className="px-6 py-2 rounded-full text-white text-xs font-medium disabled:opacity-40"
-              style={{ ...POPPINS, background: '#FF4F9A' }}
+              style={{ ...POPPINS, background: 'transparent', border: '1.5px solid #FF4F9A' }}
               data-testid="journal-note-save">
               {savingNote ? 'Saving...' : 'Save note'}
             </button>
@@ -1046,7 +1046,7 @@ export default function JournalPage() {
           ) : dayError ? (
             <div className="text-center py-8">
               <p className="text-white/70 text-sm mb-3" style={POPPINS}>This day could not be opened just now.</p>
-              <button onClick={() => fetchDay(selectedDate)} className="px-6 py-2.5 rounded-full text-white text-sm" style={{ ...POPPINS, background: '#FF4F9A' }}>Try again</button>
+              <button onClick={() => fetchDay(selectedDate)} className="px-6 py-2.5 rounded-full text-white text-sm" style={{ ...POPPINS, background: 'transparent', border: '1.5px solid #FF4F9A' }}>Try again</button>
             </div>
           ) : dayData.entries.length === 0 && dedupedLogs.length === 0 && dayIntimacy.length === 0 ? (
             <p className="text-white/50 text-sm leading-relaxed py-4" style={POPPINS} data-testid="journal-day-empty">

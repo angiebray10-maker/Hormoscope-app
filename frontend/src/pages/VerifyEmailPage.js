@@ -24,7 +24,7 @@ export default function VerifyEmailPage() {
       <div className="max-w-sm w-full rounded-3xl p-7 border border-white/10 text-center" style={{ background: '#15152B' }} data-testid="verify-email-page">
         <h1 className="text-2xl text-white mb-3" style={{ fontFamily: "'Poiret One', sans-serif" }}>Email confirmation</h1>
         <p className={state.status === 'error' ? 'text-red-200' : 'text-[#E6E0EE]'}>{state.msg}</p>
-        <Link to="/" className="inline-block mt-6 px-6 py-2.5 rounded-full text-white" style={{ background: '#FF4F9A' }}>Open HORMOscope</Link>
+        <Link to="/" className="inline-block mt-6 px-6 py-2.5 rounded-full text-white" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}>Open HORMOscope</Link>
       </div>
     </div>
   );

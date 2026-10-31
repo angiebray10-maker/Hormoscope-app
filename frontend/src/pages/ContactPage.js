@@ -65,7 +65,7 @@ export default function ContactPage() {
           </p>
           <a 
             href="mailto:hormoscope@gmail.com?subject=HORMOscope%20Suggestion&body=Hi!%0A%0AI%20have%20a%20suggestion%20for%20HORMOscope%3A%0A%0A"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#F4D3DC] to-[#E8A4B8] text-[#0D0609] font-medium text-sm"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-transparent border-[1.5px] border-[#E8A4B8] text-[#F4D3DC] font-medium text-sm"
           >
             <MessageCircle className="w-5 h-5" />
             Send Feedback

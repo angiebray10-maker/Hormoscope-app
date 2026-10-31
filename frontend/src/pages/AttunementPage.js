@@ -113,7 +113,7 @@ function PhotoRequiredPrompt() {
       <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
         A profile picture is required to sync your cycle, so your partner can see who they are syncing with. Your face will sit beside your name wherever they see you, like on your wishlist.
       </p>
-      <Link to="/profile" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ ...poppins, background: '#FF4F9A' }} data-testid="photo-required-btn">
+      <Link to="/profile" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="photo-required-btn">
         Add my picture
       </Link>
     </div>
@@ -304,7 +304,7 @@ export default function AttunementPage() {
           {copied ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Tap to copy the link</>}
         </span>
       </button>
-      <button onClick={() => shareViewInvite(viewToken)} className="w-full py-3 rounded-full text-white text-sm font-medium mt-3" style={{ ...poppins, background: '#FF4F9A' }} data-testid="share-view-invite-btn">
+      <button onClick={() => shareViewInvite(viewToken)} className="w-full py-3 rounded-full text-white text-sm font-medium mt-3" style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="share-view-invite-btn">
         Share invite
       </button>
       <button onClick={revokeView} disabled={revoking} className="w-full py-2.5 rounded-full text-sm mt-2 disabled:opacity-50" style={{ ...poppins, color: '#CFC3CC', border: '1px solid rgba(255,255,255,0.2)' }} data-testid="revoke-view-btn">
@@ -326,7 +326,7 @@ export default function AttunementPage() {
               {copied ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Tap to copy</>}
             </span>
           </button>
-          <button onClick={() => shareSyncInvite(invite.code)} className="w-full py-3 rounded-full text-white text-sm font-medium mt-3" style={{ ...poppins, background: '#FF4F9A' }} data-testid="share-invite-btn">
+          <button onClick={() => shareSyncInvite(invite.code)} className="w-full py-3 rounded-full text-white text-sm font-medium mt-3" style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="share-invite-btn">
             Share invite
           </button>
         </div>
@@ -405,7 +405,7 @@ export default function AttunementPage() {
                   : 'This is a sync partner: they have the app, and you follow each other both ways.'}
               </p>
             )}
-            <Link to="/partner-hub" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ ...poppins, background: '#FF4F9A' }}>
+            <Link to="/partner-hub" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }}>
               Open your shared space
             </Link>
             <button onClick={unlink} className="w-full py-2.5 rounded-full text-sm mt-3" style={{ ...poppins, color: '#CFC3CC', border: '1px solid rgba(255,255,255,0.2)' }} data-testid="unlink-btn">
@@ -418,7 +418,7 @@ export default function AttunementPage() {
             <VisibilityChecklist vis={vis} onToggle={toggleVis} />
             <button onClick={saveVisSettings} disabled={visSaving}
               className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50 mt-3"
-              style={{ ...poppins, background: '#FF4F9A' }} data-testid="vis-save-btn">
+              style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="vis-save-btn">
               {visSaving ? 'Saving…' : 'Save'}
             </button>
             {visMsg && <p className="text-sm text-center text-[#E6E0EE] mt-2" role="status" style={poppins}>{visMsg}</p>}
@@ -440,7 +440,7 @@ export default function AttunementPage() {
                 <button
                   onClick={() => startSetup('man')}
                   className="w-full py-3 rounded-full text-white text-sm font-medium"
-                  style={{ ...poppins, background: '#FF4F9A' }}
+                  style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }}
                   data-testid="invite-him-btn"
                 >
                   Invite him
@@ -458,7 +458,7 @@ export default function AttunementPage() {
                 <button
                   onClick={() => startSetup('woman')}
                   className="w-full py-3 rounded-full text-white text-sm font-medium"
-                  style={{ ...poppins, background: '#FF4F9A' }}
+                  style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }}
                   data-testid="invite-her-btn"
                 >
                   Invite her
@@ -491,7 +491,7 @@ export default function AttunementPage() {
           <button
             onClick={() => startSetup('share')}
             className="w-full py-3 rounded-full text-white text-sm font-medium mb-3"
-            style={{ ...poppins, background: '#FF4F9A' }}
+            style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }}
             data-testid="share-cycle-btn"
           >
             Share my cycle
@@ -514,7 +514,7 @@ export default function AttunementPage() {
             <button
               onClick={() => chooseWomanPeriods(true)}
               className="w-full py-3 rounded-full text-white text-sm font-medium mb-2"
-              style={{ ...poppins, background: '#FF4F9A' }}
+              style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }}
               data-testid="woman-periods-yes"
             >
               Yes, she does
@@ -547,7 +547,7 @@ export default function AttunementPage() {
               onClick={createInvite}
               disabled={generating}
               className="w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-40 mt-4"
-              style={{ ...poppins, background: '#FF4F9A' }}
+              style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }}
               data-testid="create-invite-btn"
             >
               {generating ? 'Making your invite…' : setupType === 'woman-sync' ? 'Create my invite code' : 'Create my invite link'}

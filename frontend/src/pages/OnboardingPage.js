@@ -309,7 +309,7 @@ export default function OnboardingPage() {
                       onChange={(e) => setInviteCode(e.target.value.toUpperCase().slice(0, 8))}
                       placeholder="8 characters" className="input-dark text-lg uppercase" autoFocus />
                   </div>
-                  <Button data-testid="onboarding-invite-accept" onClick={acceptInvite} disabled={inviteBusy || inviteCode.trim().length < 4} className="w-full rounded-full text-white" style={{ background: BRAND.pink }}>
+                  <Button data-testid="onboarding-invite-accept" onClick={acceptInvite} disabled={inviteBusy || inviteCode.trim().length < 4} className="w-full rounded-full text-white" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}>
                     {inviteBusy ? 'Linking…' : 'Link us'}
                   </Button>
                   {inviteError && (
@@ -393,11 +393,11 @@ export default function OnboardingPage() {
               <button onClick={() => { setError(''); setStep(step - 1); }} className="flex items-center gap-1 text-[#E6E0EE] hover:text-white"><ChevronLeft className="w-5 h-5" /> Back</button>
             ) : <div />}
             {step < totalSteps ? (
-              <Button data-testid="onboarding-next-btn" onClick={() => setStep(step + 1)} disabled={!canNext} className="rounded-full px-6 text-white" style={{ background: BRAND.pink }}>
+              <Button data-testid="onboarding-next-btn" onClick={() => setStep(step + 1)} disabled={!canNext} className="rounded-full px-6 text-white" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}>
                 Next <ChevronRight className="w-5 h-5" />
               </Button>
             ) : (
-              <Button data-testid="onboarding-complete-btn" onClick={handleComplete} disabled={loading} className="rounded-full px-6 text-white" style={{ background: BRAND.pink }}>
+              <Button data-testid="onboarding-complete-btn" onClick={handleComplete} disabled={loading} className="rounded-full px-6 text-white" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}>
                 {loading ? 'Saving…' : error ? 'Try again' : 'Start'}
               </Button>
             )}

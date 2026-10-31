@@ -294,12 +294,12 @@ h1, h2, h3, .heading {
    ============================================= */
 
 .btn-pink {
-    background: linear-gradient(135deg, var(--pink) 0%, var(--pink-soft) 100%);
-    color: #1a1a2e;
+    background: transparent;
+    color: var(--pink);
     font-family: 'Poppins', sans-serif;
     font-size: 14px;
     padding: 14px 28px;
-    border: none;
+    border: 1.5px solid var(--pink);
     border-radius: 30px;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -558,11 +558,11 @@ h1, h2, h3, .heading {
 
 /* Legacy class support */
 .btn-gold { 
-    background: linear-gradient(135deg, var(--pink) 0%, var(--pink-soft) 100%);
-    color: #1a1a2e;
+    background: transparent;
+    color: var(--pink);
     font-weight: 600;
     padding: 14px 28px;
-    border: none;
+    border: 1.5px solid var(--pink);
     border-radius: 30px;
 }
 

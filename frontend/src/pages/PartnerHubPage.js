@@ -138,7 +138,7 @@ function NotesTab({ token, currentUserId, onUnreadChange }) {
         />
         <button onClick={handleSend} disabled={sending || !draft.trim()}
           className="w-12 h-12 rounded-full flex items-center justify-center disabled:opacity-40 shrink-0"
-          style={{ background: '#FF4F9A' }} data-testid="note-send">
+          style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="note-send">
           <Send className="w-5 h-5 text-white" />
         </button>
       </div>
@@ -514,7 +514,7 @@ export default function PartnerHubPage() {
               <p className="text-[#CFC3CC] text-sm leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
                 A profile picture is required to sync your cycle, so your partner can see who they are syncing with. Add yours, then come back and enter the code.
               </p>
-              <Link to="/profile" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }} data-testid="photo-required-btn">
+              <Link to="/profile" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif', background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="photo-required-btn">
                 Add my picture
               </Link>
             </div>
@@ -533,7 +533,7 @@ export default function PartnerHubPage() {
           )}
           <button onClick={handleAccept} disabled={accepting || !inviteCode.trim()}
             className="w-full py-3.5 rounded-full text-white text-sm font-medium disabled:opacity-40"
-            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}
+            style={{ fontFamily: 'Poppins, sans-serif', background: 'transparent', border: '1.5px solid #FF4F9A' }}
             data-testid="accept-invite-btn">
             {accepting ? 'Linking...' : 'Link Accounts'}
           </button>
@@ -598,9 +598,9 @@ export default function PartnerHubPage() {
                 className="flex-1 py-2.5 rounded-full text-sm font-medium relative"
                 style={{
                   fontFamily: 'Poppins, sans-serif',
-                  background: tab === t.id ? '#FF4F9A' : 'rgba(255,255,255,0.04)',
+                  background: tab === t.id ? 'transparent' : 'rgba(255,255,255,0.04)',
                   color: tab === t.id ? '#fff' : 'rgba(255,255,255,0.5)',
-                  border: '1px solid rgba(255,255,255,0.08)'
+                  border: tab === t.id ? '1px solid #FF4F9A' : '1px solid rgba(255,255,255,0.08)'
                 }}
                 data-testid={`hub-tab-${t.id}`}>
                 {t.label}

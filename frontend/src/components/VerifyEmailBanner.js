@@ -44,7 +44,7 @@ export default function VerifyEmailBanner({ hardGate = false } = {}) {
       <div className="flex gap-2 mt-2">
         <input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" placeholder="6-digit code"
           className="flex-1 min-w-0 rounded-full px-3 py-1.5 bg-white/10 text-white placeholder-white/50 outline-none" data-testid="verify-code-input" />
-        <button onClick={submit} disabled={busy || code.length !== 6} className="px-4 py-1.5 rounded-full text-white disabled:opacity-50" style={{ background: '#FF4F9A' }} data-testid="verify-code-btn">Verify</button>
+        <button onClick={submit} disabled={busy || code.length !== 6} className="px-4 py-1.5 rounded-full text-white disabled:opacity-50" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="verify-code-btn">Verify</button>
       </div>
       <div className="flex justify-between mt-2 text-xs">
         <button onClick={resend} disabled={busy} className="underline text-[#E6E0EE]" data-testid="verify-resend-btn">Resend email</button>

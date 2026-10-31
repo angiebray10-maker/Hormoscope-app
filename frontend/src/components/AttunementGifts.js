@@ -205,7 +205,7 @@ function CommunityWall({ token, user }) {
           onClick={postComment}
           disabled={posting || !draft.trim()}
           className="px-5 py-2 rounded-full text-xs font-medium text-white disabled:opacity-50"
-          style={{ ...poppins, background: HOT }}
+          style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }}
           data-testid="catalog-comment-post"
         >
           {posting ? 'Posting...' : 'Post'}
@@ -299,7 +299,7 @@ export default function AttunementGifts() {
               className="px-3.5 py-2 rounded-full text-xs font-medium transition-colors"
               style={{
                 ...poppins,
-                background: active ? HOT : 'rgba(255,255,255,0.05)',
+                background: active ? 'transparent' : 'rgba(255,255,255,0.05)',
                 color: active ? '#fff' : '#CFC3CC',
                 border: `1px solid ${active ? HOT : 'rgba(255,255,255,0.12)'}`,
               }}
@@ -409,7 +409,7 @@ export default function AttunementGifts() {
                           onClick={() => addPick(p.asin)}
                           disabled={busyAsin === p.asin}
                           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium text-white disabled:opacity-50"
-                          style={{ ...poppins, background: HOT }}
+                          style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }}
                           data-testid={`add-${p.asin}`}
                         >
                           <Heart className="w-3.5 h-3.5" /> Add to my wishlist

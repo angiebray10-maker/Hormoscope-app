@@ -635,7 +635,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full', date }) {
             onClick={handleDone}
             disabled={saveState === 'saving'}
             className="w-full py-3 rounded-full text-white text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-40"
-            style={{ background: '#FF4F9A', fontFamily: 'Poppins, sans-serif' }}
+            style={{ background: 'transparent', border: '1.5px solid #FF4F9A', fontFamily: 'Poppins, sans-serif' }}
           >
             {saveState === 'saving' ? 'Saving…' : 'Done'}
           </button>

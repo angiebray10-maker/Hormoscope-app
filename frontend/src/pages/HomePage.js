@@ -325,7 +325,7 @@ export default function HomePage() {
           <div className="rounded-2xl p-5 mb-10 border border-[#FF4F9A]/40 text-center" style={{ background: 'rgba(255,79,154,0.08)' }} data-testid="welcome-banner">
             <p className="text-xl font-script mb-1 text-white">Welcome to your HORMOscope.</p>
             <p className="text-[#E6E0EE] text-sm">Your days, in your own words. Log how you feel and watch your story build.</p>
-            <button onClick={() => setShowWelcome(false)} className="mt-4 px-6 py-2 rounded-full text-sm text-white" style={{ background: '#FF4F9A' }}>
+            <button onClick={() => setShowWelcome(false)} className="mt-4 px-6 py-2 rounded-full text-sm text-white" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}>
               Begin
             </button>
           </div>
@@ -412,7 +412,7 @@ export default function HomePage() {
           <button
             onClick={() => setShowWelcome(false)}
             className="mt-4 px-6 py-2 rounded-full text-sm text-white"
-            style={{ background: '#FF4F9A' }}
+            style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}
           >
             Begin
           </button>

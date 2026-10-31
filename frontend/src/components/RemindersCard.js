@@ -123,7 +123,7 @@ export default function RemindersCard({ user, token, updateUser }) {
         onClick={save}
         disabled={saving}
         className="w-full mt-3 py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50"
-        style={{ background: '#FF4F9A' }}
+        style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}
         data-testid="reminders-save-btn"
       >
         {saving ? 'Saving…' : 'Save my reminders'}

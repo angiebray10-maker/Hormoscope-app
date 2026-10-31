@@ -76,7 +76,7 @@ export default function PushNotificationPrompt() {
               <button
                 onClick={handleEnable}
                 disabled={loading}
-                className="px-4 py-1.5 bg-[#ff8fab] text-white text-xs font-medium rounded-full hover:bg-[#ff8fab]/80 transition-all disabled:opacity-50"
+                className="px-4 py-1.5 bg-transparent border border-[#ff8fab] text-white text-xs font-medium rounded-full hover:bg-[#ff8fab]/10 transition-all disabled:opacity-50"
               >
                 {loading ? 'Enabling...' : 'Enable'}
               </button>

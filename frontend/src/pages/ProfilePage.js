@@ -63,7 +63,7 @@ function AttunedSection({ token }) {
           </p>
           <div className="flex gap-2">
             <Link to="/attunement" className="flex-1 py-2.5 rounded-full text-white text-sm font-medium text-center"
-              style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}>
+              style={{ fontFamily: 'Poppins, sans-serif', background: 'transparent', border: '1.5px solid #FF4F9A' }}>
               Open Attunement Mode
             </Link>
             <button onClick={handleUnlink} className="px-4 py-2.5 rounded-full text-white/75 text-xs"
@@ -79,7 +79,7 @@ function AttunedSection({ token }) {
           </p>
           <Link to="/attunement" data-testid="attuned-go-btn"
             className="block w-full py-2.5 rounded-full text-white text-sm font-medium text-center"
-            style={{ fontFamily: 'Poppins, sans-serif', background: '#FF4F9A' }}>
+            style={{ fontFamily: 'Poppins, sans-serif', background: 'transparent', border: '1.5px solid #FF4F9A' }}>
             Create &amp; share invite code
           </Link>
         </div>
@@ -150,7 +150,7 @@ function MyDetailsSection({ user, token, updateUser }) {
           leftovers). The CSS and index.js machinery behind them stays
           dormant, untouched; the front page pulsating orb signature
           is not affected. */}
-      <button onClick={save} disabled={saving} className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ background: '#FF4F9A' }} data-testid="save-details-btn">
+      <button onClick={save} disabled={saving} className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="save-details-btn">
         {saving ? 'Saving…' : 'Save my details'}
       </button>
       {msg && <p className="text-sm text-center text-[#E6E0EE]" role="status">{msg}</p>}
@@ -416,7 +416,7 @@ export default function ProfilePage() {
             data-testid="save-profile-btn"
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2 rounded-full bg-gradient-to-r from-[#F4D3DC] to-[#E8A4B8] text-[#12090E] font-medium text-sm"
+            className="px-6 py-2 rounded-full bg-transparent border-[1.5px] border-[#E8A4B8] text-[#F4D3DC] font-medium text-sm"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>
@@ -649,7 +649,7 @@ export default function ProfilePage() {
                   onClick={handleDeletedDone}
                   data-testid="deleted-done-btn"
                   className="w-full py-3 rounded-full text-white text-sm font-semibold"
-                  style={{ background: 'linear-gradient(135deg, #FF5C8A, #FF4F9A)' }}
+                  style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}
                 >
                   Done
                 </button>
