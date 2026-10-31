@@ -6,7 +6,7 @@ import axios from 'axios';
 import DailyRead from '../components/DailyRead';
 import TabFooter from '../components/TabFooter';
 import logger from '../utils/logger';
-import { PHASE_PAIRS, phaseTint } from '../lib/phases';
+import { phaseTint, phaseOther } from '../lib/phases';
 import { dailyAffirmation } from '../lib/affirmations';
 
 // Home bottom phase legend (v57, Angelita, Oct 31, 2026): each
@@ -42,15 +42,19 @@ const PHASE_CARDS = {
 };
 
 // v55: phase PAIRS are the system now (lib/phases.js PHASE_PAIRS).
-// color is the pair's primary, color2 its partner: the orb glows in
-// both, the phase rows dot in both.
+// Color fix (Oct 31, 2026): color IS the phase tint, the color the
+// legend names (red, blue, green, purple), and color2 is the pair
+// partner. The glow, the phase name and the Today line all lead
+// with the named color; the shared pink only fades at the rim.
+// (Before this fix color was pair.primary, the shared pink for
+// three phases, so Home read pink whatever her phase was.)
 const phases = {
-  menstrual: { orb: 'orb-menstrual', color: PHASE_PAIRS.menstrual.primary, color2: PHASE_PAIRS.menstrual.secondary, tint: PHASE_PAIRS.menstrual.primary, name: 'Menstrual Phase' },
-  follicular: { orb: 'orb-follicular', color: PHASE_PAIRS.follicular.primary, color2: PHASE_PAIRS.follicular.secondary, tint: PHASE_PAIRS.follicular.secondary, name: 'Follicular Phase' },
-  ovulatory: { orb: 'orb-ovulatory', color: PHASE_PAIRS.ovulatory.primary, color2: PHASE_PAIRS.ovulatory.secondary, tint: PHASE_PAIRS.ovulatory.secondary, name: 'Ovulatory Phase' },
-  luteal: { orb: 'orb-luteal', color: PHASE_PAIRS.luteal.primary, color2: PHASE_PAIRS.luteal.secondary, tint: PHASE_PAIRS.luteal.secondary, name: 'Luteal Phase' },
-  late: { orb: 'orb-menstrual', color: PHASE_PAIRS.late.primary, color2: PHASE_PAIRS.late.secondary, tint: PHASE_PAIRS.late.primary, name: 'Period Expected' },
-  unknown: { orb: 'orb-unknown', color: PHASE_PAIRS.unknown.primary, color2: PHASE_PAIRS.unknown.secondary, tint: PHASE_PAIRS.unknown.primary, name: 'Log your period to begin' }
+  menstrual: { orb: 'orb-menstrual', color: phaseTint('menstrual'), color2: phaseOther('menstrual'), tint: phaseTint('menstrual'), name: 'Menstrual Phase' },
+  follicular: { orb: 'orb-follicular', color: phaseTint('follicular'), color2: phaseOther('follicular'), tint: phaseTint('follicular'), name: 'Follicular Phase' },
+  ovulatory: { orb: 'orb-ovulatory', color: phaseTint('ovulatory'), color2: phaseOther('ovulatory'), tint: phaseTint('ovulatory'), name: 'Ovulatory Phase' },
+  luteal: { orb: 'orb-luteal', color: phaseTint('luteal'), color2: phaseOther('luteal'), tint: phaseTint('luteal'), name: 'Luteal Phase' },
+  late: { orb: 'orb-menstrual', color: phaseTint('late'), color2: phaseOther('late'), tint: phaseTint('late'), name: 'Period Expected' },
+  unknown: { orb: 'orb-unknown', color: phaseTint('unknown'), color2: phaseOther('unknown'), tint: phaseTint('unknown'), name: 'Log your period to begin' }
 };
 // tint (Oct 31, 2026, supersedes the v56 aura): the Home day peach
 // ITSELF wears the phase color. The tint is the pair color that
@@ -588,12 +592,11 @@ export default function HomePage() {
         <p className="text-[#E6E0EE] text-xs tracking-widest uppercase mb-4">Your cycle phases · tap to learn</p>
         <div className="space-y-3">
           {PHASE_ROWS.map((row) => {
-            const pair = PHASE_PAIRS[row.id];
-            const c = pair.primary;
+            const c = phaseTint(row.id);
             const now = phase === row.id;
             return (
               <button key={row.id} type="button" onClick={() => setOpenPhaseCard(row.id)} className="w-full text-left flex items-center gap-3 p-3 rounded-xl" style={now ? { background: `${c}22`, border: `1px solid ${c}88` } : { background: 'rgba(255,255,255,0.05)' }} data-testid={`phase-row-${row.id}`}>
-                <div className="w-3 h-3 rounded-full" style={{ background: `linear-gradient(135deg, ${pair.primary}, ${pair.secondary})` }} />
+                <div className="w-3 h-3 rounded-full" style={{ background: `linear-gradient(135deg, ${c}, ${phaseOther(row.id)})` }} />
                 <div className="flex-1">
                   <p className="text-sm font-medium" style={{ color: now ? c : '#F7F4FA' }}>{row.name}</p>
                   <p className="text-[#CFC8DC] text-xs">{row.days}</p>
@@ -751,7 +754,7 @@ export default function HomePage() {
                   <span
                     aria-hidden="true"
                     style={{
-                      position: 'absolute', inset: 0, backgroundColor: phaseTint(row.id), mixBlendMode: 'color', opacity: 0.55, pointerEvents: 'none',
+                      position: 'absolute', inset: 0, backgroundColor: phaseTint(row.id), mixBlendMode: 'color', opacity: 0.8, pointerEvents: 'none',
                       WebkitMaskImage: 'url(/images/peach-mini.png)', maskImage: 'url(/images/peach-mini.png)',
                       WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center',
                     }}

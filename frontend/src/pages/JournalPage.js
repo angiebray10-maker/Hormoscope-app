@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Trash2, ChevronLeft, ChevronRight, Heart, Droplet, Lock, RotateCcw, CircleDot, Baby, HelpCircle } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
-import { PHASE_PAIRS, PHASE_NAMES, phaseTint, phaseForDate } from '../lib/phases';
+import { PHASE_PAIRS, PHASE_NAMES, phaseTint, phaseOther, phaseForDate } from '../lib/phases';
 import FloatingCarousel from '../components/FloatingCarousel';
 import DateSelect from '../components/DateSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -13,7 +13,10 @@ const GOLD = '#C9B8F0';
 const MENSTRUAL_TINT = PHASE_PAIRS.menstrual.primary;
 const MENSTRUAL_TINT_2 = PHASE_PAIRS.menstrual.secondary;
 const OVULATION_TINT = PHASE_PAIRS.ovulatory.secondary;
-const PEAK_TINT = PHASE_PAIRS.ovulatory.primary;
+// Color fix (Oct 31, 2026): peak days wear the ovulatory GREEN too.
+// This used to read pair.primary, the shared pink, so the peak
+// marker showed pink on a green phase.
+const PEAK_TINT = OVULATION_TINT;
 // The pretty blue for logged days (Angelita, Oct 30, 2026): any day she
 // logged anything lights up in this blue on the Journal calendars.
 const LOGGED_BLUE = '#74B9FF';
@@ -1166,7 +1169,7 @@ export default function JournalPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-[#CFC3CC] text-[10px] w-12 shrink-0" style={POPPINS}>Cycle</span>
                           <div className="relative flex-1 h-3 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                            <div className="h-3 rounded-full" style={{ width: `${Math.max(4, (c.cycle_length / cycleMax) * 100)}%`, background: `linear-gradient(90deg, ${PHASE_PAIRS.luteal.primary}, ${PHASE_PAIRS.luteal.secondary})` }} />
+                            <div className="h-3 rounded-full" style={{ width: `${Math.max(4, (c.cycle_length / cycleMax) * 100)}%`, background: `linear-gradient(90deg, ${phaseTint('luteal')}, ${phaseOther('luteal')})` }} />
                             {cycleStats.avg_cycle_length ? (
                               <div className="absolute -top-1 -bottom-1 border-l border-dashed border-white/70" style={{ left: `${(cycleStats.avg_cycle_length / cycleMax) * 100}%` }} />
                             ) : null}

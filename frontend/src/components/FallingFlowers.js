@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { phaseFromDashboard } from '../utils/cycleDay';
-import { phasePair } from '../lib/phases';
+import { phaseTint, phaseOther } from '../lib/phases';
 import logger from '../utils/logger';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -47,7 +47,10 @@ export default function FallingFlowers() {
     return () => { live = false; window.removeEventListener('focus', onFocus); clearInterval(timer); };
   }, [token, user?.no_periods, user?.cycle_status]);
 
-  const pair = phasePair(phase || 'unknown');
+  // Color fix (Oct 31, 2026): the big breath light wears the phase
+  // TINT (the named color); the second light is the pair partner.
+  const tint = phaseTint(phase || 'unknown');
+  const other = phaseOther(phase || 'unknown');
 
   return (
     <div
@@ -66,7 +69,7 @@ export default function FallingFlowers() {
           height: '62vw',
           maxWidth: 430,
           maxHeight: 430,
-          background: `radial-gradient(circle, ${pair.primary} 0%, transparent 65%)`,
+          background: `radial-gradient(circle, ${tint} 0%, transparent 65%)`,
         }}
       />
       <div
@@ -79,7 +82,7 @@ export default function FallingFlowers() {
           height: '68vw',
           maxWidth: 470,
           maxHeight: 470,
-          background: `radial-gradient(circle, ${pair.secondary} 0%, transparent 65%)`,
+          background: `radial-gradient(circle, ${other} 0%, transparent 65%)`,
           animationDelay: '-4.5s',
         }}
       />

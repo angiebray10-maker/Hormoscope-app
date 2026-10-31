@@ -4,7 +4,7 @@ import { usePremium } from '../context/PremiumContext';
 import { Link } from 'react-router-dom';
 import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2, Camera, BookOpen, Bell } from 'lucide-react';
 import axios from 'axios';
-import { PHASE_COLORS as SHARED_PHASE_COLORS, PHASE_PAIRS } from '../lib/phases';
+import { PHASE_COLORS as SHARED_PHASE_COLORS, phaseTint, phaseOther } from '../lib/phases';
 import { syncLocalNotifications, getNotificationPrefs, NOTIFICATION_TIMES } from '../utils/localNotifications';
 import logger from '../utils/logger';
 import CycleSync from '../components/CycleSync';
@@ -547,8 +547,9 @@ export default function PartnerHubPage() {
     );
   }
 
-  const phasePair = PHASE_PAIRS[calData?.phase] || PHASE_PAIRS.unknown;
-  const phaseColor = phasePair.primary;
+  // Color fix (Oct 31, 2026): the phase color shown is the TINT,
+  // the named color (red/blue/green/purple), not pair.primary pink.
+  const phaseColor = phaseTint(calData?.phase);
   const tips = calData?.partner_tips;
   // Feature B (v46): the cycle OWNER's sync block. When she no longer
   // has periods, her Cycle tab is her logged days, not a cycle strip.
@@ -655,7 +656,7 @@ export default function PartnerHubPage() {
           <div>
             <div className="flex flex-col items-center mb-8">
               <div className="w-32 h-32 rounded-full flex flex-col items-center justify-center"
-                style={{ background: `linear-gradient(135deg, ${phasePair.primary}40, ${phasePair.secondary}30)`, boxShadow: `0 0 40px ${phasePair.secondary}30` }}>
+                style={{ background: `linear-gradient(135deg, ${phaseTint(calData?.phase)}40, ${phaseOther(calData?.phase)}30)`, boxShadow: `0 0 40px ${phaseTint(calData?.phase)}30` }}>
                 <span className="text-white/70 text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif' }}>Day</span>
                 <span className="text-5xl font-bold text-white">{calData.cycle_day}</span>
               </div>

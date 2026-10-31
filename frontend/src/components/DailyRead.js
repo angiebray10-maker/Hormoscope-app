@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen, Utensils, Dumbbell, Heart, Flower2, Loader2 } from 'lucide-react';
 import axios from 'axios';
-import { phasePair } from '../lib/phases';
+import { phaseTint, phaseOther } from '../lib/phases';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // v55: the Daily Read takes the CURRENT phase pair like everything
 // else (lib/phases.js PHASE_PAIRS). It used to wear the same lilac
 // #C9B8F0 for every phase, the one surface that ignored phase color
-// entirely. Accent is the pair's primary; accent2 its partner.
+// entirely. Accent is the phase TINT (the named color, color fix
+// Oct 31, 2026); accent2 is the pair partner.
 
 const SECTION_ICONS = {
   body_insight: { icon: Flower2, label: 'Your Body Right Now' },
@@ -56,9 +57,8 @@ export default function DailyRead() {
   if (!data?.reading) return null;
 
   const reading = data.reading;
-  const pair = phasePair(data.phase);
-  const accent = pair.primary;
-  const accent2 = pair.secondary;
+  const accent = phaseTint(data.phase);
+  const accent2 = phaseOther(data.phase);
   const sections = ['body_insight', 'mood_forecast', 'food', 'movement', 'self_care'];
 
   return (

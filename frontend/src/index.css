@@ -203,7 +203,10 @@ h1, h2, h3, .heading {
   inset: 0;
   background-color: transparent;
   mix-blend-mode: color;
-  opacity: 0.55;
+  /* 0.8 (Oct 31, 2026 color fix): at 0.55 the pink of the peach
+     art itself won and the peach read pink in every phase; at
+     0.8 the phase color named in the legend is what she sees. */
+  opacity: 0.8;
   /* The mask image itself is set inline in HomePage: an absolute
      url() here fails the CRA css-loader build, while the inline
      style resolves against the public folder at runtime. */
@@ -248,12 +251,14 @@ h1, h2, h3, .heading {
 
 /* Per-phase colour PAIRS (v55): keep in sync with PHASE_PAIRS in
    src/lib/phases.js. Menstrual runs orange to red (the logo colors);
-   follicular, ovulatory and luteal run her bright pink into blue,
-   green and purple. */
+   follicular, ovulatory and luteal run the NAMED color first (blue,
+   green, purple: the color the legend says) into her bright pink,
+   so the named color leads here like everywhere else (color fix,
+   Oct 31, 2026). */
 .orb-menstrual { --orb-color: #E85A6B; background: linear-gradient(135deg, #FF7A29 0%, #E85A6B 100%); }
-.orb-follicular { --orb-color: #F74093; background: linear-gradient(135deg, #F74093 0%, #4FA8FF 100%); }
-.orb-ovulatory { --orb-color: #F74093; background: linear-gradient(135deg, #F74093 0%, #5DBB8A 100%); }
-.orb-luteal { --orb-color: #F74093; background: linear-gradient(135deg, #F74093 0%, #A98BEA 100%); }
+.orb-follicular { --orb-color: #4FA8FF; background: linear-gradient(135deg, #4FA8FF 0%, #F74093 100%); }
+.orb-ovulatory { --orb-color: #5DBB8A; background: linear-gradient(135deg, #5DBB8A 0%, #F74093 100%); }
+.orb-luteal { --orb-color: #A98BEA; background: linear-gradient(135deg, #A98BEA 0%, #F74093 100%); }
 .orb-unknown { --orb-color: #9C9CB8; background: linear-gradient(135deg, #B5B5CC 0%, #9C9CB8 100%); }
 
 /* =============================================
