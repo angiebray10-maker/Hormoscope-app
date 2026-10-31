@@ -4827,6 +4827,69 @@ async def remove_wishlist_item(product_id: str, current_user: dict = Depends(get
     return {"ok": True, "removed": result.deleted_count}
 
 
+# ==================== GIFT CATALOG COMMUNITY WALL ====================
+# One public comment wall at the bottom of the Gift Catalog
+# (Angelita, Oct 31, 2026): instead of a review on every product,
+# the women comment in one place on which items they tried and
+# liked, and leave suggestions of what they would like to see;
+# Angelita reads the suggestions and finds the items. Every
+# signed-in user sees the wall. A comment carries only her first
+# name, the same shape as the devotional comments.
+
+class CatalogCommentCreate(BaseModel):
+    text: str
+
+
+def _catalog_comment_shape(doc):
+    return {
+        "id": doc.get("id"),
+        "user_id": doc.get("user_id"),
+        "name": doc.get("name"),
+        "text": doc.get("text"),
+        "created_at": doc.get("created_at"),
+    }
+
+
+@api_router.get("/catalog/comments")
+async def get_catalog_comments(current_user: dict = Depends(get_current_user)):
+    comments = await db.catalog_comments.find(
+        {}, {"_id": 0}
+    ).sort("created_at", -1).to_list(length=100)
+    return {"comments": [_catalog_comment_shape(c) for c in comments]}
+
+
+@api_router.post("/catalog/comments")
+async def create_catalog_comment(payload: CatalogCommentCreate, current_user: dict = Depends(get_current_user)):
+    text = (payload.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Write something first")
+    if len(text) > 500:
+        raise HTTPException(status_code=400, detail="Keep comments to 500 characters")
+    # First name only; a user with no name on file is "A sister"
+    # (splitting the fallback itself would leave just "A").
+    first = (current_user.get("name") or "").split(" ")[0] or "A sister"
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "name": first,
+        "text": text,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.catalog_comments.insert_one(doc)
+    return _catalog_comment_shape(doc)
+
+
+@api_router.delete("/catalog/comments/{comment_id}")
+async def delete_catalog_comment(comment_id: str, current_user: dict = Depends(get_current_user)):
+    existing = await db.catalog_comments.find_one({"id": comment_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if existing.get("user_id") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="That comment is not yours to delete")
+    await db.catalog_comments.delete_one({"id": comment_id, "user_id": current_user["id"]})
+    return {"message": "Comment deleted"}
+
+
 # Catalog details for the server-rendered partner link view's
 # wishlist section. Mirrors frontend/src/data/catalog.js (same picks;
 # links are built with her Associates tag, hormoscope20-20). v50:

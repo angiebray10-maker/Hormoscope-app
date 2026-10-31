@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Gift, Loader2, X, Heart } from 'lucide-react';
+import { Gift, Loader2, X, Heart, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
@@ -35,6 +35,11 @@ function wishlistTitle(name, fallback) {
 
 function openAmazon(asin) {
   window.open(amazonUrl(asin), '_system');
+}
+
+function fmtCommentDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 // v50 (Angelita, Oct 26, 2026): every row shows the product's
@@ -91,6 +96,120 @@ function ProductCard({ product, children }) {
           <p className="text-[#b8b8d1] text-xs leading-relaxed mb-3" style={poppins}>{product.blurb}</p>
           {children && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// The community wall (Angelita, Oct 31, 2026): ONE public comment
+// area at the bottom of the Gift Catalog, instead of a review on
+// every product. The women write which items they tried and liked
+// and what they would like to see, and Angelita finds the suggested
+// items. Every signed-in user sees the wall; a woman can delete
+// only her own comments. Her life-stages progression artwork sits
+// faded behind it, the same treatment as the Journal note; per her
+// word those are the only two places that artwork belongs.
+function CommunityWall({ token, user }) {
+  const [comments, setComments] = useState(null); // null while loading
+  const [draft, setDraft] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [wallMsg, setWallMsg] = useState('');
+  const auth = { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 };
+
+  const fetchComments = useCallback(async () => {
+    if (!token) { setComments([]); return; }
+    try {
+      const res = await axios.get(`${API}/catalog/comments`, auth);
+      setComments(Array.isArray(res.data?.comments) ? res.data.comments : []);
+    } catch (err) {
+      logger.error('Catalog comments load error:', err);
+      setComments([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  useEffect(() => { fetchComments(); }, [fetchComments]);
+
+  const postComment = async () => {
+    const text = draft.trim();
+    if (!text || posting) return;
+    setPosting(true); setWallMsg('');
+    try {
+      await axios.post(`${API}/catalog/comments`, { text }, auth);
+      setDraft('');
+      await fetchComments();
+    } catch (err) {
+      setWallMsg("Couldn't post that just now. Please try again.");
+      logger.error('Catalog comment post error:', err);
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const deleteComment = async (id) => {
+    if (!window.confirm('Delete this comment?')) return;
+    try {
+      await axios.delete(`${API}/catalog/comments/${id}`, auth);
+      setComments((prev) => (prev || []).filter((c) => c.id !== id));
+    } catch (err) {
+      setWallMsg("Couldn't delete that just now. Please try again.");
+      logger.error('Catalog comment delete error:', err);
+    }
+  };
+
+  return (
+    <div className="relative rounded-2xl mt-6 overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }} data-testid="catalog-community">
+      <img src="/images/life-stages-silhouettes.webp" alt="" aria-hidden="true" className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[72%] object-contain pointer-events-none" style={{ opacity: 0.15 }} />
+      <div className="relative z-10 p-4">
+        <h3 className="text-white text-lg mb-1" style={script}>Community</h3>
+        <p className="text-[#CFC3CC] text-xs leading-relaxed mb-2" style={poppins}>
+          Please feel free to comment here on which items you tried and liked, and suggestions of what you would like to see. Looking for something you want? Leave a comment and I will find it for you.
+        </p>
+        {comments === null ? (
+          <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 text-[#f4a7b9] animate-spin" /></div>
+        ) : comments.length === 0 ? (
+          <p className="text-[#b8b8d1] text-sm leading-relaxed py-2" style={poppins}>No comments yet. Be the first to share what you tried.</p>
+        ) : (
+          <div>
+            {comments.map((c) => (
+              <div key={c.id} className="py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} data-testid={`catalog-comment-${c.id}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-xs" style={poppins}>
+                    <span style={{ color: PINK }}>{c.name}</span>{' '}
+                    <span className="text-white/30">{fmtCommentDate(c.created_at)}</span>
+                  </p>
+                  {user && c.user_id === user.id && (
+                    <button onClick={() => deleteComment(c.id)} className="text-white/30 hover:text-red-400 p-1 shrink-0" title="Delete this comment" data-testid={`delete-catalog-comment-${c.id}`}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <p className="text-[#FDF8FA] text-sm leading-relaxed whitespace-pre-wrap mt-1" style={poppins}>{c.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {wallMsg && <p className="text-red-400 text-xs mt-2 mb-1" style={poppins}>{wallMsg}</p>}
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Share what you tried, or ask for something you are looking for..."
+          rows={3}
+          maxLength={500}
+          className="w-full rounded-xl px-4 py-3 text-sm text-white focus:outline-none mt-3 mb-2"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', fontFamily: 'Poppins, sans-serif' }}
+          data-testid="catalog-comment-input"
+          aria-label="Write a comment"
+        />
+        <button
+          onClick={postComment}
+          disabled={posting || !draft.trim()}
+          className="px-5 py-2 rounded-full text-xs font-medium text-white disabled:opacity-50"
+          style={{ ...poppins, background: HOT }}
+          data-testid="catalog-comment-post"
+        >
+          {posting ? 'Posting...' : 'Post'}
+        </button>
       </div>
     </div>
   );
@@ -303,6 +422,7 @@ export default function AttunementGifts() {
             );
           })}
           <p className="text-[#B4B0C8] text-[11px] leading-relaxed mt-4" style={poppins}>{CATALOG_PRICES_LINE}</p>
+          <CommunityWall token={token} user={user} />
         </div>
       )}
     </div>

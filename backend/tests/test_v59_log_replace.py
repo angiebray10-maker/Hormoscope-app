@@ -81,7 +81,11 @@ class FakeCursor:
         return self
 
     async def to_list(self, length=None):
-        return list(self._docs)
+        # Motor honors the length cap; the fake does too, so a
+        # suite can prove an endpoint's list cap (catalog comments).
+        if length is None:
+            return list(self._docs)
+        return list(self._docs)[:length]
 
 
 class FakeCollection:

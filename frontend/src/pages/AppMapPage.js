@@ -12,7 +12,7 @@ export const APP_MAP = [
   ]},
   { group: 'Partner', items: [
     { to: '/partner-hub', name: 'Partner Hub', desc: 'Where a partner enters an invite code and follows your cycle.' },
-    { to: '/attunement', name: 'Gift Catalog', desc: 'In Attunement: Food & Drink first, then Non Food & Drink, each sorted by price. Heart items onto your wishlist, and tap a product name to open it on Amazon.' },
+    { to: '/attunement', name: 'Gift Catalog', desc: 'In Attunement: Food & Drink first, then Non Food & Drink, each sorted by price. Heart items onto your wishlist, tap a product name to open it on Amazon, and comment or leave a suggestion on the Community wall at the bottom.' },
   ]},
   { group: 'Help & about', items: [
     { to: '/guide', name: 'Instructional Guide', desc: 'How each part of the app works.' },
