@@ -44,8 +44,9 @@ const VIS_OPTIONS = [
   { id: 'period_dates', label: 'When my next period is due' },
   { id: 'fertile_window', label: 'My fertile window' },
   // v49 (Angelita, Oct 26, 2026): journal sharing is a choice now.
-  // Off unless she ticks it, and it reaches only a linked partner
-  // inside the app, never a view link.
+  // Off unless she ticks it. v57 (Oct 31, 2026): follow the toggle,
+  // it reaches a linked partner inside the app AND a partner view
+  // link, whole journal, intimate-marked entries included.
   { id: 'share_journal', label: 'My journal entries' },
   // v54 (Angelita, Oct 30, 2026): the intimacy log is a choice too,
   // reversing the old never-shared rule. Off unless she ticks it, and
@@ -89,7 +90,7 @@ function VisibilityChecklist({ vis, onToggle }) {
           </button>
         );
       })}
-      <p className="text-[#E6E0EE] text-xs mt-1" style={poppins}>Your journal and your intimacy log are private unless you choose to share them. Each goes only to a linked partner inside the app, and only if you tick it above. Neither ever goes out through a view link.</p>
+      <p className="text-[#E6E0EE] text-xs mt-1" style={poppins}>Your journal and your intimacy log are private unless you choose to share them, and only if you tick them above. Your journal follows its tick everywhere, including a partner view link. Your intimacy log follows its tick for a linked partner inside the app.</p>
     </div>
   );
 }
@@ -383,7 +384,7 @@ export default function AttunementPage() {
               </p>
             </div>
             <p className="text-[#CFC3CC] text-xs mb-4" style={poppins}>
-              They can see your cycle calendar and leave you little notes. Your journal always stays private.
+              They can see your cycle calendar and leave you little notes. Your journal is shared only if you turn it on above.
             </p>
             {acceptedInvite && (
               <p className="text-[#B4B0C8] text-[11px] mb-4" style={poppins} data-testid="partner-kind-label">

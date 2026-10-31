@@ -59,7 +59,7 @@ function AttunedSection({ token }) {
             Linked with <span className="font-semibold" style={{ color: '#f4a7b9' }}>{status.partner_name}</span>
           </p>
           <p className="text-[#CFC3CC] text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            He can see your cycle calendar — ovulation, fertile days, and your next period. Your journal stays private.
+            He can see your cycle calendar, your ovulation and fertile days, and your next period. Your journal and your intimacy log are shared only if you turn them on.
           </p>
           <div className="flex gap-2">
             <Link to="/attunement" className="flex-1 py-2.5 rounded-full text-white text-sm font-medium text-center"

@@ -1,13 +1,22 @@
-"""Standalone verification for v49 journal sharing (Angelita, Oct 26, 2026).
+"""Standalone verification for journal sharing (v49, Angelita, Oct 26,
+2026; follow-the-toggle update v57, Oct 31, 2026).
 
-Her journal is shared with her linked in-app partner ONLY when she
-turns the Journal choice on (partner_visibility.share_journal). The
-default is off for everyone: no stored preference, an explicit off,
-and turning it back off all mean the partner journal endpoint refuses
-and no partner payload (status, sync, calendar, either view link)
-carries journal entries, journal text, or journal keys. Entries she
-marked intimate are never served to a partner even with sharing on.
-View links never carry journal entries, whatever she chooses.
+Her journal is shared ONLY when she turns the Journal choice on
+(partner_visibility.share_journal). The default is off for everyone:
+no stored preference, an explicit off, and turning it back off all
+mean the partner journal endpoint refuses and no partner payload
+(status, sync, calendar, either view link) carries journal entries,
+journal text, or journal keys.
+
+FOLLOW THE TOGGLE (her decision, Oct 31, 2026, "follow the toggle
+too"): while sharing is ON, partner surfaces serve her WHOLE journal,
+entries marked intimate included, and view links carry the journal
+too (token page payload and legacy link JSON). While it is OFF, no
+journal reaches any partner surface, as before.
+
+Also covers GET /journal/day/{date} (v57): the owner's own full day
+(writing plus that day's cycle logs) for the Journal tab browse
+calendar, scoped to the owner only.
 
 Runs server.py against in-memory fake collections. No network, no
 real Mongo.
@@ -242,25 +251,41 @@ async def section_on_then_off(results):
     days = res.get("days") or []
     results.append(("on: days newest first",
                     len(days) == 2 and days[0]["date"] > days[1]["date"]))
+    results.append(("on: all three owner entries served",
+                    sum(len(d.get("entries") or []) for d in days) == 3))
     blob = json.dumps(res, default=str)
     results.append(("on: shared entries served",
                     "SHAREDWORDSONE" in blob and "SHAREDWORDSTWO" in blob))
-    results.append(("on: intimate entry never served",
-                    "INTIMATESECRETWORDS" not in blob and "Eyes only" not in blob))
+    results.append(("on: intimate-marked entry served too (follow the toggle)",
+                    "INTIMATESECRETWORDS" in blob and "Eyes only" in blob))
     results.append(("on: partner's own entries not served back",
                     "PARTNEROWNWORDS" not in blob))
     results.append(("on: no intimacy or vault content",
                     "SECRETINTIMACY" not in blob and "SECRETVAULT" not in blob))
 
-    # View links stay clean even while sharing is on.
+    # View links follow the toggle too (v57): while sharing is on,
+    # the journal rides along, intimate-marked entries included.
     payload = await server._partner_view_payload("tok-view-1")
-    scan_clean(payload, "on view payload", results)
+    pblob = json.dumps(payload, default=str)
+    results.append(("on: view payload carries the journal",
+                    "SHAREDWORDSONE" in pblob and "SHAREDWORDSTWO" in pblob))
+    results.append(("on: view payload carries intimate-marked entries too",
+                    "INTIMATESECRETWORDS" in pblob))
+    results.append(("on: view payload keeps partner's own and other secrets out",
+                    "PARTNEROWNWORDS" not in pblob and "SECRETINTIMACY" not in pblob
+                    and "SECRETVAULT" not in pblob))
     page = server._render_partner_view_html(payload)
-    scan_clean(page, "on view page", results)
+    results.append(("on: view page renders the journal",
+                    "SHAREDWORDSONE" in page and "INTIMATESECRETWORDS" in page))
     code, res = await call(server.get_partner_view, "LEGACY1")
-    results.append(("on: legacy view does not echo share_journal",
-                    code == "ok" and not has_key_deep(res, "share_journal")))
-    scan_clean(res, "on legacy view", results)
+    lblob = json.dumps(res, default=str)
+    results.append(("on: legacy view echoes share_journal",
+                    code == "ok" and has_key_deep(res, "share_journal")))
+    results.append(("on: legacy view serves the journal incl intimate-marked",
+                    "SHAREDWORDSONE" in lblob and "INTIMATESECRETWORDS" in lblob))
+    results.append(("on: legacy view keeps other secrets out",
+                    "SECRETINTIMACY" not in lblob and "SECRETVAULT" not in lblob
+                    and "PARTNEROWNWORDS" not in lblob))
 
     # Turn it back off through the profile mechanism she actually uses.
     owner_now = await db.users.find_one({"id": "u-owner"})
@@ -281,6 +306,51 @@ async def section_on_then_off(results):
     scan_clean(res, "off again status", results)
     code, res = await call(server.get_partner_sync, dict(partner))
     scan_clean(res, "off again sync", results)
+    payload = await server._partner_view_payload("tok-view-1")
+    scan_clean(payload, "off again view payload", results)
+    page = server._render_partner_view_html(payload)
+    results.append(("off again: view page carries no journal",
+                    "SHAREDWORDSONE" not in page and "INTIMATESECRETWORDS" not in page))
+    code, res = await call(server.get_partner_view, "LEGACY1")
+    results.append(("off again: legacy view does not echo share_journal",
+                    code == "ok" and not has_key_deep(res, "share_journal")))
+    scan_clean(res, "off again legacy view", results)
+
+
+async def section_journal_day(results):
+    db = FakeDB()
+    server.db = db
+    owner, partner = seed(db)
+    db.journal_entries.docs.append(
+        {"id": "j-day", "user_id": "u-owner", "title": "Day page",
+         "content": "DAYPAGEWORDS", "is_intimate": False,
+         "created_at": "2026-10-20T10:00:00+00:00"})
+    db.cycle_logs.docs.append(
+        {"id": "l-day", "user_id": "u-owner", "date": "2026-10-20",
+         "symptoms": ["mood:good", "supplements:Vitamin D"],
+         "notes": "Mood: Good\nSupplements: Vitamin D", "flow": None,
+         "is_period": False})
+    db.cycle_logs.docs.append(
+        {"id": "l-other", "user_id": "u-owner", "date": "2026-10-21",
+         "symptoms": [], "notes": "OTHERDAYWORDS", "flow": None,
+         "is_period": False})
+
+    code, res = await call(server.get_journal_day, "2026-10-20", dict(owner))
+    results.append(("journal day: owner gets the day", code == "ok"))
+    blob = json.dumps(res, default=str)
+    results.append(("journal day: writing and logs both present",
+                    "DAYPAGEWORDS" in blob and "Supplements: Vitamin D" in blob))
+    results.append(("journal day: other days stay out",
+                    "OTHERDAYWORDS" not in blob))
+
+    code, res = await call(server.get_journal_day, "2026-10-20", dict(partner))
+    pblob = json.dumps(res, default=str)
+    results.append(("journal day: another user sees none of it",
+                    code == "ok" and "DAYPAGEWORDS" not in pblob
+                    and "Supplements: Vitamin D" not in pblob))
+
+    code, _ = await call(server.get_journal_day, "not-a-date", dict(owner))
+    results.append(("journal day: bad date refused (400)", code == 400))
 
 
 async def section_onboarding(results):
@@ -321,6 +391,7 @@ async def main():
     results = []
     await section_default_off(results)
     await section_on_then_off(results)
+    await section_journal_day(results)
     await section_onboarding(results)
     failed = [name for name, ok in results if not ok]
     for name, ok in results:

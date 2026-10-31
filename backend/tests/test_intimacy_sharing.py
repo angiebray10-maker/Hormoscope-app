@@ -7,9 +7,11 @@ is off for everyone: no stored preference, an explicit off, and
 turning it back off all mean the partner intimacy endpoint refuses
 and no partner payload (status, sync, calendar, either view link)
 carries intimacy dates, names, notes, or the share_intimacy key.
-View links never carry intimacy data, whatever she chooses. Journal
-entries she marked intimate are a separate thing and stay unserved
-even while intimacy sharing is on.
+View links never carry intimacy LOG data, whatever she chooses.
+Journal entries she marked intimate are a separate thing, governed
+by the Journal toggle: since v57 (Oct 31, 2026, "follow the toggle")
+they ARE served through the journal paths while journal sharing is
+on, this file's ON section included.
 
 Also verifies GET /journal/logged-days (item 20): owner only, dates
 only, the union of her journal days and her cycle log days.
@@ -241,21 +243,33 @@ async def section_on_then_off(results):
     results.append(("on: intimate journal entry never served here",
                     "INTIMATESECRETWORDS" not in blob))
 
-    # The journal endpoint still protects intimate entries while on.
+    # Follow the toggle (v57): the journal endpoint serves intimate
+    # marked entries while JOURNAL sharing is on (it is on here).
     code, res = await call(server.get_partner_journal, dict(partner))
     jblob = json.dumps(res, default=str)
-    results.append(("on: partner journal ok, intimate entry still never served",
-                    code == "ok" and "INTIMATESECRETWORDS" not in jblob))
+    results.append(("on: partner journal ok, intimate-marked entry served (journal toggle)",
+                    code == "ok" and "INTIMATESECRETWORDS" in jblob))
 
-    # View links stay clean even while sharing is on.
+    # View links still never carry intimacy LOG data; the journal
+    # itself follows its own toggle, so its words may ride along.
     payload = await server._partner_view_payload("tok-view-1")
-    scan_clean(payload, "on view payload", results)
+    pblob2 = json.dumps(payload, default=str)
+    results.append(("on: view payload carries no intimacy log content",
+                    "LOVERNAMESECRET" not in pblob2 and "INTIMACYNOTESECRET" not in pblob2))
+    results.append(("on: view payload share_intimacy key absent",
+                    not has_key_deep(payload, "share_intimacy")))
+    results.append(("on: view payload journal follows its toggle",
+                    "INTIMATESECRETWORDS" in pblob2))
     page = server._render_partner_view_html(payload)
-    results.append(("on: view page clean",
-                    not any(s in page for s in SENTINELS)))
+    results.append(("on: view page carries no intimacy log content",
+                    "LOVERNAMESECRET" not in page and "INTIMACYNOTESECRET" not in page))
     code, res = await call(server.get_partner_view, "LEGACY1")
     results.append(("on: legacy view ok", code == "ok"))
-    scan_clean(res, "on legacy view", results)
+    lblob2 = json.dumps(res, default=str)
+    results.append(("on: legacy view carries no intimacy log content",
+                    "LOVERNAMESECRET" not in lblob2 and "INTIMACYNOTESECRET" not in lblob2))
+    results.append(("on: legacy view share_intimacy key absent",
+                    not has_key_deep(res, "share_intimacy")))
 
     # Turn it back off through the profile mechanism she actually uses.
     owner_now = await db.users.find_one({"id": "u-owner"})

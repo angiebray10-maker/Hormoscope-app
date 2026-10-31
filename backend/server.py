@@ -124,15 +124,16 @@ PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_wind
 # share_journal (v49, Angelita, Oct 26, 2026): her journal entries are
 # shared with her linked in-app partner ONLY when she turns this on.
 # Default False for everyone: new users, existing users, existing
-# relationships. It never applies to view links, and entries she
-# marked intimate are never served to a partner either way.
+# relationships. FOLLOW THE TOGGLE (v57, Angelita, Oct 31, 2026): when
+# it is on, partner surfaces serve her whole journal, entries marked
+# intimate included, and view links carry the journal too; when it is
+# off, no partner surface carries any of it.
 # share_intimacy (v54, Angelita, Oct 30, 2026): she REVERSED the old
 # "intimacy log is never shared" rule. Her intimacy LOG (the Calendar
 # intimacy days and the names stored with them) is now a checklist
 # choice like the journal: shared with her linked in-app partner ONLY
 # when she turns this on, default False for everyone, and it never
-# applies to view links. This is separate from journal entries marked
-# intimate, which stay her eyes only either way.
+# applies to view links.
 DEFAULT_PARTNER_VISIBILITY = {"phase": True, "mood_energy": True, "period_dates": True, "fertile_window": False, "wishlist": True, "share_journal": False, "share_intimacy": False}
 BOUTIQUE_VISIBILITY_VALUES = ("private", "partner", "public")
 
@@ -2548,6 +2549,28 @@ async def get_journal_logged_days(current_user: dict = Depends(get_current_user)
     return {"journal_days": journal_days, "log_days": log_days,
             "logged_days": sorted(set(journal_days) | set(log_days))}
 
+@api_router.get("/journal/day/{date_str}")
+async def get_journal_day(date_str: str, current_user: dict = Depends(get_current_user)):
+    """Owner only (v57, Angelita, Oct 31, 2026): ONE full day for the
+    Journal tab's browse calendar. Her writing that day plus every
+    cycle log saved to that day (moods, the daily log answers, quick
+    logs, supplements, everything), so tapping a blue day on the
+    calendar in the Journal tab opens the whole day right there. Her
+    own data behind her own login; the vault password flow that seals
+    past days in the Vault is unchanged."""
+    try:
+        target = date.fromisoformat(str(date_str)[:10])
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Bad date")
+    entries = await db.journal_entries.find(
+        {"user_id": current_user["id"]}, {"_id": 0}
+    ).sort("created_at", -1).to_list(length=None)
+    day_entries = [e for e in entries if _journal_day(e.get("created_at")) == target]
+    logs = await db.cycle_logs.find(
+        {"user_id": current_user["id"], "date": target.isoformat()}, {"_id": 0}
+    ).to_list(length=None)
+    return {"date": target.isoformat(), "entries": day_entries, "logs": logs}
+
 @api_router.delete("/journal/{entry_id}")
 async def delete_journal_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
     result = await db.journal_entries.delete_one({"id": entry_id, "user_id": current_user["id"]})
@@ -3497,6 +3520,23 @@ def _partner_daily_note(phase: str, cycle_day):
     note = variants[(day - 1) % len(variants)]
     return {"text": note["text"], "prompt": note["prompt"]}
 
+async def _journal_entries_for_partner(owner_id):
+    """Her journal in view-link shape (v57): every entry, newest first,
+    entries marked intimate included. Callers add this ONLY while her
+    Journal sharing choice is on (follow the toggle, Oct 31, 2026);
+    while it is off the key never appears in a partner payload."""
+    docs = await db.journal_entries.find(
+        {"user_id": owner_id}, {"_id": 0, "title": 1, "content": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(length=90)
+    out = []
+    for e in docs:
+        d = _journal_day(e.get("created_at"))
+        out.append({"date": d.isoformat() if d else None,
+                    "title": e.get("title") or "",
+                    "content": e.get("content") or ""})
+    return out
+
+
 @api_router.get("/partner/view/{link_code}")
 async def get_partner_view(link_code: str):
     link = await db.partner_links.find_one({"link_code": link_code, "active": True}, {"_id": 0})
@@ -3521,14 +3561,20 @@ async def get_partner_view(link_code: str):
     tips = _partner_tips_for_phase(phase)
     
     # Only what she chose to share (Profile > partner visibility).
-    # Journal sharing never travels through a view link (v49): the
-    # share_journal choice is not even echoed here. The same holds for
-    # the intimacy log choice (v54): share_intimacy is not echoed here
-    # and intimacy data never travels through a view link either.
+    # Follow the toggle (v57, Oct 31, 2026): when she turns Journal
+    # sharing on, her journal travels through this view link too, all
+    # entries, intimate-marked included, and the choice is echoed in
+    # the visibility below; while it is off the choice is not echoed
+    # and no journal data rides along. The intimacy log choice (v54)
+    # is still not echoed here, and intimacy data never travels
+    # through a view link.
     vis = {**DEFAULT_PARTNER_VISIBILITY, **(user.get("partner_visibility") or {})}
-    vis.pop("share_journal", None)
+    share_journal = bool(vis.pop("share_journal", False))
     vis.pop("share_intimacy", None)
     out = {"name": user.get("name", "Her"), "visibility": vis}
+    if share_journal:
+        out["visibility"]["share_journal"] = True
+        out["journal_entries"] = await _journal_entries_for_partner(user["id"])
     if vis.get("phase"):
         out.update({
             "cycle_day": cycle_info.get("cycle_day", 1),
@@ -3563,8 +3609,11 @@ async def get_my_partner_link(current_user: dict = Depends(get_current_user)):
 # via an invite code. Partners see her cycle calendar (ovulation, fertile
 # window, next period). Her journal entries and her intimacy log reach a
 # partner only through their own gated endpoints, and only when she turns
-# that sharing choice on (share_journal v49, share_intimacy v54); journal
-# entries she marked intimate are never served to a partner either way.
+# that sharing choice on (share_journal v49, share_intimacy v54). Follow
+# the toggle (v57, Oct 31, 2026): while journal sharing is on, her whole
+# journal is served, entries marked intimate included, and view links
+# carry it too; while it is off, nothing journal reaches any partner
+# surface.
 
 class AcceptInviteRequest(BaseModel):
     invite_code: str
@@ -3919,8 +3968,11 @@ async def _partner_view_payload(token: str):
     None when the link is not active. The dict holds ONLY what the
     owner's current visibility choices allow (plus her name and
     picture, which say whose page this is); anything a toggle hides is
-    ABSENT here, not just hidden on the page. Journal, vault, intimacy
-    data, email and account details are never read for this page.
+    ABSENT here, not just hidden on the page. Intimacy data, email and
+    account details are never read for this page. Her journal rides
+    along ONLY while her Journal sharing choice is on (follow the
+    toggle, v57): then every entry, intimate-marked included, is part
+    of the payload, and while it is off none of it is read at all.
     The wishlist is always included: it is part of the partner
     experience (Angelita, Oct 26, 2026), whatever the old stored
     toggles say. An empty list simply means she has picked nothing."""
@@ -3977,6 +4029,8 @@ async def _partner_view_payload(token: str):
                         "end": ov.isoformat()}
         if vis.get("mood_energy"):
             payload["feeling_today"] = await _mood_today_for(owner_id)
+    if vis.get("share_journal"):
+        payload["journal_entries"] = await _journal_entries_for_partner(owner_id)
     cursor = db.wishlist_items.find({"user_id": owner_id},
                                     {"_id": 0, "product_id": 1, "created_at": 1})
     docs = await cursor.to_list(length=500)
@@ -4086,6 +4140,18 @@ def _render_partner_view_html(payload):
             inner = "".join(rows) if rows else '<p class="note">Nothing logged yet in the last few weeks.</p>'
             parts.append(
                 f'<div class="card"><p class="label">Her recent days, from what she logs</p>{inner}</div>')
+        if payload.get("journal_entries") is not None:
+            jrows = []
+            for e in payload["journal_entries"]:
+                title_bit = (f'<p class="daybody" style="font-weight:600">{esc(str(e.get("title") or ""))}</p>'
+                             if e.get("title") else "")
+                jrows.append(
+                    f'<div class="day"><p class="daydate">{esc(_fmt_view_date(e.get("date")))}</p>'
+                    + title_bit
+                    + f'<p class="daybody" style="white-space:pre-wrap">{esc(str(e.get("content") or ""))}</p></div>')
+            jinner = "".join(jrows) if jrows else '<p class="note">No journal entries yet.</p>'
+            parts.append(
+                f'<div class="card"><p class="label">Her journal, shared with you</p>{jinner}</div>')
         wish = payload.get("wishlist")
         if wish is not None:
             if wish:
@@ -4271,10 +4337,11 @@ async def get_partner_journal(current_user: dict = Depends(get_current_user)):
     """Her journal, for her linked in-app partner, ONLY when she turned
     journal sharing on (partner_visibility.share_journal, v49). While
     the choice is off (the default for everyone) this refuses, and no
-    journal data appears in any partner payload. Entries she marked
-    intimate are never served here either way: those are her eyes only,
-    a separate promise from sharing. Read-only; nothing here writes.
-    View links never carry journal entries, whatever she chooses."""
+    journal data appears in any partner payload. FOLLOW THE TOGGLE
+    (v57, Angelita, Oct 31, 2026): while sharing is on, ALL her entries
+    are served here, the ones she marked intimate included; the mark
+    no longer filters anything out of this endpoint. Read-only;
+    nothing here writes. View links follow the same toggle (v57)."""
     rel = await _get_partner_relationship(current_user["id"])
     if not rel:
         raise HTTPException(status_code=403, detail="No linked partner account.")
@@ -4291,8 +4358,6 @@ async def get_partner_journal(current_user: dict = Depends(get_current_user)):
     ).sort("created_at", -1).to_list(length=None)
     by_day = {}
     for e in entries:
-        if e.get("is_intimate"):
-            continue
         d = _journal_day(e.get("created_at"))
         if d is None:
             continue

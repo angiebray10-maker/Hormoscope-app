@@ -105,8 +105,9 @@ function SectionTitle({ Icon, color, children }) {
 // negative ones included) comes first, then symptoms, cravings, collection,
 // energy and sleep, all in the same scrollable sheet. Every control still saves to
 // today the moment it is tapped, exactly like the per-category dialogs did.
-// Supplements joined Oct 31, 2026 as a free text group (her question:
-// "What supplements are you taking right now?"), saved the same way.
+// Supplements joined Oct 31, 2026 as a free text group (an optional
+// field, not a question: "Your current supplements and vitamins",
+// final wording 01:12 PDT), saved the same way.
 function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
   // No mood is pre-picked (Angelita, Oct 20, 2026): the old default of
   // 3 (Okay) meant an emotion-only log also recorded a mood she never
@@ -123,7 +124,7 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
   // Supplements (Angelita, Oct 31, 2026): a free text group in the
   // same snapshot system as every other group, following the
   // collection pattern (a sheet section, not a row button). Her
-  // answer to "What supplements are you taking right now?" is saved
+  // words in "Your current supplements and vitamins" are saved
   // as one `supplements:<her words>` tag with the readable label in
   // notes, so the Journal day page reads it back like any other
   // group. supplementsSavedRef holds the last saved (or prefilled)
@@ -552,23 +553,21 @@ function QuickLogSheet({ token, onClose, onSaved, mode = 'full' }) {
             </div>
           </div>
 
-          {/* Supplements (Angelita, Oct 31, 2026): her exact question,
-              answered in her own words. Free text, saved to today as
-              its own group snapshot through the same /cycle-logs
-              path as every group above. */}
-          <SectionTitle Icon={Pill} color="#7FD9A8">Supplements</SectionTitle>
-          <p className="text-white text-sm mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            What supplements are you taking right now?
-          </p>
+          {/* Supplements and vitamins (Angelita, Oct 31, 2026; final
+              wording 01:12 PDT: NOT a question, an optional field).
+              Label and helper are her exact words. Free text, saved
+              to today as its own group snapshot through the same
+              /cycle-logs path as every group above. */}
+          <SectionTitle Icon={Pill} color="#7FD9A8">Your current supplements and vitamins</SectionTitle>
           <textarea
             value={supplements}
             onChange={(e) => { setSupplements(e.target.value); setLastKind('supplements'); }}
-            placeholder="e.g. Magnesium at night, vitamin D, collagen peptides"
+            placeholder="Add your supplements here if you like."
             rows={2}
             className="input-dark text-sm"
             style={{ fontFamily: 'Poppins, sans-serif' }}
             data-testid="supplements-input"
-            aria-label="What supplements are you taking right now?"
+            aria-label="Your current supplements and vitamins"
           />
           <button
             type="button"

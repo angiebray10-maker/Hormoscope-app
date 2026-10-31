@@ -156,6 +156,30 @@ export default function PartnerViewPage() {
           </div>
         </div>
 
+        {/* Her journal, only while she turns Journal sharing on
+            (follow the toggle, v57). The server sends journal_entries
+            only then; absent means off, and nothing renders. */}
+        {Array.isArray(data.journal_entries) && (
+          <div className="rounded-2xl p-5 mb-4 border border-white/[0.06] bg-white/[0.03]" data-testid="partner-view-journal">
+            <p className="text-[10px] tracking-widest uppercase mb-3" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Her journal, shared with you</p>
+            {data.journal_entries.length === 0 ? (
+              <p className="text-[#CFC3CC] text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>No journal entries yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {data.journal_entries.map((e, i) => (
+                  <div key={`${e.date}-${i}`} style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' } : {}}>
+                    <p className="text-[#f4a7b9] text-[11px] mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                      {e.date ? new Date(e.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : ''}
+                    </p>
+                    {e.title && <p className="text-white text-sm font-medium mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>{e.title}</p>}
+                    <p className="text-[#EDEDF5] text-sm leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Poppins, sans-serif' }}>{e.content}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-[#B4B0C8] text-[10px] leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>

@@ -267,7 +267,7 @@ export default function OnboardingPage() {
               <div>
                 <p className="flex items-start gap-2 text-[13px] leading-relaxed text-[#E6E0EE]" data-testid="onboarding-privacy-line">
                   <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: BRAND.pink }} />
-                  Your data is encrypted, never sold, never shared, not even with a partner. Your journal is yours.
+                  Your data is encrypted and never sold. Nothing is shared unless you choose to share it, and only the parts you choose.
                 </p>
                 <button
                   type="button"
@@ -286,7 +286,7 @@ export default function OnboardingPage() {
                     <ul className="space-y-1.5 text-[13px] leading-relaxed" style={{ color: BRAND.textMuted }}>
                       <li>Everything you write and log is encrypted while it travels and while it rests with us.</li>
                       <li>We keep our security updated ahead of the standard, always.</li>
-                      <li>Your information is never sold and never shared. Not with advertisers, not with anyone, not even with a partner you link.</li>
+                      <li>Your information is never sold. It is shared only where you choose, like with a partner you link, and only the parts you turn on.</li>
                       <li>Your password is stored scrambled, so it cannot be read in plain form, not even by us.</li>
                       <li>Your journal stays private unless you choose to share it with your partner.</li>
                     </ul>

@@ -259,6 +259,37 @@ export default function JournalPage() {
   const [changeNew, setChangeNew] = useState('');
   const [changeMsg, setChangeMsg] = useState('');
 
+  // Browse your days (v57, Angelita, Oct 31, 2026): a month calendar
+  // right here in the Journal tab, so she can look back without the
+  // vault detour. It reuses the Vault calendar above and the same
+  // dates-only logged-days endpoint (a journal entry OR any day log
+  // lights the day Vault blue); tapping a blue day fetches that whole
+  // day from GET /journal/day/{date} and opens it below the calendar.
+  const [browseLoggedDays, setBrowseLoggedDays] = useState(null);
+  const [browseDay, setBrowseDay] = useState(null); // {date, entries, logs}
+  const [browseBusy, setBrowseBusy] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    axios.get(`${API}/journal/logged-days`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
+      .then((res) => setBrowseLoggedDays(new Set(res.data?.logged_days || [])))
+      .catch(() => setBrowseLoggedDays(new Set()));
+  }, [token]);
+
+  const handleBrowseSelect = async (dateStr) => {
+    if (dateStr >= todayISO()) {
+      setBrowseDay(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    setBrowseBusy(true);
+    try {
+      const res = await axios.get(`${API}/journal/day/${dateStr}`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setBrowseDay({ date: dateStr, entries: res.data?.entries || [], logs: res.data?.logs || [] });
+    } catch (err) { logger.error('Browse day failed:', err); }
+    finally { setBrowseBusy(false); }
+  };
+
   const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   /* eslint-disable */
@@ -390,7 +421,7 @@ export default function JournalPage() {
       setPageIndex(idx);
       setPageNotice('');
     } else if (dateStr < todayISO()) {
-      setPageNotice('That day is sealed in your vault now. Tap the lock up top to open it.');
+      setPageNotice('That day is saved in Browse your days below, and sealed in your vault too.');
       setTimeout(() => setPageNotice(''), 4000);
     } else {
       const label = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
@@ -526,7 +557,7 @@ export default function JournalPage() {
         <img src="/images/life-stages-silhouettes.webp" alt="" className="w-full max-w-3xl mx-auto block" style={{ opacity: 0.12, transform: 'translateX(10px)' }} />
       </div>
       <div className="relative max-w-2xl mx-auto px-5 pt-6">
-        <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Yours only</p>
+        <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Your pages</p>
         <h1 className="text-3xl text-white mb-10" style={{ fontFamily: "'Poiret One', sans-serif" }}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
         <div className="flex flex-col items-center pt-10">
           <div className="cycle-orb orb-follicular w-12 h-12 mb-4" />
@@ -600,7 +631,7 @@ export default function JournalPage() {
         {/* Header Row */}
         <div className="flex items-start justify-between mb-1">
           <div>
-            <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Yours only</p>
+            <p className="text-[10px] tracking-widest uppercase" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>Your pages</p>
             <h1 className="text-3xl text-white" style={{ fontFamily: "'Poiret One', sans-serif" }}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -669,7 +700,7 @@ export default function JournalPage() {
             <div className="flex gap-2 p-3 border-t border-white/5 items-center">
               <button
                 onClick={() => setIsIntimate(!isIntimate)}
-                title={isIntimate ? 'Intimate — her eyes only' : 'Mark as intimate'}
+                title={isIntimate ? 'Intimate' : 'Mark as intimate'}
                 className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
                 style={{
                   border: isIntimate ? `1px solid ${GOLD}` : '1px solid rgba(255,255,255,0.12)',
@@ -702,7 +733,7 @@ export default function JournalPage() {
               <p className="text-2xl" style={{ color: 'rgba(244,167,185,0.55)' }}>✿</p>
             </div>
             <p className="text-white/45 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing written yet today</p>
-            <p className="text-white/25 text-xs mt-1 px-8 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap + to write. Your past days are sealed in your vault, under the lock up top.</p>
+            <p className="text-white/25 text-xs mt-1 px-8 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>Tap + to write. Your past days are in Browse your days below, and sealed in your vault too.</p>
           </div>
         ) : pages.length > 0 ? (
           <div data-testid="journal-book">
@@ -734,7 +765,7 @@ export default function JournalPage() {
                               <Pencil className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.78)' }} />
                             </button>
                             <button onClick={() => handleToggleIntimate(entry)}
-                              title={entry.is_intimate ? 'Intimate — her eyes only' : 'Mark as intimate'}
+                              title={entry.is_intimate ? 'Intimate' : 'Mark as intimate'}
                               className="p-1" data-testid={`intimate-entry-${entry.id}`}>
                               <Lock className="w-3.5 h-3.5" style={{ color: entry.is_intimate ? GOLD : 'rgba(255,255,255,0.15)' }} />
                             </button>
@@ -745,7 +776,7 @@ export default function JournalPage() {
                         </div>
                         {entry.is_intimate && (
                           <p className="text-[10px] tracking-widest uppercase mb-1" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>
-                            Intimate · her eyes only
+                            Intimate
                           </p>
                         )}
                         <p className="journal-handwriting whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}>{entry.content}</p>
@@ -780,6 +811,78 @@ export default function JournalPage() {
           </div>
         ) : null}
 
+        {/* Browse your days (v57): the calendar lives here in the
+            Journal tab, month by month across all her past months.
+            Blue days hold saved data; tapping one opens the FULL day
+            below: her writing, her moods, every log answer and quick
+            log saved to that day. */}
+        <div className="mt-10" data-testid="journal-browse">
+          <h2 className="text-xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>Browse your days</h2>
+          <p className="text-white/50 text-xs mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            Every day you wrote something or logged something is outlined in blue.
+          </p>
+          <VaultCalendar
+            loggedDays={browseLoggedDays}
+            selectedDate={browseDay?.date || null}
+            onSelectDay={handleBrowseSelect}
+          />
+          {browseBusy && (
+            <p className="text-white/60 text-sm text-center py-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Opening that day...</p>
+          )}
+          {browseDay && !browseBusy && (
+            <div data-testid="journal-browse-day">
+              <div className="flex items-end justify-between mb-2 px-1">
+                <p className="text-sm" style={{ fontFamily: 'Poppins, sans-serif', color: '#F4D3DC' }}>{fmtDayLong(browseDay.date)}</p>
+                <button
+                  onClick={() => setBrowseDay(null)}
+                  className="text-[11px] underline"
+                  style={{ fontFamily: 'Poppins, sans-serif', color: '#CFC3CC' }}
+                  data-testid="journal-browse-close"
+                >
+                  Close day
+                </button>
+              </div>
+              <div className="relative rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: `3px solid ${LOGGED_BLUE}`, background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
+                {browseDay.entries.map((entry, i) => (
+                  <div key={entry.id} className="p-4" style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`browse-entry-${entry.id}`}>
+                    <h3 className="text-white text-sm" style={{ fontFamily: "'Poiret One', sans-serif" }}>{entry.title}</h3>
+                    <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtTime(entry.created_at)}</p>
+                    {entry.is_intimate && (
+                      <p className="text-[10px] tracking-widest uppercase mt-1" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>
+                        Intimate
+                      </p>
+                    )}
+                    <p className="journal-handwriting whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}>{entry.content}</p>
+                  </div>
+                ))}
+                {browseDay.logs.length > 0 && (
+                  <div className="p-4" style={browseDay.entries.length > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}}>
+                    <p className="text-[#CFC3CC] text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif' }}>Logged this day</p>
+                    <div className="space-y-2">
+                      {browseDay.logs.map((log) => (
+                        <div key={log.id}>
+                          {log.notes && (
+                            <p className="text-[#FDF8FA] text-xs leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.notes}</p>
+                          )}
+                          {!log.notes && log.symptoms?.length > 0 && (
+                            <p className="text-[#FDF8FA] text-xs leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>{log.symptoms.join(', ')}</p>
+                          )}
+                          {log.flow && (
+                            <p className="text-[#CFC3CC] text-[11px] capitalize" style={{ fontFamily: 'Poppins, sans-serif' }}>Flow: {log.flow}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {browseDay.entries.length === 0 && browseDay.logs.length === 0 && (
+                  <p className="p-4 text-white/50 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>Nothing saved this day.</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* The Vault: her sealed days, behind a password only she knows.
@@ -806,7 +909,7 @@ export default function JournalPage() {
           <div className="relative flex-1 overflow-y-auto px-5 pb-10">
             <div className="max-w-2xl mx-auto">
               <p className="text-sm leading-relaxed mb-5" style={{ fontFamily: 'Poppins, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
-                This is yours only. No one else can open this, not even someone linked to your account. When a day ends, everything you wrote and logged seals in here, safe.
+                When a day ends, everything you wrote and logged seals in here, safe. Only your vault password opens this vault.
               </p>
 
               {vaultDays ? (
@@ -841,7 +944,7 @@ export default function JournalPage() {
                                   <p className="text-white/30 text-[10px] mt-0.5" style={{ fontFamily: 'Poppins, sans-serif' }}>{fmtTime(entry.created_at)}</p>
                                   {entry.is_intimate && (
                                     <p className="text-[10px] tracking-widest uppercase mt-1" style={{ fontFamily: 'Poppins, sans-serif', color: GOLD }}>
-                                      Intimate · her eyes only
+                                      Intimate
                                     </p>
                                   )}
                                   <p className="journal-handwriting whitespace-pre-wrap mt-2" style={{ fontFamily: SERIF, fontSize: '16px', lineHeight: '28px', color: '#F74093' }}>{entry.content}</p>

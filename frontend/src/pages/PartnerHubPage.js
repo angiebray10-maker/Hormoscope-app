@@ -641,7 +641,7 @@ export default function PartnerHubPage() {
             <div className="text-center mt-6">
               <div className="flex items-center justify-center gap-1.5">
                 <Shield className="w-3 h-3 text-[#B4B0C8]" />
-                <span className="text-[#B4B0C8] text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Her journal stays private. You only see what she chose to share.</span>
+                <span className="text-[#B4B0C8] text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>You only see what she chose to share.</span>
               </div>
             </div>
           </div>
@@ -712,7 +712,7 @@ export default function PartnerHubPage() {
             <div className="text-center mt-6">
               <div className="flex items-center justify-center gap-1.5">
                 <Shield className="w-3 h-3 text-[#B4B0C8]" />
-                <span className="text-[#B4B0C8] text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>Her journal stays private. You only see what she chose to share.</span>
+                <span className="text-[#B4B0C8] text-[10px]" style={{ fontFamily: 'Poppins, sans-serif' }}>You only see what she chose to share.</span>
               </div>
             </div>
           </div>
