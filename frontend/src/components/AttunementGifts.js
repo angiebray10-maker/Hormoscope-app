@@ -74,6 +74,20 @@ function ProductCard({ product, children }) {
           </div>
         )}
         <div className="flex-1 min-w-0">
+          {/* Founder's personal favorite banner (Angelita, Oct 31,
+              2026): the two wild yam creams carry founder: true in the
+              catalog and show this small pink-outlined label above
+              the product name, in the catalog and in wishlists alike,
+              since the same row serves both. Exact words are hers. */}
+          {product.founder && (
+            <span
+              className="inline-block px-2.5 py-1 rounded-full text-[11px] font-medium mb-2"
+              style={{ ...poppins, color: HOT, background: 'transparent', border: '1.5px solid #FF4F9A' }}
+              data-testid={`founder-favorite-${product.asin}`}
+            >
+              HORMOscope's founder's personal favorite
+            </span>
+          )}
           {/* The product NAME is the Amazon link (Angelita, Oct 26, 2026):
               no buy wording, no view wording, no button label at all
               until she picks a word she likes. Same tagged link, same
@@ -388,8 +402,10 @@ export default function AttunementGifts() {
 
       {activeTab === 'catalog' && (
         <div data-testid="catalog-tab">
-          {/* v50: grouped under her section headings, in her order.
-              A section with no products does not show. */}
+          {/* Grouped under her section headings, in her order (the
+              eleven sections of Oct 31, 2026, plus the end hold for
+              the ten products awaiting her ruling). A section with
+              no products does not show. */}
           {CATALOG_SECTIONS.map((section) => {
             const items = CATALOG_PRODUCTS.filter((p) => p.section === section);
             if (items.length === 0) return null;

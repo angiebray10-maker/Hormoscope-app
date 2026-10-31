@@ -59,7 +59,7 @@ export default function GuidePage() {
           </section>
           <section data-testid="guide-gifts">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Gift Catalog</h2>
-            <p className="mb-3">The Gift Catalog lives in Attunement. It has two groups: Food &amp; Drink first, then Non Food &amp; Drink, and each group is sorted by price.</p>
+            <p className="mb-3">The Gift Catalog lives in Attunement. It runs in sections: Flowers, Chocolates, Drinks, Period essentials, Period underwear and clothing, Beauty from the Inside Out, Comfort, Little extras, Candles and scented products, Advent calendars and gift sets, and Jewelry and extra special things. Inside each section, like sits with like.</p>
             <p className="mb-3">Tap the heart on anything you like and it goes onto your wishlist. Tap a product name to open it on Amazon.</p>
             <p className="mb-3">At the bottom of the catalog is the Community wall. Comment there on which items you tried and liked, and leave suggestions of what you would like to see. Looking for something you want? Leave a comment and Angelita will find it for you.</p>
           </section>
