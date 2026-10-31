@@ -29,7 +29,15 @@ const POPPINS = { fontFamily: 'Poppins, sans-serif' };
 const POIRET = { fontFamily: "'Poiret One', sans-serif" };
 const FLOW_OPTIONS = ['light', 'medium', 'heavy'];
 
-const todayISO = () => new Date().toISOString().split('T')[0];
+// Local "today", matching the calendar grid's day strings and
+// HomePage. The old UTC formula (toISOString) rolled to tomorrow
+// at 5 PM San Diego time, so the Journal opened on tomorrow's day
+// page in the evening and evening saves filed to that wrong day
+// (see FloatingCarousel's todayISO note).
+const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 const fmtDayLong = (dateStr) => new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 const fmtTime = (iso) => (iso ? new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '');
 

@@ -154,7 +154,11 @@ function CalendarTab({ markedDays }) {
   const markMap = {};
   (markedDays || []).forEach(md => { markMap[md.date] = md.kind; });
   const fmt = (d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Local today, like the grid's fmt above; the UTC formula
+  // (toISOString) pointed at tomorrow every evening (same fix as
+  // the Journal's todayISO).
+  const _now = new Date();
+  const todayStr = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
 
   return (
     <div data-testid="partner-calendar">

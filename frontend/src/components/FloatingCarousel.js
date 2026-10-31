@@ -84,7 +84,20 @@ const COLLECTION_OPTIONS = [
 
 const SLEEP_QUALITY = ['restless', 'okay', 'deep'];
 
-const todayISO = () => new Date().toISOString().split('T')[0];
+// "Today" in HER timezone, never UTC. This used to be
+// `new Date().toISOString().split('T')[0]`, which is the UTC date:
+// for San Diego (UTC-7) it flips to tomorrow at 5 PM local, so
+// every feeling she saved in the evening was filed under
+// tomorrow's date. The save succeeded, but it landed on a day she
+// was not looking at, the calendar marked that other day, and the
+// day she had actually lived showed nothing logged (her report,
+// Oct 31, 2026). The calendar grid builds its day strings from
+// local date parts, and HomePage's today has always been local;
+// this helper now matches both.
+const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 const colorOf = (id) => (CATEGORIES.find((c) => c.id === id) || {}).color || '#FF4F9A';
 
