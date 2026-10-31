@@ -31,6 +31,13 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // current phase (no periods path / placeholder): no aura and no
 // number, as before.
 //
+// Oct 31, 2026 (her v56 phone verdict, supersedes the v56 levels):
+// the twirly peaches were still too bright and looked messy. The
+// peak cap drops from 0.3 to 0.12 (way more faded) and the aura
+// shrinks to a slight soft glow only: smaller halo, much lower
+// alphas. The Home day peach separately lost its back circle and
+// now wears the phase color itself (see HomePage).
+//
 // v56 NUMBER SPINS WITH THE PEACH: the rotating element now
 // CONTAINS both the peach image and its cycle day number, so the
 // number turns along with the peach instead of sitting still
@@ -43,18 +50,20 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // scroll. The component keeps its FallingFlowers name.
 const PEACH_SRC = '/images/peach-mini.png';
 
-// v56: the peak opacity cap for EVERY peach, rare one included.
-const PEACH_CAP = 0.3;
+// Peak opacity cap for EVERY peach, rare one included. v56 set
+// 0.3; Oct 31, 2026 she found that still too bright, so the cap
+// is 0.12 now: way more faded, barely-there background dressing.
+const PEACH_CAP = 0.12;
 
 // All different sizes, noticeably varied: 16 to 52 px. Peaks all
 // sit at or below PEACH_CAP.
 const PEACHES = [
-  { top: '11%', left: '7%', size: 30, peak: 0.3, spin: 19, spinDelay: -4, fade: 9, fadeDelay: -2, reverse: false },
-  { top: '27%', left: '86%', size: 16, peak: 0.24, spin: 23, spinDelay: -11, fade: 11, fadeDelay: -6, reverse: true },
-  { top: '55%', left: '13%', size: 44, peak: 0.27, spin: 21, spinDelay: -7, fade: 10, fadeDelay: -4, reverse: false },
-  { top: '72%', left: '80%', size: 22, peak: 0.21, spin: 17, spinDelay: -13, fade: 8, fadeDelay: -1, reverse: true },
-  { top: '88%', left: '38%', size: 52, peak: 0.29, spin: 25, spinDelay: -2, fade: 12, fadeDelay: -8, reverse: false },
-  { top: '38%', left: '30%', size: 18, peak: 0.25, spin: 27, spinDelay: -9, fade: 13, fadeDelay: -5, reverse: false },
+  { top: '11%', left: '7%', size: 30, peak: 0.12, spin: 19, spinDelay: -4, fade: 9, fadeDelay: -2, reverse: false },
+  { top: '27%', left: '86%', size: 16, peak: 0.10, spin: 23, spinDelay: -11, fade: 11, fadeDelay: -6, reverse: true },
+  { top: '55%', left: '13%', size: 44, peak: 0.11, spin: 21, spinDelay: -7, fade: 10, fadeDelay: -4, reverse: false },
+  { top: '72%', left: '80%', size: 22, peak: 0.08, spin: 17, spinDelay: -13, fade: 8, fadeDelay: -1, reverse: true },
+  { top: '88%', left: '38%', size: 52, peak: 0.12, spin: 25, spinDelay: -2, fade: 12, fadeDelay: -8, reverse: false },
+  { top: '38%', left: '30%', size: 18, peak: 0.10, spin: 27, spinDelay: -9, fade: 13, fadeDelay: -5, reverse: false },
 ];
 
 // The special one: bigger, with a soft glow, on a long 52 second
@@ -90,12 +99,12 @@ function PeachDayNumber({ day, size, color }) {
   );
 }
 
-// v56: the phase AURA, made brighter and wider than the v55 halo
-// so it reads as shining: a soft glowing aura in the CURRENT
-// phase's pair sits BEHIND each peach (primary strong at the
-// heart, secondary carrying it outward). The peach art itself is
-// never tinted, recolored, or restyled; the color goes around it.
-// No phase, no aura.
+// The phase glow behind each twirly peach. v56 made it brighter
+// and wider so it read as shining; Oct 31, 2026 she asked for the
+// opposite: only a SLIGHT soft glow. The halo is smaller (inset
+// -30% instead of -60%) and its alphas are cut by more than half.
+// The peach art itself is never tinted, recolored, or restyled;
+// the color goes around it. No phase, no glow.
 function PeachHalo({ pair }) {
   if (!pair) return null;
   return (
@@ -104,9 +113,9 @@ function PeachHalo({ pair }) {
       data-testid="peach-phase-halo"
       style={{
         position: 'absolute',
-        inset: '-60%',
+        inset: '-30%',
         borderRadius: '50%',
-        background: `radial-gradient(circle, ${pair.primary}8C 0%, ${pair.primary}59 34%, ${pair.secondary}40 58%, ${pair.secondary}00 78%)`,
+        background: `radial-gradient(circle, ${pair.primary}38 0%, ${pair.primary}24 40%, ${pair.secondary}17 62%, ${pair.secondary}00 80%)`,
         pointerEvents: 'none',
       }}
     />
@@ -266,11 +275,13 @@ export default function FallingFlowers() {
               height: 'auto',
               display: 'block',
               position: 'relative',
-              // The rare peach's glow wears the phase pair too;
-              // the fixed pink below is only the no-phase fallback.
+              // The rare peach's glow wears the phase pair too,
+              // softened Oct 31, 2026 to a slight glow like the
+              // others; the fixed pink below is only the no-phase
+              // fallback, softened the same way.
               filter: pair
-                ? `drop-shadow(0 0 6px ${pair.primary}) drop-shadow(0 0 16px ${pair.secondary}80)`
-                : 'drop-shadow(0 0 6px rgba(255,93,162,0.95)) drop-shadow(0 0 16px rgba(255,20,147,0.5))',
+                ? `drop-shadow(0 0 5px ${pair.primary}66) drop-shadow(0 0 10px ${pair.secondary}33)`
+                : 'drop-shadow(0 0 5px rgba(255,93,162,0.4)) drop-shadow(0 0 10px rgba(255,20,147,0.2))',
             }}
           />
           <PeachDayNumber day={cycleDay} size={RARE_PEACH.size} color={pair ? pair.primary : undefined} />

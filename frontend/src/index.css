@@ -136,11 +136,17 @@ h1, h2, h3, .heading {
 }
 
 /* v56: the Home day sphere is a PEACH now (her peach-mini art at
-   feature size), carrying the cycle day over the art, with the
-   current phase pair as a bright soft aura behind it. The aura is
-   a separate layer (.day-peach-aura) so the peach art itself is
-   never tinted. The orb pulse/breathing wrapper (.hs-orb-pulse)
-   still wraps it, so it breathes like the sphere did. */
+   feature size), carrying the cycle day over the art. The orb
+   pulse/breathing wrapper (.hs-orb-pulse) still wraps it, so it
+   breathes like the sphere did.
+   Oct 31, 2026 (her v56 phone verdict, supersedes the v56 aura):
+   the circle behind the peach is REMOVED completely, and the
+   peach itself wears the phase color: .day-peach-tint is a solid
+   phase-color layer blended with mix-blend-mode: color and
+   masked to the peach silhouette, so the art keeps its shading
+   and detail (sunglasses stay dark) while its hue becomes the
+   phase color. The day number is much smaller and sits low in
+   the peach body, clear of the sunglasses and face. */
 .day-peach {
   width: 168px;
   height: 168px;
@@ -149,10 +155,21 @@ h1, h2, h3, .heading {
   align-items: center;
   justify-content: center;
 }
-.day-peach-aura {
+.day-peach-tint {
   position: absolute;
-  inset: -38%;
-  border-radius: 50%;
+  inset: 0;
+  background-color: transparent;
+  mix-blend-mode: color;
+  opacity: 0.55;
+  /* The mask image itself is set inline in HomePage: an absolute
+     url() here fails the CRA css-loader build, while the inline
+     style resolves against the public folder at runtime. */
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
   pointer-events: none;
 }
 .day-peach-img {
@@ -164,7 +181,7 @@ h1, h2, h3, .heading {
 .day-peach-day {
   position: absolute;
   left: 50%;
-  top: 56%;
+  top: 74%;
   transform: translate(-50%, -50%);
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
@@ -760,17 +777,20 @@ html.hs-orb-off .hs-orb-pulse { animation: none !important; }
 /* v56 FADED ALWAYS: the soft fade peaks at var(--peak), and every
    peach sets --peak at or below the 0.3 cap, so even at its
    brightest a peach stays background decoration. The rare peach
-   peaks at the same 0.3 cap (it used to reach full opacity). */
+   peaks at the same 0.3 cap (it used to reach full opacity).
+   Oct 31, 2026 (her v56 phone verdict): 0.3 still read as too
+   bright and messy, so the cap drops to 0.12 everywhere,
+   keyframes included; the peaches keep only a slight soft glow. */
 @keyframes peachFadeSoft {
   0% { opacity: 0; }
-  38% { opacity: var(--peak, 0.3); }
-  62% { opacity: var(--peak, 0.3); }
+  38% { opacity: var(--peak, 0.12); }
+  62% { opacity: var(--peak, 0.12); }
   100% { opacity: 0; }
 }
 @keyframes peachFadeRare {
   0%, 58% { opacity: 0; }
-  72% { opacity: 0.3; }
-  84% { opacity: 0.3; }
+  72% { opacity: 0.12; }
+  84% { opacity: 0.12; }
   97%, 100% { opacity: 0; }
 }
 .tiny-peach {

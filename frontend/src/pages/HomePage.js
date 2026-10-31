@@ -35,13 +35,18 @@ const PHASE_CARDS = {
 // color is the pair's primary, color2 its partner: the orb glows in
 // both, the phase rows dot in both.
 const phases = {
-  menstrual: { orb: 'orb-menstrual', color: PHASE_PAIRS.menstrual.primary, color2: PHASE_PAIRS.menstrual.secondary, name: 'Menstrual Phase' },
-  follicular: { orb: 'orb-follicular', color: PHASE_PAIRS.follicular.primary, color2: PHASE_PAIRS.follicular.secondary, name: 'Follicular Phase' },
-  ovulatory: { orb: 'orb-ovulatory', color: PHASE_PAIRS.ovulatory.primary, color2: PHASE_PAIRS.ovulatory.secondary, name: 'Ovulatory Phase' },
-  luteal: { orb: 'orb-luteal', color: PHASE_PAIRS.luteal.primary, color2: PHASE_PAIRS.luteal.secondary, name: 'Luteal Phase' },
-  late: { orb: 'orb-menstrual', color: PHASE_PAIRS.late.primary, color2: PHASE_PAIRS.late.secondary, name: 'Period Expected' },
-  unknown: { orb: 'orb-unknown', color: PHASE_PAIRS.unknown.primary, color2: PHASE_PAIRS.unknown.secondary, name: 'Log your period to begin' }
+  menstrual: { orb: 'orb-menstrual', color: PHASE_PAIRS.menstrual.primary, color2: PHASE_PAIRS.menstrual.secondary, tint: PHASE_PAIRS.menstrual.primary, name: 'Menstrual Phase' },
+  follicular: { orb: 'orb-follicular', color: PHASE_PAIRS.follicular.primary, color2: PHASE_PAIRS.follicular.secondary, tint: PHASE_PAIRS.follicular.secondary, name: 'Follicular Phase' },
+  ovulatory: { orb: 'orb-ovulatory', color: PHASE_PAIRS.ovulatory.primary, color2: PHASE_PAIRS.ovulatory.secondary, tint: PHASE_PAIRS.ovulatory.secondary, name: 'Ovulatory Phase' },
+  luteal: { orb: 'orb-luteal', color: PHASE_PAIRS.luteal.primary, color2: PHASE_PAIRS.luteal.secondary, tint: PHASE_PAIRS.luteal.secondary, name: 'Luteal Phase' },
+  late: { orb: 'orb-menstrual', color: PHASE_PAIRS.late.primary, color2: PHASE_PAIRS.late.secondary, tint: PHASE_PAIRS.late.primary, name: 'Period Expected' },
+  unknown: { orb: 'orb-unknown', color: PHASE_PAIRS.unknown.primary, color2: PHASE_PAIRS.unknown.secondary, tint: PHASE_PAIRS.unknown.primary, name: 'Log your period to begin' }
 };
+// tint (Oct 31, 2026, supersedes the v56 aura): the Home day peach
+// ITSELF wears the phase color. The tint is the pair color that
+// names the phase on its own: menstrual red, follicular blue,
+// ovulatory green, luteal purple (her example: "if I'm on my
+// luteal phase, that peach needs to be purple").
 
 const PHASE_ROWS = [
   { id: 'menstrual', name: 'Menstrual Phase', days: 'Days 1-5 • Rest & renewal' },
@@ -435,27 +440,35 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Cycle Day Peach (v56): the day sphere is a peach now. Her
-          peach-mini art at feature size carries the cycle day, with
-          a bright soft aura in the current phase pair behind it
-          (the art itself is never tinted). No current phase: no
-          number and no aura, as before. */}
+      {/* Cycle Day Peach (v56; Oct 31, 2026 corrections at her
+          word after her v56 phone check): the circle that sat
+          behind the peach is GONE completely (no aura disc, no
+          glow shadow) and the peach ITSELF wears the current
+          phase color as a tint clipped to the peach shape (luteal
+          = purple; see the tint field on the phase config). The
+          day number is much smaller than v56 and sits low inside
+          the peach, clear of the sunglasses and face. No current
+          phase: no number and no tint, as before. */}
       <div className="flex flex-col items-center mb-8">
         <span className="text-[#E6E0EE] text-xs tracking-widest uppercase font-semibold mb-3">
           {phase === 'unknown' ? 'CYCLE DAY' : 'YOU ARE ON DAY'}
         </span>
-        <div className="hs-orb-pulse rounded-full" style={{ boxShadow: `0 0 48px ${config.color}77, 0 0 96px ${config.color2}44` }}>
+        <div className="hs-orb-pulse rounded-full">
         <div className="day-peach" data-testid="day-circle">
-          {phase !== 'unknown' && (
-            <span
-              className="day-peach-aura"
-              data-testid="day-peach-aura"
-              style={{ background: `radial-gradient(circle, ${config.color}8C 0%, ${config.color}59 34%, ${config.color2}40 58%, ${config.color2}00 78%)` }}
-            />
-          )}
           <img src="/images/peach-mini.png" alt="" className="day-peach-img" />
           {phase !== 'unknown' && (
-            <span className="day-peach-day" style={{ fontSize: 60 }}>{cycle.cycle_day || '?'}</span>
+            <span
+              className="day-peach-tint"
+              data-testid="day-peach-tint"
+              style={{
+                backgroundColor: config.tint,
+                WebkitMaskImage: 'url(/images/peach-mini.png)',
+                maskImage: 'url(/images/peach-mini.png)',
+              }}
+            />
+          )}
+          {phase !== 'unknown' && (
+            <span className="day-peach-day" style={{ fontSize: 28 }}>{cycle.cycle_day || '?'}</span>
           )}
         </div>
         </div>

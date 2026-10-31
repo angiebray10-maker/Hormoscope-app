@@ -15,7 +15,7 @@
 // verified the row uses a soft peach placeholder tile, and where no
 // price could be verified the row shows no price at all. We never
 // invent either. Prices are checked again each catalog update; the
-// catalog carries the line "Prices checked October 30, 2026."
+// catalog carries the line "Prices checked October 31, 2026."
 // The backend validates wishlist picks against this same ASIN list.
 // Picks that are still unidentified (B0FHWWCDJ2, B0H6J6LYLX,
 // B09ZFP9XLC; her screenshots pending) are NOT in this list and must
@@ -25,7 +25,7 @@ export const AMAZON_TAG = 'hormoscope20-20';
 
 export const amazonUrl = (asin) => `https://www.amazon.com/dp/${asin}?tag=${AMAZON_TAG}`;
 
-export const CATALOG_PRICES_LINE = 'Prices checked October 30, 2026. Amazon shows the live price when you tap through.';
+export const CATALOG_PRICES_LINE = 'Prices checked October 31, 2026. Amazon shows the live price when you tap through.';
 
 // Her section order. Sections with no products are skipped.
 export const CATALOG_SECTIONS = [
@@ -83,6 +83,36 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B098TV9THH', name: 'Arabella Bouquets, 25 Pink Roses, Fresh Flowers for Delivery', blurb: '25 fresh pink roses, delivered to her door.', image: null, price: null, section: 'Flowers' },
   { asin: 'B000LQJKI6', name: 'GuyLian Belgian Chocolate Seashells, 8.82 oz, 22 pc', blurb: 'Belgian chocolate seashells with hazelnut praline filling.', image: null, price: 17.99, section: 'Snacks' },
   { asin: 'B00KWX688S', name: 'Benchmark Bouquets Flowering Fields, With Vase (Fresh Cut Flowers)', blurb: 'A mixed fresh cut bouquet in a glass vase, ready to give.', image: 'https://m.media-amazon.com/images/I/51qWQlCf7DL.jpg', price: 44.95, section: 'Flowers' },
+  // Added Oct 31, 2026 (prepared for the next build, held
+  // at her word, not pushed): the fully identified products
+  // from her Oct 30 to 31 batch (identification pass
+  // Catalog-Identification-Oct31.md). Partial and
+  // unidentified picks stay out until verified. Caveats:
+  // the Godiva price is godiva.com's US price for the same
+  // box (Amazon showed no featured offer for the ASIN), and
+  // the Rael period underwear picture is its A+ banner shot.
+  { asin: 'B0CPD78HL2', name: 'L. Cotton Tampons Regular/Super Multipack, 84 Count', blurb: 'Organic cotton core multipack, regular and super absorbency, made without synthetic pesticides or fragrances.', image: 'https://m.media-amazon.com/images/I/41BHbONOpRL.jpg', price: 26.99, section: 'HORMOscope Picks' },
+  { asin: 'B018E6TE1C', name: 'Veeda 100% Natural Cotton Tampons, Super, 48 Count', blurb: '100% natural cotton, unscented and free from chlorine and toxins, with a BPA free compact applicator.', image: 'https://m.media-amazon.com/images/I/41oeZzmpZOL.jpg', price: 14.95, section: 'HORMOscope Picks' },
+  { asin: 'B081CKP4SN', name: 'wegreeco Charcoal Reusable Menstrual Pads, 6 Pack', blurb: 'Reusable charcoal cloth pads and panty liners with a cloth mini wet bag. Medium, black.', image: 'https://image-cdn.ubuy.com/500_500_100/6aa5e9e3674e5e6a4c0b284c-wegreeco-charcoal-reusable-menstrual.jpg', price: 13.99, section: 'HORMOscope Picks' },
+  { asin: 'B08L7NSWCX', name: 'Pixie Organic Cotton Cloth Reusable Pads, Overnight, 3 Count', blurb: 'Organic cotton reusable overnight pads, 3 count.', image: 'https://m.media-amazon.com/images/I/41S5vwTfRfL.jpg', price: 34.95, section: 'HORMOscope Picks' },
+  { asin: 'B0CGQ3YW9M', name: 'Pixie Menstrual Disc Applicator', blurb: 'Inserts a period disc like a tampon, self sanitizing TPE. Made for long nails; disc not included.', image: 'https://m.media-amazon.com/images/I/71wsCQ8rqFL.jpg', price: 9.95, section: 'HORMOscope Picks' },
+  { asin: 'B0F2J966QL', name: 'Eight Saints Firm Intentions Anti Aging Neck Cream, 2 oz', blurb: 'Natural and organic neck cream for firming skin and reducing wrinkles.', image: 'https://m.media-amazon.com/images/I/31dBLwcpiDL._AC_CX679_.jpg', price: 27.2, section: 'HORMOscope Picks' },
+  { asin: 'B0DB9K83N3', name: 'Theraworx Relief for Muscle Cramps Foam, 7.1 oz, 2 Count', blurb: 'Fast acting foam with magnesium sulfate for muscle cramps, spasms and leg soreness.', image: 'https://m.media-amazon.com/images/I/71I8l-xNSGL._AC_SL128_.jpg', price: 33.98, section: 'HORMOscope Picks' },
+  { asin: 'B0F1QHNFJP', name: 'Magnum Solace Nighttime Magnesium Lotion with Arnica', blurb: 'Highly concentrated magnesium lotion for muscles and joints; apply to legs or feet before bed.', image: 'https://m.media-amazon.com/images/I/71odD-7TWBL._SY355_.jpg', price: 14.99, section: 'HORMOscope Picks' },
+  { asin: 'B0DJYXR31R', name: 'Mama Bear Oasis Magnesium Cream, Lavender', blurb: 'Magnesium lotion with arnica, vitamin B6, aloe vera and MSM, for feet, hands and legs.', image: 'https://m.media-amazon.com/images/I/61cJLs8LyvL.jpg', price: 34.99, section: 'HORMOscope Picks' },
+  { asin: 'B0BZRJM2BG', name: 'Balm of Gilead Neuropathy Rubbing Oil, Frankincense & Sweet Myrrh, 2 fl oz', blurb: 'Therapeutic rubbing oil for dry skin relief and repair.', image: 'https://m.media-amazon.com/images/I/81DCdkhfJgL._AC_SL128_.jpg', price: 28.99, section: 'HORMOscope Picks' },
+  { asin: 'B087258KHP', name: 'Balm of Gilead Manuka Eczema Honey Cream', blurb: 'Manuka honey moisturizer with grass fed tallow for sensitive skin, eczema, psoriasis and dermatitis.', image: 'https://m.media-amazon.com/images/I/81U6eeEd+DL.jpg', price: 24.99, section: 'HORMOscope Picks' },
+  { asin: 'B0BNJRJP6M', name: 'Balm of Gilead Foot Healing Cream, Frankincense & Sweet Myrrh', blurb: 'Deeply nourishing foot moisturizer for sensitive and diabetic skin.', image: 'https://m.media-amazon.com/images/I/81tl2sBvnFL.jpg', price: 24.99, section: 'HORMOscope Picks' },
+  { asin: 'B0FK5CJXRX', name: 'vilicert Heating Pad for Period Cramps, 12 x 24 in', blurb: 'Wrap heating pad with a 26 inch belt, 6 heat levels, 4 timers and auto shut off, for cramps and back pain.', image: 'https://m.media-amazon.com/images/I/412I3WyKOiL.jpg', price: 28.47, section: 'HORMOscope Picks' },
+  { asin: 'B0DCLVWKVT', name: 'Genesis Wild Yam Cream for Women, Organic', blurb: 'Organic wild yam cream for women.', image: 'https://m.media-amazon.com/images/I/41FC417otZL.jpg', price: 23.97, section: 'HORMOscope Picks' },
+  { asin: 'B09S2Y1G7B', name: 'Rael Herbal Heating Patches, Large, 8 Count', blurb: 'Herbal heating patches for period cramps, 8 count.', image: 'https://m.media-amazon.com/images/I/41VRs4zqCGL.jpg', price: 15.99, section: 'HORMOscope Picks' },
+  { asin: 'B0FD771S38', name: 'Vevmon Cotton Underwear, High Waisted, 5 Pack', blurb: 'Soft high waisted full coverage cotton briefs, 5 pack in 5 colors. Medium.', image: 'https://static.slickdealscdn.com/attachment/6/2/0/0/0/9/450x450/20732811.thumb', price: 14.99, section: 'Clothing' },
+  { asin: 'B09JKDWS6H', name: 'Molasus Women\'s Cotton Underwear, High Waisted', blurb: 'High waisted full coverage cotton panties, regular and plus size.', image: 'https://m.media-amazon.com/images/I/61JMK2+2WvL._AC_SX569_.jpg', price: 20.53, section: 'Clothing' },
+  { asin: 'B0B836FZFB', name: 'Rael Disposable Period Underwear, Organic Cotton Cover, L-XL, 20 Count', blurb: 'Disposable period underwear with an organic cotton cover, size L-XL, 20 count.', image: 'https://m.media-amazon.com/images/S/aplus-media-library-service-media/ad11ae50-cbb9-42f1-99ba-9b68cdbcec0e.__CR0,0,1464,600_PT0_SX1464_V1___.jpg', price: 27.99, section: 'Clothing' },
+  { asin: 'B0DT5M5DHD', name: 'C Classy Hanging Car Air Freshener, 2 Pack', blurb: 'Hotel inspired essential oil diffuser fresheners for the car, long lasting fragrance. Made in USA.', image: 'https://images.price.tools/images/c-classy-car-air-freshener-hanging-m-prCwcZpK2.jpg', price: 11.99, section: 'Candles & Smelly Stuff' },
+  { asin: 'B09HT62WR4', name: 'HDCRYSTALGIFTS Crystal Suncatchers, Wind Chime Style', blurb: 'Handmade crystal suncatcher rainbow maker for windows and garden, gold plated.', image: 'https://m.media-amazon.com/images/I/516Kb1PPJML.jpg', price: 16.99, section: 'Decorations & Toys' },
+  { asin: 'B0CNTSVB7Q', name: 'Biteyz Turkish Delight, Vegan Candy Gift Box, 36 Pieces', blurb: 'Assorted gourmet fruit flavors: lemon, apple, orange, pomegranate and raspberry. Handmade vegan treats.', image: 'https://m.media-amazon.com/images/I/71hdxt1ciDL._SX569_.jpg', price: 25.99, section: 'Gift Sets' },
+  { asin: 'B0FDM3GC7M', name: 'Godiva Signature Truffle Gift Box, 8 Piece', blurb: 'Belgian dark and milk chocolate truffles with ganache centers. Kosher.', image: 'https://m.media-amazon.com/images/I/71RWc6tWanL._SX569_.jpg', price: 22.0, section: 'Gift Sets' },
 ];
 
 export const PRODUCT_BY_ASIN = Object.fromEntries(CATALOG_PRODUCTS.map((p) => [p.asin, p]));
