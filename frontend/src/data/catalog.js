@@ -13,10 +13,13 @@
 // each like-group. Every advent calendar and every gift set lives
 // in Advent calendars and gift sets, whatever it contains. All
 // clothing, period underwear included, lives in Period underwear
-// and clothing. Ten products fit none of her sections yet; they
-// stay at the very end under their old group labels as a temporary
-// hold until she rules on them, so nothing disappears: the
-// catalog still totals 119. Eight products carry a banner (the
+// and clothing. Ten products fit none of her sections at first
+// and waited in a temporary hold; she placed all ten herself on
+// Oct 31, 2026 (the tests and the cramp foam in Beauty from the
+// Inside Out, the five beauty devices in Jewelry and extra
+// special things, the migraine stick bundle in Candles and
+// scented products, the Turkish Delight in Chocolates), so the
+// hold is empty and all 119 sit inside the eleven sections. Eight products carry a banner (the
 // banner field): her words sit in a small pink outlined label
 // above the product name. The two wild yam creams in Beauty from
 // the Inside Out sit side by side among them.
@@ -35,8 +38,9 @@ export const AMAZON_TAG = 'hormoscope20-20';
 export const amazonUrl = (asin) => `https://www.amazon.com/dp/${asin}?tag=${AMAZON_TAG}`;
 
 // Her sections, in display order. A section with no products is
-// skipped. The last two labels are the temporary hold for the ten
-// products still awaiting her ruling (see the header note).
+// skipped. All 119 products live inside these eleven sections;
+// the temporary hold at the end is empty (she placed the last ten
+// herself on Oct 31, 2026).
 export const CATALOG_SECTIONS = [
   'Flowers',
   'Chocolates',
@@ -49,8 +53,6 @@ export const CATALOG_SECTIONS = [
   'Candles and scented products',
   'Advent calendars and gift sets',
   'Jewelry and extra special things',
-  'Food & Drink',
-  'Non Food & Drink',
 ];
 
 export const formatPrice = (price) =>
@@ -70,7 +72,7 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0DNM83ZK7', name: 'Benchmark Bouquets Tulips with Glass Vase', blurb: 'Fresh fall tulips in red and orange, arranged in a glass vase.', image: '/images/catalog/B0DNM83ZK7.jpg', price: 44.92, section: 'Flowers' },
   { asin: 'B07H15GPZG', name: 'Stargazer Barn 10 Stem Sunflower Bouquet', blurb: 'Fresh cut sunflowers, hand tied, 10 stems. Vase not included.', image: '/images/catalog/B07H15GPZG.jpg', price: 30.04, section: 'Flowers' },
   { asin: 'B00KWX688S', name: 'Benchmark Bouquets Flowering Fields, With Vase (Fresh Cut Flowers)', blurb: 'A mixed fresh cut bouquet in a glass vase, ready to give.', image: '/images/catalog/B00KWX688S.jpg', price: 44.95, section: 'Flowers' },
-  // Chocolates (8)
+  // Chocolates (9)
   { asin: 'B07WT6GP2F', name: 'Lindt Mini Pralines Gift Box, 6.2 oz', blurb: 'Assorted chocolate candy pralines with premium filling, made for gift giving.', image: '/images/catalog/B07WT6GP2F.jpg', price: 14.62, section: 'Chocolates' },
   { asin: 'B000LQJKI6', name: 'GuyLian Belgian Chocolate Seashells, 8.82 oz, 22 pc', blurb: 'Belgian chocolate seashells with hazelnut praline filling.', image: '/images/catalog/B000LQJKI6.jpg', price: 17.99, section: 'Chocolates' },
   { asin: 'B0CP48QKPS', name: "Sarah's Candy Factory Belgian Chocolate Gift Box", blurb: 'Assorted milk, dark and white Belgian chocolate pralines in an elegant gift box, 4.23 oz.', image: '/images/catalog/B0CP48QKPS.jpg', price: 17.99, section: 'Chocolates' },
@@ -79,6 +81,7 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0F517J8JR', name: 'NEESHI Hormone Balancing Dark Cacao Spread', blurb: 'Low sugar, vegan, gluten free superfood chocolate spread for bloating relief and menopause support. 7 servings.', image: '/images/catalog/B0F517J8JR.jpg', price: 24, section: 'Chocolates' },
   { asin: 'B081ZG4898', name: 'Ethel M Taste of Las Vegas Collection, 16-Piece Gift Box', blurb: 'Caramels, nut clusters and satin crèmes in milk and dark chocolate, small batch handcrafted.', image: '/images/catalog/B081ZG4898.jpg', price: 45, section: 'Chocolates' },
   { asin: 'B0G616FHRW', name: 'LAKRIDS BY BÜLOW Love Selection Box', blurb: 'Heart shaped gift box of chocolate covered gourmet black licorice, a premium Danish candy gift.', image: '/images/catalog/B0G616FHRW.jpg', price: 49.99, section: 'Chocolates' },
+  { asin: 'B0CNTSVB7Q', name: 'Biteyz Turkish Delight, Vegan Candy Gift Box, 36 Pieces', blurb: 'Assorted gourmet fruit flavors: lemon, apple, orange, pomegranate and raspberry. Handmade vegan treats.', image: '/images/catalog/B0CNTSVB7Q.jpg', price: 25.99, section: 'Chocolates' },
   // Drinks (4)
   { asin: 'B0G1S4KBS6', name: 'Beforeyouspeak Period Coffee, 7 Count', blurb: 'Instant Colombian coffee with iron, goji berry and milk thistle, white peony root, rehmannia and MCT oil. Keto and vegan friendly.', image: '/images/catalog/B0G1S4KBS6.jpg', price: 14.99, section: 'Drinks' },
   { asin: 'B0H7K1RTY1', name: 'Tilz Hot Chocolate Station', blurb: 'Original and white hot chocolate with mini candy canes, marshmallows and chocolate sprinkles, in a Christmas gift hamper.', image: '/images/catalog/B0H7K1RTY1.jpg', price: 24.99, section: 'Drinks' },
@@ -113,13 +116,15 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B09JKDWS6H', name: "Molasus Women's Cotton Underwear, High Waisted", blurb: 'High waisted full coverage cotton panties, regular and plus size.', image: '/images/catalog/B09JKDWS6H.jpg', price: 20.53, section: 'Period underwear and clothing' },
   { asin: 'B0CFPRZHYM', name: 'OQQ 3 Piece Bodysuits', blurb: 'Ribbed strappy tummy control bodysuits, a 3 piece set.', image: '/images/catalog/B0CFPRZHYM.jpg', price: 24.85, section: 'Period underwear and clothing' },
   { asin: 'B0FG1QTBGL', name: 'Flygo Girls Fuzzy Pants Set, Fleece', blurb: 'Winter flannel fluffy pullover sweatshirt top and pants sweatsuit set.', image: '/images/catalog/B0FG1QTBGL.jpg', price: 34.27, section: 'Period underwear and clothing' },
-  // Beauty from the Inside Out (23)
+  // Beauty from the Inside Out (26)
   { asin: 'B0CMDJNG4L', name: 'Rael Hormone Balance Inositol Powder, 30 Servings', blurb: 'Inositol powder with a 40:1 myo to D-chiro ratio and folic acid, for ovarian function.', image: '/images/catalog/B0CMDJNG4L.jpg', price: 22.49, section: 'Beauty from the Inside Out' },
   { asin: 'B002D2JYYG', name: 'Integrative Therapeutics Cortisol Manager, 30 Tablets', blurb: 'Stress support tablets for balanced cortisol, 30 count.', image: '/images/catalog/B002D2JYYG.jpg', price: 26.75, section: 'Beauty from the Inside Out' },
   { asin: 'B0D5FZGY8W', name: 'O Positiv URO Vaginal Probiotics for Women, 60 Count', blurb: 'Prebiotics and Lactobacillus for healthy vaginal pH balance, odor, and flora. 1 month supply.', image: '/images/catalog/B0D5FZGY8W.jpg', price: 28.97, section: 'Beauty from the Inside Out' },
   { asin: 'B07GY22VLW', name: 'Live Conscious Collagen Peptides Powder', blurb: 'Hydrolyzed Type I and III collagen from grass fed, pasture raised sources. 16 oz, 41 servings.', image: '/images/catalog/B07GY22VLW.jpg', price: 34, section: 'Beauty from the Inside Out' },
   { asin: 'B0HF6S81XH', name: 'Anomaly Daily Immunity Mix, 28 Servings', blurb: 'Daily immunity powder with grass-fed colostrum, prebiotics and probiotics. Unflavored.', image: '/images/catalog/B0HF6S81XH.jpg', price: 49.99, section: 'Beauty from the Inside Out' },
   { asin: 'B0GT1LQD2Q', name: 'Gentle Patches Cortisol Support Patches, 30 Pack', blurb: 'Pure ashwagandha transdermal patches for natural stress relief and calm mood.', image: '/images/catalog/B0GT1LQD2Q.jpg', price: 19.5, section: 'Beauty from the Inside Out' },
+  { asin: 'B0FQFMDMDC', name: 'Evvy Vaginal Health Test, 2 Pack', blurb: 'At home vaginal microbiome test with a clinician reviewed report.', image: '/images/catalog/B0FQFMDMDC.jpg', price: 169, section: 'Beauty from the Inside Out' },
+  { asin: 'B0B75T46L8', name: 'Viome Full Body Intelligence Test', blurb: '3 in 1 kit (blood, saliva, stool) with 50+ health scores, gut microbiome and biological age.', image: '/images/catalog/B0B75T46L8.jpg', price: 299, section: 'Beauty from the Inside Out' },
   { asin: 'B005F1ATJQ', name: 'Ancient Minerals Magnesium Bath Flakes', blurb: 'Pure magnesium chloride bath flakes for a relaxing soak, 1.65 lb bag.', image: '/images/catalog/B005F1ATJQ.jpg', price: 13, section: 'Beauty from the Inside Out' },
   { asin: 'B0DVQ8W9SH', name: 'Ammoya Naturals Turmeric & Kojic Acid Soap 2 Bars', blurb: 'Turmeric and kojic acid cleansing soap for face and body, 2 bars.', image: '/images/catalog/B0DVQ8W9SH.jpg', price: 17.99, section: 'Beauty from the Inside Out' },
   { asin: 'B0BLT5XT9R', name: 'New Miuz Moon Milk Bath Soak', blurb: 'Cleansing sage milk bath soak with lavender and chamomile, for a relaxing soak.', image: '/images/catalog/B0BLT5XT9R.jpg', price: 23.99, section: 'Beauty from the Inside Out' },
@@ -137,6 +142,7 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0BZRJM2BG', name: 'Balm of Gilead Neuropathy Rubbing Oil, Frankincense & Sweet Myrrh, 2 fl oz', blurb: 'Therapeutic rubbing oil for dry skin relief and repair.', image: '/images/catalog/B0BZRJM2BG.jpg', price: 28.99, section: 'Beauty from the Inside Out' },
   { asin: 'B0DHWFWSVF', name: 'Olay Super Cream with Sunscreen SPF 30, 1.7 oz', blurb: '5-in-1 face moisturizer with niacinamide, vitamin C and collagen peptide: hydrating, brightening, firming.', image: '/images/catalog/B0DHWFWSVF.jpg', price: 34.94, section: 'Beauty from the Inside Out' },
   { asin: 'B0DJYXR31R', name: 'Mama Bear Oasis Magnesium Cream, Lavender', blurb: 'Magnesium lotion with arnica, vitamin B6, aloe vera and MSM, for feet, hands and legs.', image: '/images/catalog/B0DJYXR31R.jpg', price: 34.99, section: 'Beauty from the Inside Out' },
+  { asin: 'B0DB9K83N3', name: 'Theraworx Relief for Muscle Cramps Foam, 7.1 oz, 2 Count', blurb: 'Fast acting foam with magnesium sulfate for muscle cramps, spasms and leg soreness.', image: '/images/catalog/B0DB9K83N3.jpg', price: 33.98, section: 'Beauty from the Inside Out' },
   // Comfort (7)
   { asin: 'B09PTGQ4CK', name: 'Menstruation Crustacean Lobster Heating Plush', blurb: 'Lavender scented lobster plush with a microwavable heating pouch for cramp days.', image: '/images/catalog/B09PTGQ4CK.jpg', price: 22.96, banner: "HORMOscope's founder's personal favorite", section: 'Comfort' },
   { asin: 'B0DNZF4ZL4', name: 'Mewaii Strawberry Cow Plush', blurb: 'Microwavable weighted plush for cramps, heatable and coolable, 10 inch.', image: '/images/catalog/B0DNZF4ZL4.jpg', price: 23.99, section: 'Comfort' },
@@ -149,13 +155,14 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B08ZJJ3BVV', name: 'Sea Turtle Lava Bead Car Mirror Charm', blurb: 'Handmade beach diffuser charm with lava beads, for the rear view mirror.', image: '/images/catalog/B08ZJJ3BVV.jpg', price: 23.99, section: 'Little extras' },
   { asin: 'B0F1K99T6R', name: 'FOLKOR LIFE Rose Quartz Crystal Tree', blurb: 'Gemstone money tree with a built in night lamp, heart hands base.', image: '/images/catalog/B0F1K99T6R.jpg', price: 29.99, section: 'Little extras' },
   { asin: 'B09Y8SV5RY', name: 'KARMAPLEDGE Chakra Tree of Life', blurb: 'Handmade crystal tree, 300 beads on a wooden base. Home and desk decor.', image: '/images/catalog/B09Y8SV5RY.jpg', price: 32.65, section: 'Little extras' },
-  // Candles and scented products (6)
+  // Candles and scented products (7)
   { asin: 'B01N0RSCBI', name: 'Chesapeake Bay Balance + Harmony Candle, Water Lily Pear', blurb: 'Soy wax blend scented candle with a 50 hour burn time, warm and decorative.', image: '/images/catalog/B01N0RSCBI.jpg', price: 14.99, section: 'Candles and scented products' },
   { asin: 'B0D8HQHXK1', name: 'CULACEE Obsidian Crystal Energy Candle, HEAL', blurb: 'Soy and coconut wax candle with obsidian and Baltic amber; an encouragement and affirmation gift.', image: '/images/catalog/B0D8HQHXK1.jpg', price: 16.99, section: 'Candles and scented products' },
   { asin: 'B0H4NM3DC1', name: 'WoodWick Cherry Blossom & Vanilla Candle', blurb: 'Crackling wick soy candle, 9.7 oz, up to 60 hour burn time.', image: '/images/catalog/B0H4NM3DC1.jpg', price: 20.99, section: 'Candles and scented products' },
   { asin: 'B07NF7XG17', name: 'ART BLAZE Carved Candle, Purple', blurb: 'Handmade decorative tall spiral candle for home decor.', image: '/images/catalog/B07NF7XG17.jpg', price: 35.97, section: 'Candles and scented products' },
   { asin: 'B081FHFN4C', name: 'Oscar Candles Swan Candle', blurb: 'Hand carved multicolor swan candle, handmade home decor.', image: '/images/catalog/B081FHFN4C.jpg', price: 36.95, section: 'Candles and scented products' },
   { asin: 'B07TT5RQ2P', name: 'Benatu Essential Oil Blends Roll On Set, 3 Bottles', blurb: 'Breathe, Focus On and Happiness natural aromatherapy roll ons for massage, body skin care and home.', image: '/images/catalog/B07TT5RQ2P.jpg', price: 16.58, section: 'Candles and scented products' },
+  { asin: 'B0CVG37WJH', name: 'Basic Vigor Migraine Stick Super Bundle, 3 Pack', blurb: 'Original, Extra Strength and Magnesium migraine sticks in one bundle.', image: '/images/catalog/B0CVG37WJH.jpg', price: 29.87, section: 'Candles and scented products' },
   // Advent calendars and gift sets (12)
   { asin: 'B0CX7FDWCC', name: 'Lindt Holiday Teddy Bear Chocolate Advent Calendar, 4.5 oz', blurb: 'A teddy bear advent calendar filled with Lindt chocolate candy.', image: '/images/catalog/B0CX7FDWCC.jpg', price: 13.97, section: 'Advent calendars and gift sets' },
   { asin: 'B0FJ2V6K2G', name: 'Pukka Organic Tea Advent Calendar 2025', blurb: '24 organic black and green tea infusions in a Christmas countdown for tea lovers.', image: '/images/catalog/B0FJ2V6K2G.jpg', price: 28.18, section: 'Advent calendars and gift sets' },
@@ -169,26 +176,19 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0HHN2N9DL', name: 'Quibark Epsom Bath Salts Gift Set', blurb: 'Six scented bath soaks, 120 g each, with a wooden scoop, in a gift box.', image: '/images/catalog/B0HHN2N9DL.jpg', price: 29.99, section: 'Advent calendars and gift sets' },
   { asin: 'B0G4S8JJRS', name: 'Estée Lauder Favorites Gift Set, 3 Piece', blurb: 'Amazon exclusive set: full size Advanced Night Repair serum, Sumptuous Extreme mascara and Beautiful Magnolia fragrance.', image: '/images/catalog/B0G4S8JJRS.jpg', price: 62.69, section: 'Advent calendars and gift sets' },
   { asin: 'B07VTDXFDC', name: 'Aromatherapy Associates Ultimate Wellbeing Bath & Shower Oil Set', blurb: '10 premium oils in a gift box, for dry skin and deep relaxation.', image: '/images/catalog/B07VTDXFDC.jpg', price: 199.99, section: 'Advent calendars and gift sets' },
-  // Jewelry and extra special things (7)
+  // Jewelry and extra special things (12)
   { asin: 'B07T9N5T79', name: 'PAVOI 14K Gold Plated CZ Tennis Bracelet', blurb: '14K gold plated tennis bracelet with cubic zirconia stones.', image: '/images/catalog/B07T9N5T79.jpg', price: 20.95, section: 'Jewelry and extra special things' },
   { asin: 'B07QTFTCV2', name: 'PAVOI Crystal Solitaire CZ Choker Necklace', blurb: '14K gold plated dainty choker with a 1.5 carat cubic zirconia solitaire pendant.', image: '/images/catalog/B07QTFTCV2.jpg', price: 14.95, section: 'Jewelry and extra special things' },
   { asin: 'B0GGNN6PK4', name: 'Atsidexa 4-in-1 Beaded Charging Cable, Pure Pearl', blurb: 'MFi certified 60W fast charger cord, 3.3 ft, beaded pearl finish.', image: '/images/catalog/B0GGNN6PK4.jpg', price: 13.99, section: 'Jewelry and extra special things' },
   { asin: 'B0DBLLK8YG', name: 'Rislobx Bling Car Vent Clip Fresheners, 4 Pcs, Gold', blurb: 'Crystal diamond vent clip diffusers in high heel, bag, crown and perfume bottle designs.', image: '/images/catalog/B0DBLLK8YG.jpg', price: 11.54, section: 'Jewelry and extra special things' },
   { asin: 'B09HT62WR4', name: 'HDCRYSTALGIFTS Crystal Suncatchers, Wind Chime Style', blurb: 'Handmade crystal suncatcher rainbow maker for windows and garden, gold plated.', image: '/images/catalog/B09HT62WR4.jpg', price: 16.99, section: 'Jewelry and extra special things' },
   { asin: 'B0G5Q443HD', name: 'LXTMMRLJQ Cat Stained Glass Suncatcher', blurb: 'Hanging stained glass window suncatcher, black cat.', image: '/images/catalog/B0G5Q443HD.jpg', price: 26.99, section: 'Jewelry and extra special things' },
+  { asin: 'B0FR24YSSM', name: 'PretiHom Automatic Rotating Curling Iron, 1.1 in Barrel', blurb: 'Auto rotating curling wand for long hair; heats to 410 degrees F, ceramic barrel, dual voltage.', image: '/images/catalog/B0FR24YSSM.jpg', price: 21.99, section: 'Jewelry and extra special things' },
+  { asin: 'B0H9471ZVK', name: 'ZSP Electric Gua Sha & Red Light Face Massager', blurb: 'Heated facial massager with 3 heat and vibration settings, pink.', image: '/images/catalog/B0H9471ZVK.jpg', price: 49.99, section: 'Jewelry and extra special things' },
+  { asin: 'B06W5PD1KY', name: 'Pure Daily Care NuDerma Skin Therapy Wand', blurb: 'Handheld neon skin therapy wand for anti-aging, skin tightening, dark circles and scalp stimulation.', image: '/images/catalog/B06W5PD1KY.jpg', price: 79.95, section: 'Jewelry and extra special things' },
+  { asin: 'B0FGB2NS3C', name: 'Philips Lumea 9000 Series IPL Hair Removal Device', blurb: 'SenseIQ IPL with 4 attachments for body, face, bikini and underarms.', image: '/images/catalog/B0FGB2NS3C.jpg', price: 579.95, section: 'Jewelry and extra special things' },
+  { asin: 'B07M5X4D3P', name: 'iRESTORE Professional Laser Hair Growth System', blurb: 'Red light therapy cap with 282 lasers and LEDs.', image: '/images/catalog/B07M5X4D3P.jpg', price: 899, section: 'Jewelry and extra special things' },
   { asin: 'B0CNC67C8B', name: 'Houston Diamond District Diamond Tennis Bracelet', blurb: 'A Houston Diamond District tennis bracelet. Twenty carats of EGL certified lab grown oval diamonds, FG color, VS1 to VS2 clarity, set in platinum on a 7 inch line. The lucky girl who gets this as a gift. And if it is you, please show it off in the comments below. Those diamonds dance, I heard.', image: '/images/catalog/B0CNC67C8B.jpg', price: 10999.99, banner: "HORMOscope's founder's personal wish item", section: 'Jewelry and extra special things' },
-  // Food & Drink (1)
-  { asin: 'B0CNTSVB7Q', name: 'Biteyz Turkish Delight, Vegan Candy Gift Box, 36 Pieces', blurb: 'Assorted gourmet fruit flavors: lemon, apple, orange, pomegranate and raspberry. Handmade vegan treats.', image: '/images/catalog/B0CNTSVB7Q.jpg', price: 25.99, section: 'Food & Drink' },
-  // Non Food & Drink (9)
-  { asin: 'B0FR24YSSM', name: 'PretiHom Automatic Rotating Curling Iron, 1.1 in Barrel', blurb: 'Auto rotating curling wand for long hair; heats to 410 degrees F, ceramic barrel, dual voltage.', image: '/images/catalog/B0FR24YSSM.jpg', price: 21.99, section: 'Non Food & Drink' },
-  { asin: 'B0CVG37WJH', name: 'Basic Vigor Migraine Stick Super Bundle, 3 Pack', blurb: 'Original, Extra Strength and Magnesium migraine sticks in one bundle.', image: '/images/catalog/B0CVG37WJH.jpg', price: 29.87, section: 'Non Food & Drink' },
-  { asin: 'B0DB9K83N3', name: 'Theraworx Relief for Muscle Cramps Foam, 7.1 oz, 2 Count', blurb: 'Fast acting foam with magnesium sulfate for muscle cramps, spasms and leg soreness.', image: '/images/catalog/B0DB9K83N3.jpg', price: 33.98, section: 'Non Food & Drink' },
-  { asin: 'B0H9471ZVK', name: 'ZSP Electric Gua Sha & Red Light Face Massager', blurb: 'Heated facial massager with 3 heat and vibration settings, pink.', image: '/images/catalog/B0H9471ZVK.jpg', price: 49.99, section: 'Non Food & Drink' },
-  { asin: 'B06W5PD1KY', name: 'Pure Daily Care NuDerma Skin Therapy Wand', blurb: 'Handheld neon skin therapy wand for anti-aging, skin tightening, dark circles and scalp stimulation.', image: '/images/catalog/B06W5PD1KY.jpg', price: 79.95, section: 'Non Food & Drink' },
-  { asin: 'B0FQFMDMDC', name: 'Evvy Vaginal Health Test, 2 Pack', blurb: 'At home vaginal microbiome test with a clinician reviewed report.', image: '/images/catalog/B0FQFMDMDC.jpg', price: 169, section: 'Non Food & Drink' },
-  { asin: 'B0B75T46L8', name: 'Viome Full Body Intelligence Test', blurb: '3 in 1 kit (blood, saliva, stool) with 50+ health scores, gut microbiome and biological age.', image: '/images/catalog/B0B75T46L8.jpg', price: 299, section: 'Non Food & Drink' },
-  { asin: 'B0FGB2NS3C', name: 'Philips Lumea 9000 Series IPL Hair Removal Device', blurb: 'SenseIQ IPL with 4 attachments for body, face, bikini and underarms.', image: '/images/catalog/B0FGB2NS3C.jpg', price: 579.95, section: 'Non Food & Drink' },
-  { asin: 'B07M5X4D3P', name: 'iRESTORE Professional Laser Hair Growth System', blurb: 'Red light therapy cap with 282 lasers and LEDs.', image: '/images/catalog/B07M5X4D3P.jpg', price: 899, section: 'Non Food & Drink' },
 ];
 
 export const PRODUCT_BY_ASIN = Object.fromEntries(CATALOG_PRODUCTS.map((p) => [p.asin, p]));

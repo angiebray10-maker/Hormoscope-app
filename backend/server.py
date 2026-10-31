@@ -4762,30 +4762,31 @@ async def get_partner_mood(current_user: dict = Depends(get_current_user)):
 CATALOG_PRODUCT_IDS = {
     # One catalog (Angelita, Oct 26, 2026); the app groups it under
     # her eleven Oct 31, 2026 evening sections (Flowers through
-    # Jewelry and extra special things, like-with-like order), with
-    # ten sectionless products held at the end under their old group
-    # labels until she rules on them. Server-side it is one
-    # validated list, in the same order as the app catalog.
+    # Jewelry and extra special things, like-with-like order). She
+    # placed the last ten products herself on Oct 31, 2026, so all
+    # 119 sit inside the eleven sections and the old hold is empty.
+    # Server-side it is one validated list, in the same order as
+    # the app catalog.
     "B0GYCTJZ65", "B0CJLXNGX6", "B0DX852TG1", "B0BG5KDYMC", "B098TV9THH", "B0CC5R3S9V",
     "B0DYJMQKLJ", "B07YMKC6NF", "B07GZXM7X7", "B0DNM83ZK7", "B07H15GPZG", "B00KWX688S",
     "B07WT6GP2F", "B000LQJKI6", "B0CP48QKPS", "B0CLT9Y2ZK", "B0FDM3GC7M", "B0F517J8JR",
-    "B081ZG4898", "B0G616FHRW", "B0G1S4KBS6", "B0H7K1RTY1", "B0GM36TY3S", "B0FHBXCCLM",
-    "B018E6TE1C", "B06XKP5Z1X", "B07JK78TM7", "B083C6BYG9", "B0CPD78HL2", "B07YQBWVGF",
-    "B08L7NSWCX", "B0CGQ3YW9M", "B0DGVVB8HW", "B0GQ2BT3WG", "B00LWE69NU", "B0BLSVBMVY",
-    "B0DS1MRGBY", "B0C9LCM3HW", "B0BX78DC84", "B09S2Y1G7B", "B0C1YG33PD", "B0FK5CJXRX",
-    "B0DZ2J1GS1", "B0CRDH79BK", "B0B836FZFB", "B0H1GBWV98", "B0DPWYG9Y8", "B0FD771S38",
-    "B09JKDWS6H", "B0CFPRZHYM", "B0FG1QTBGL", "B0CMDJNG4L", "B002D2JYYG", "B0D5FZGY8W",
-    "B07GY22VLW", "B0HF6S81XH", "B0GT1LQD2Q", "B005F1ATJQ", "B0DVQ8W9SH", "B0BLT5XT9R",
-    "B0DY9Z9FTZ", "B0GXC53GZ8", "B0D1H31PRY", "B0GD6R7CFJ", "B0DCLVWKVT", "B07YNL9VWM",
-    "B087258KHP", "B0BNJRJP6M", "B0FTGKQZT6", "B0F2J966QL", "B0GK2PMLW1", "B0BZRJM2BG",
-    "B0DHWFWSVF", "B0DJYXR31R", "B09PTGQ4CK", "B0DNZF4ZL4", "B0H714TLPH", "B0D7P58742",
-    "B0D7MRCJRL", "B0HHJB27VJ", "B0GX7X6ZKL", "B08ZJJ3BVV", "B0F1K99T6R", "B09Y8SV5RY",
-    "B01N0RSCBI", "B0D8HQHXK1", "B0H4NM3DC1", "B07NF7XG17", "B081FHFN4C", "B07TT5RQ2P",
-    "B0CX7FDWCC", "B0FJ2V6K2G", "B0HBXM4173", "B0HDQK47F9", "B0F8J3GJDQ", "B0H5KMGWR6",
-    "B0FY7R1TQ3", "B07KY49QSD", "B08T7DSZYD", "B0HHN2N9DL", "B0G4S8JJRS", "B07VTDXFDC",
-    "B07T9N5T79", "B07QTFTCV2", "B0GGNN6PK4", "B0DBLLK8YG", "B09HT62WR4", "B0G5Q443HD",
-    "B0CNC67C8B", "B0CNTSVB7Q", "B0FR24YSSM", "B0CVG37WJH", "B0DB9K83N3", "B0H9471ZVK",
-    "B06W5PD1KY", "B0FQFMDMDC", "B0B75T46L8", "B0FGB2NS3C", "B07M5X4D3P",
+    "B081ZG4898", "B0G616FHRW", "B0CNTSVB7Q", "B0G1S4KBS6", "B0H7K1RTY1", "B0GM36TY3S",
+    "B0FHBXCCLM", "B018E6TE1C", "B06XKP5Z1X", "B07JK78TM7", "B083C6BYG9", "B0CPD78HL2",
+    "B07YQBWVGF", "B08L7NSWCX", "B0CGQ3YW9M", "B0DGVVB8HW", "B0GQ2BT3WG", "B00LWE69NU",
+    "B0BLSVBMVY", "B0DS1MRGBY", "B0C9LCM3HW", "B0BX78DC84", "B09S2Y1G7B", "B0C1YG33PD",
+    "B0FK5CJXRX", "B0DZ2J1GS1", "B0CRDH79BK", "B0B836FZFB", "B0H1GBWV98", "B0DPWYG9Y8",
+    "B0FD771S38", "B09JKDWS6H", "B0CFPRZHYM", "B0FG1QTBGL", "B0CMDJNG4L", "B002D2JYYG",
+    "B0D5FZGY8W", "B07GY22VLW", "B0HF6S81XH", "B0GT1LQD2Q", "B0FQFMDMDC", "B0B75T46L8",
+    "B005F1ATJQ", "B0DVQ8W9SH", "B0BLT5XT9R", "B0DY9Z9FTZ", "B0GXC53GZ8", "B0D1H31PRY",
+    "B0GD6R7CFJ", "B0DCLVWKVT", "B07YNL9VWM", "B087258KHP", "B0BNJRJP6M", "B0FTGKQZT6",
+    "B0F2J966QL", "B0GK2PMLW1", "B0BZRJM2BG", "B0DHWFWSVF", "B0DJYXR31R", "B0DB9K83N3",
+    "B09PTGQ4CK", "B0DNZF4ZL4", "B0H714TLPH", "B0D7P58742", "B0D7MRCJRL", "B0HHJB27VJ",
+    "B0GX7X6ZKL", "B08ZJJ3BVV", "B0F1K99T6R", "B09Y8SV5RY", "B01N0RSCBI", "B0D8HQHXK1",
+    "B0H4NM3DC1", "B07NF7XG17", "B081FHFN4C", "B07TT5RQ2P", "B0CVG37WJH", "B0CX7FDWCC",
+    "B0FJ2V6K2G", "B0HBXM4173", "B0HDQK47F9", "B0F8J3GJDQ", "B0H5KMGWR6", "B0FY7R1TQ3",
+    "B07KY49QSD", "B08T7DSZYD", "B0HHN2N9DL", "B0G4S8JJRS", "B07VTDXFDC", "B07T9N5T79",
+    "B07QTFTCV2", "B0GGNN6PK4", "B0DBLLK8YG", "B09HT62WR4", "B0G5Q443HD", "B0FR24YSSM",
+    "B0H9471ZVK", "B06W5PD1KY", "B0FGB2NS3C", "B07M5X4D3P", "B0CNC67C8B",
 }
 
 
@@ -4957,6 +4958,7 @@ CATALOG_PRODUCTS = {
     "B0F517J8JR": {"name": "NEESHI Hormone Balancing Dark Cacao Spread", "image": "/images/catalog/B0F517J8JR.jpg", "price": 24},
     "B081ZG4898": {"name": "Ethel M Taste of Las Vegas Collection, 16-Piece Gift Box", "image": "/images/catalog/B081ZG4898.jpg", "price": 45},
     "B0G616FHRW": {"name": "LAKRIDS BY B\u00dcLOW Love Selection Box", "image": "/images/catalog/B0G616FHRW.jpg", "price": 49.99},
+    "B0CNTSVB7Q": {"name": "Biteyz Turkish Delight, Vegan Candy Gift Box, 36 Pieces", "image": "/images/catalog/B0CNTSVB7Q.jpg", "price": 25.99},
     "B0G1S4KBS6": {"name": "Beforeyouspeak Period Coffee, 7 Count", "image": "/images/catalog/B0G1S4KBS6.jpg", "price": 14.99},
     "B0H7K1RTY1": {"name": "Tilz Hot Chocolate Station", "image": "/images/catalog/B0H7K1RTY1.jpg", "price": 24.99},
     "B0GM36TY3S": {"name": "MA\u00cfA Ceremonial Cacao, High Flavanol, 30 Servings", "image": "/images/catalog/B0GM36TY3S.jpg", "price": 32.95},
@@ -4994,6 +4996,8 @@ CATALOG_PRODUCTS = {
     "B07GY22VLW": {"name": "Live Conscious Collagen Peptides Powder", "image": "/images/catalog/B07GY22VLW.jpg", "price": 34},
     "B0HF6S81XH": {"name": "Anomaly Daily Immunity Mix, 28 Servings", "image": "/images/catalog/B0HF6S81XH.jpg", "price": 49.99},
     "B0GT1LQD2Q": {"name": "Gentle Patches Cortisol Support Patches, 30 Pack", "image": "/images/catalog/B0GT1LQD2Q.jpg", "price": 19.5},
+    "B0FQFMDMDC": {"name": "Evvy Vaginal Health Test, 2 Pack", "image": "/images/catalog/B0FQFMDMDC.jpg", "price": 169},
+    "B0B75T46L8": {"name": "Viome Full Body Intelligence Test", "image": "/images/catalog/B0B75T46L8.jpg", "price": 299},
     "B005F1ATJQ": {"name": "Ancient Minerals Magnesium Bath Flakes", "image": "/images/catalog/B005F1ATJQ.jpg", "price": 13},
     "B0DVQ8W9SH": {"name": "Ammoya Naturals Turmeric & Kojic Acid Soap 2 Bars", "image": "/images/catalog/B0DVQ8W9SH.jpg", "price": 17.99},
     "B0BLT5XT9R": {"name": "New Miuz Moon Milk Bath Soak", "image": "/images/catalog/B0BLT5XT9R.jpg", "price": 23.99},
@@ -5011,6 +5015,7 @@ CATALOG_PRODUCTS = {
     "B0BZRJM2BG": {"name": "Balm of Gilead Neuropathy Rubbing Oil, Frankincense & Sweet Myrrh, 2 fl oz", "image": "/images/catalog/B0BZRJM2BG.jpg", "price": 28.99},
     "B0DHWFWSVF": {"name": "Olay Super Cream with Sunscreen SPF 30, 1.7 oz", "image": "/images/catalog/B0DHWFWSVF.jpg", "price": 34.94},
     "B0DJYXR31R": {"name": "Mama Bear Oasis Magnesium Cream, Lavender", "image": "/images/catalog/B0DJYXR31R.jpg", "price": 34.99},
+    "B0DB9K83N3": {"name": "Theraworx Relief for Muscle Cramps Foam, 7.1 oz, 2 Count", "image": "/images/catalog/B0DB9K83N3.jpg", "price": 33.98},
     "B09PTGQ4CK": {"name": "Menstruation Crustacean Lobster Heating Plush", "image": "/images/catalog/B09PTGQ4CK.jpg", "price": 22.96},
     "B0DNZF4ZL4": {"name": "Mewaii Strawberry Cow Plush", "image": "/images/catalog/B0DNZF4ZL4.jpg", "price": 23.99},
     "B0H714TLPH": {"name": "Sakura Cat Plush USB Heating Pad", "image": "/images/catalog/B0H714TLPH.jpg", "price": 26.99},
@@ -5027,6 +5032,7 @@ CATALOG_PRODUCTS = {
     "B07NF7XG17": {"name": "ART BLAZE Carved Candle, Purple", "image": "/images/catalog/B07NF7XG17.jpg", "price": 35.97},
     "B081FHFN4C": {"name": "Oscar Candles Swan Candle", "image": "/images/catalog/B081FHFN4C.jpg", "price": 36.95},
     "B07TT5RQ2P": {"name": "Benatu Essential Oil Blends Roll On Set, 3 Bottles", "image": "/images/catalog/B07TT5RQ2P.jpg", "price": 16.58},
+    "B0CVG37WJH": {"name": "Basic Vigor Migraine Stick Super Bundle, 3 Pack", "image": "/images/catalog/B0CVG37WJH.jpg", "price": 29.87},
     "B0CX7FDWCC": {"name": "Lindt Holiday Teddy Bear Chocolate Advent Calendar, 4.5 oz", "image": "/images/catalog/B0CX7FDWCC.jpg", "price": 13.97},
     "B0FJ2V6K2G": {"name": "Pukka Organic Tea Advent Calendar 2025", "image": "/images/catalog/B0FJ2V6K2G.jpg", "price": 28.18},
     "B0HBXM4173": {"name": "GODIVA Limited Edition Luxury Chocolate Advent Calendar 2026, 24 pc", "image": "/images/catalog/B0HBXM4173.jpg", "price": 46.4},
@@ -5045,17 +5051,12 @@ CATALOG_PRODUCTS = {
     "B0DBLLK8YG": {"name": "Rislobx Bling Car Vent Clip Fresheners, 4 Pcs, Gold", "image": "/images/catalog/B0DBLLK8YG.jpg", "price": 11.54},
     "B09HT62WR4": {"name": "HDCRYSTALGIFTS Crystal Suncatchers, Wind Chime Style", "image": "/images/catalog/B09HT62WR4.jpg", "price": 16.99},
     "B0G5Q443HD": {"name": "LXTMMRLJQ Cat Stained Glass Suncatcher", "image": "/images/catalog/B0G5Q443HD.jpg", "price": 26.99},
-    "B0CNC67C8B": {"name": "Houston Diamond District Diamond Tennis Bracelet", "image": "/images/catalog/B0CNC67C8B.jpg", "price": 10999.99},
-    "B0CNTSVB7Q": {"name": "Biteyz Turkish Delight, Vegan Candy Gift Box, 36 Pieces", "image": "/images/catalog/B0CNTSVB7Q.jpg", "price": 25.99},
     "B0FR24YSSM": {"name": "PretiHom Automatic Rotating Curling Iron, 1.1 in Barrel", "image": "/images/catalog/B0FR24YSSM.jpg", "price": 21.99},
-    "B0CVG37WJH": {"name": "Basic Vigor Migraine Stick Super Bundle, 3 Pack", "image": "/images/catalog/B0CVG37WJH.jpg", "price": 29.87},
-    "B0DB9K83N3": {"name": "Theraworx Relief for Muscle Cramps Foam, 7.1 oz, 2 Count", "image": "/images/catalog/B0DB9K83N3.jpg", "price": 33.98},
     "B0H9471ZVK": {"name": "ZSP Electric Gua Sha & Red Light Face Massager", "image": "/images/catalog/B0H9471ZVK.jpg", "price": 49.99},
     "B06W5PD1KY": {"name": "Pure Daily Care NuDerma Skin Therapy Wand", "image": "/images/catalog/B06W5PD1KY.jpg", "price": 79.95},
-    "B0FQFMDMDC": {"name": "Evvy Vaginal Health Test, 2 Pack", "image": "/images/catalog/B0FQFMDMDC.jpg", "price": 169},
-    "B0B75T46L8": {"name": "Viome Full Body Intelligence Test", "image": "/images/catalog/B0B75T46L8.jpg", "price": 299},
     "B0FGB2NS3C": {"name": "Philips Lumea 9000 Series IPL Hair Removal Device", "image": "/images/catalog/B0FGB2NS3C.jpg", "price": 579.95},
     "B07M5X4D3P": {"name": "iRESTORE Professional Laser Hair Growth System", "image": "/images/catalog/B07M5X4D3P.jpg", "price": 899},
+    "B0CNC67C8B": {"name": "Houston Diamond District Diamond Tennis Bracelet", "image": "/images/catalog/B0CNC67C8B.jpg", "price": 10999.99},
 }
 
 
