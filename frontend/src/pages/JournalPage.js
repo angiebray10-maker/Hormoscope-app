@@ -996,10 +996,12 @@ export default function JournalPage() {
         {/* The note: her writing for this day, saved as this day's
             journal entry. There is no separate entry place. */}
         <div className="relative rounded-2xl mb-10 overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.2)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35)', scrollMarginBottom: '7.5rem' }} data-testid="journal-note">
-          {/* v59: her life-stages progression artwork lives in the
-              note now (clean art, no text baked in), faint behind
-              the writing so the words stay fully readable. */}
-          <img src="/images/life-stages-silhouettes.webp" alt="" aria-hidden="true" className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[72%] object-contain pointer-events-none" style={{ opacity: 0.15 }} />
+          {/* Her life-stages progression artwork lives ONLY in the
+              note (Angelita, Oct 31, 2026: not in the saved panel),
+              sitting LOW in the card, in the lower stretch behind
+              the writing, clear of the heading, date and title line
+              at the top. Faint, so the words stay fully readable. */}
+          <img src="/images/life-stages-silhouettes.webp" alt="" aria-hidden="true" className="absolute left-1/2 -translate-x-1/2 w-[72%] object-contain pointer-events-none" style={{ opacity: 0.15, top: '36%', bottom: 0, height: '64%' }} />
           <div className="relative z-10 p-4">
             <h2 className="text-lg text-white mb-1" style={POIRET}>Your note for this day</h2>
             <p className="text-[11px] mb-3" style={{ ...POPPINS, color: '#CFC3CC' }} data-testid="journal-note-date">{fmtDayLong(selectedDate)}</p>
@@ -1079,9 +1081,6 @@ export default function JournalPage() {
             </p>
           ) : (
             <div className="relative rounded-2xl overflow-hidden pb-10" style={{ border: '1px solid rgba(244,167,185,0.16)', borderLeft: `3px solid ${selectedPhaseColor}`, background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35), inset 8px 0 16px rgba(0,0,0,0.22)' }}>
-              {/* v59: the life-stages artwork behind her saved
-                  writing too, same faint treatment as the note. */}
-              <img src="/images/life-stages-silhouettes.webp" alt="" aria-hidden="true" className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[72%] object-contain pointer-events-none" style={{ opacity: 0.15 }} />
               {dayData.entries.map((entry, i) => (
                 <div key={entry.id} className="relative z-10 p-4" style={i > 0 ? { borderTop: '1px solid rgba(201,184,240,0.08)' } : {}} data-testid={`journal-entry-${entry.id}`}>
                   <div className="flex items-start justify-between mb-1">
