@@ -24,7 +24,7 @@ export default function GuidePage() {
         <div className="space-y-10 text-[#d4d4e0] text-sm sm:text-base leading-relaxed" data-testid="guide-body">
           <section data-testid="guide-overview">
             <h2 className="text-xl sm:text-2xl text-white mb-3">What HORMOscope does</h2>
-            <p className="mb-3">HORMOscope brings together cycle tracking, the calendar, your Daily Read, mood and symptom logging, phase guides and Attuned Partner Mode.</p>
+            <p className="mb-3">HORMOscope has four tabs, in this order: Home, Journal, Attunement and Profile. It brings together cycle tracking, your Daily Read, mood and symptom logging, phase guides and Attuned Partner Mode. Home is where you read your day, and Journal is where you log it: the calendar lives at the top of Journal.</p>
             <p className="mb-3">Science, not Stars. Your daily reads come from your cycle and what you log, not from astrology.</p>
           </section>
           <section data-testid="guide-verify">
@@ -33,26 +33,18 @@ export default function GuidePage() {
           </section>
           <section data-testid="guide-home">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Home</h2>
-            <p className="mb-3">Home is your day at a glance. The day circle shows which day of your cycle you are on and which phase you are in. It glows with a slow, pulsing orb in your phase colour. Each phase has one colour everywhere in the app: red for menstrual, blue for follicular, green for ovulatory and purple for luteal.</p>
-            <p className="mb-3">Under it you will see a one-line read of how today may feel, and your Daily Read. Tap See more to open the phase list, food and activity tips for where you are in your cycle.</p>
-            <p className="mb-3">The orb also stays still if your phone is set to reduce motion.</p>
-          </section>
-          <section data-testid="guide-quicklog">
-            <h2 className="text-xl sm:text-2xl text-white mb-3">Quick log</h2>
-            <p className="mb-3">The quick log is on Home, for today. Under Log today there are 5 buttons: Mood, Energy, Symptoms, Cravings and Sleep. Tap one to open it and choose what fits. Every tap saves to today straight away and you will see a small Saved to today message. Mood starts with 8 core feelings; tap More feelings for the rest.</p>
-            <p className="mb-3">The same questions also live in full in the Journal tab, where you can answer them for today or for any past day. Everything you log is kept in that day in your Journal, and on your Calendar.</p>
-          </section>
-          <section data-testid="guide-calendar">
-            <h2 className="text-xl sm:text-2xl text-white mb-3">Calendar</h2>
-            <p className="mb-3">The Calendar is your whole record. Tap any day to see what you logged, or to log or edit your period and intimacy for that day, including past or irregular periods.</p>
-            <p className="mb-3">Green days are your estimated fertile window, worked out from the period dates you log. These are estimates, not measurements: please do not use HORMOscope to prevent pregnancy. If your cycle situation makes predictions unreliable (for example pregnancy, breastfeeding or hormonal birth control), fertile-window predictions are switched off.</p>
+            <p className="mb-3">Home is read-only. It is where you read your day: there is nothing to log, no questions to answer and nothing to fill in here. All of that lives in Journal.</p>
+            <p className="mb-3">Your prediction for today is here, with your estimated next period. The day peach shows which day of your cycle you are on and which phase you are in.</p>
+            <p className="mb-3">Your Daily Read explains what is going on in your body and in your phase today. Home also carries the daily recipe and vitamins for today, and your daily affirmation.</p>
           </section>
           <section data-testid="guide-journal">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Journal</h2>
-            <p className="mb-3">All of your daily questions live in the Journal tab, for every day. They cover your mood and feelings, your energy, symptoms, cravings, sleep, your period collection method, and supplements and vitamins.</p>
-            <p className="mb-3">The note inside the day&apos;s questions is where you write. There is no separate place for writing. The day&apos;s answers, together with your note, are that day&apos;s journal entry.</p>
-            <p className="mb-3">You can pick any past day and see everything you logged for it: your answers, your note, period days and intimate days. You can fill in a past day, change it, or delete an entry or a log whenever you want.</p>
-            <p className="mb-3">Your history is here too. Browse the calendars by month and by year, with days coloured by cycle phase: red for menstrual, blue for follicular, green for ovulatory and purple for luteal. The Your history chart shows your cycle lengths and your mood and energy trends over time.</p>
+            <p className="mb-3">All logging lives in Journal, all in this one tab. The calendar sits at the top of Journal. Its days wear their phase colours, with markers for period days, intimate days, and predicted fertile and ovulation days.</p>
+            <p className="mb-3">Tap any day to open it. That day holds all the daily questions: your mood and feelings, your energy, symptoms, cravings, sleep, your period collection method, supplements and vitamins, and your note. The note is the writing for that day; there is no separate place for writing. The day&apos;s answers, together with your note, are that day&apos;s journal entry.</p>
+            <p className="mb-3">On any day you can add or remove your period and set its flow, mark or unmark intimacy and add partner names, and use Reset period to set a new Day 1.</p>
+            <p className="mb-3">Predicted fertile and ovulation days are estimates, worked out from the period dates you log. These are estimates, not measurements: please do not use HORMOscope to prevent pregnancy. If your cycle situation makes predictions unreliable (for example pregnancy, breastfeeding or hormonal birth control), fertile-window predictions are switched off.</p>
+            <p className="mb-3">Under the calendar and the day, you can browse all your past days by month and by year. Your history chart is there too, showing your cycle progression plus your mood and energy trends over time.</p>
+            <p className="mb-3">You can fill in a past day, change it, or delete a note, a log, or an intimacy mark on any day whenever you want.</p>
             <p className="mb-3">Your entries are yours. They are only shared if you turn on the sharing choices in Attunement for a linked partner.</p>
           </section>
           <section data-testid="guide-attuned">
@@ -62,7 +54,7 @@ export default function GuidePage() {
               <li><strong>Invite code:</strong> in Profile, tap Create &amp; share invite code and send it. Your partner signs up and enters the code in the Partner Hub.</li>
               <li><strong>Boyfriend or partner without a cycle:</strong> they see your phase, what it may feel like and how to show up for you.</li>
               <li><strong>Girlfriend sync:</strong> if you both track your cycles, the Attunement tab shows your two cycles side by side for the next 4 weeks and highlights the days your phases overlap.</li>
-              <li><strong>Sharing choices:</strong> in Attunement, you choose what your partner sees with toggles. Alongside the journal and intimacy choices, you can share my daily log and include my note. Those two start off, and they are only sent if you turn them on. Anything you leave unchecked is never sent, and it stays private to you.</li>
+              <li><strong>Sharing choices:</strong> in Attunement, you choose what your partner sees with toggles. Alongside the journal and intimacy choices, you can turn on “Share my daily log” and “Include my note”. Those two start off, and they are only sent if you turn them on. Anything you leave unchecked is never sent, and it stays private to you.</li>
             </ul>
           </section>
           <section data-testid="guide-gifts">

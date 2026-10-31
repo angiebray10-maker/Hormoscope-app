@@ -15,7 +15,6 @@ import FallingFlowers from './components/FallingFlowers';
 import AuthPage from './pages/AuthPage';
 import OnboardingPage from './pages/OnboardingPage';
 import HomePage from './pages/HomePage';
-import CalendarPage from './pages/CalendarPage';
 import JournalPage from './pages/JournalPage';
 import ProfilePage from './pages/ProfilePage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -79,7 +78,9 @@ const ProtectedRoute = ({ children }) => {
 // v56: the fading peaches live on Home and Calendar ONLY (her word,
 // Oct 30, 2026). They were removed from Journal, Attunement,
 // Profile, and everywhere else.
-const FLOWER_TAB_ROUTES = ['/', '/calendar'];
+// v59: the Calendar tab is gone; the calendar now lives inside the
+// Journal tab, so the fading peaches live on Home and Journal.
+const FLOWER_TAB_ROUTES = ['/', '/journal'];
 
 // App Content with routing
 const AppContent = () => {
@@ -104,7 +105,7 @@ const AppContent = () => {
     let removed = false;
     CapacitorApp.addListener('backButton', ({ canGoBack }) => {
       const path = pathnameRef.current;
-      const ROOT_ROUTES = ['/', '/journal', '/attunement', '/calendar', '/profile', '/auth'];
+      const ROOT_ROUTES = ['/', '/journal', '/attunement', '/profile', '/auth'];
       if (!ROOT_ROUTES.includes(path)) {
         if (canGoBack) navigate(-1);
         else navigate('/');
@@ -172,11 +173,10 @@ const AppContent = () => {
             <HomePage />
           </ProtectedRoute>
         } />
-        <Route path="/calendar" element={
-          <ProtectedRoute>
-            <CalendarPage />
-          </ProtectedRoute>
-        } />
+        {/* v59: the Calendar tab is removed; its calendar lives
+            inside the Journal tab now. Old /calendar links land on
+            the Journal. */}
+        <Route path="/calendar" element={<Navigate to="/journal" replace />} />
         <Route path="/journal" element={
           <ProtectedRoute>
             <JournalPage />

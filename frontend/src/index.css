@@ -749,8 +749,10 @@ p, li, label, td, th, input, textarea, select, button {
   font-family: 'Poppins', sans-serif !important;
 }
 /* Journal entry text exception (Angelita, Oct 29, item 16, supersedes
-   the Poppins rule for ENTRY TEXT ONLY): Architects Daughter in app
-   pink #F74093, small on the 28px ruled lines, with a slight tilt.
+   the Poppins rule for ENTRY TEXT ONLY): Architects Daughter, small
+   on the 28px ruled lines, with a slight tilt. v59 (Oct 31, 2026):
+   the ink lightens from the hot pink #F74093 to #FF9CC6, journal
+   writing only; no other pink in the app changes.
    The tilt is a synthesized oblique (italic) of about 8 degrees on
    the glyphs themselves, so whole paragraphs are never rotated and
    the writing still sits on the lines. */
@@ -758,7 +760,7 @@ p, li, label, td, th, input, textarea, select, button {
 p.journal-handwriting,
 textarea.journal-handwriting {
   font-family: 'Architects Daughter', 'Poppins', cursive !important;
-  color: #F74093 !important;
+  color: #FF9CC6 !important;
   font-style: italic;
 }
 .font-script {

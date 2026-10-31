@@ -79,7 +79,7 @@ export default function ContactPage() {
             <Link to="/" className="block text-[#CFC3CC] hover:text-[#F4D3DC] transition-colors">
               → Home Dashboard
             </Link>
-            <Link to="/calendar" className="block text-[#CFC3CC] hover:text-[#F4D3DC] transition-colors">
+            <Link to="/journal" className="block text-[#CFC3CC] hover:text-[#F4D3DC] transition-colors">
               → Cycle Calendar
             </Link>
             <Link to="/journal" className="block text-[#CFC3CC] hover:text-[#F4D3DC] transition-colors">

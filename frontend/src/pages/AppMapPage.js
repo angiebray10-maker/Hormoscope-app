@@ -5,10 +5,9 @@ import { ChevronLeft } from 'lucide-react';
 // App map: every section in one organised list.
 export const APP_MAP = [
   { group: 'Main tabs', items: [
-    { to: '/', name: 'Home', desc: 'Your cycle day, phase, quick log and today\u2019s daily read.' },
-    { to: '/journal', name: 'Journal', desc: 'All your daily questions for any day, with your note, plus history calendars coloured by phase and the Your history chart of cycle lengths and mood and energy trends.' },
-    { to: '/attunement', name: 'Attunement', desc: 'Attuned Partner Mode: invite your partner or sync cycles with your girlfriend, and choose what to share, including your daily log and your note.' },
-    { to: '/calendar', name: 'Calendar', desc: 'Periods, fertile window, symptoms and intimacy, past and future.' },
+    { to: '/', name: 'Home', desc: 'Read-only: today\u2019s prediction and estimated next period, the day peach and your phase, your Daily Read, the daily recipe and vitamins, and your daily affirmation.' },
+    { to: '/journal', name: 'Journal', desc: 'Where you log your day: the calendar at the top with phase colours and period, intimacy, fertile and ovulation markers, all your daily questions and your note for any day, past days by month and year, and the history chart.' },
+    { to: '/attunement', name: 'Attunement', desc: 'Attuned Partner Mode: invite your partner or sync cycles with your girlfriend, and choose what to share, including the Share my daily log and Include my note toggles.' },
     { to: '/profile', name: 'Profile', desc: 'Your details, settings and account.' },
   ]},
   { group: 'Partner', items: [

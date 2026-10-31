@@ -4,9 +4,7 @@ import { usePremium } from '../context/PremiumContext';
 import { Droplet, X, Check } from 'lucide-react';
 import axios from 'axios';
 import DailyRead from '../components/DailyRead';
-import FloatingCarousel from '../components/FloatingCarousel';
 import TabFooter from '../components/TabFooter';
-import RemindersCard from '../components/RemindersCard';
 import logger from '../utils/logger';
 import { PHASE_PAIRS, phaseTint } from '../lib/phases';
 import { dailyAffirmation } from '../lib/affirmations';
@@ -118,7 +116,7 @@ const summarizeOwnLogs = (logs) => {
 };
 
 export default function HomePage() {
-  const { user, token, updateUser } = useAuth();
+  const { user, token } = useAuth();
   const { refreshCustomerInfo, companionEntitled } = usePremium();
   const [data, setData] = useState(null);
   const [cycleLogs, setCycleLogs] = useState(null);
@@ -354,23 +352,18 @@ export default function HomePage() {
             </div>
           ) : (
             <p className="text-[#b8b8d1] text-sm leading-relaxed">
-              Nothing logged yet today. Use the quick log below whenever something is worth remembering, and it will be right here.
+              Nothing logged yet today. Log it in your Journal whenever something is worth remembering, and it will be right here.
             </p>
           )}
         </div>
 
-        {/* Quick log: the same five buttons, saving to today */}
-        <FloatingCarousel token={token} onLogged={fetchData} />
+        {/* v59: Home is read-only. Logging lives in the Journal tab. */}
 
         {/* A gentle daily thought, never phase-bound */}
         <div className="card p-5 mb-4 mt-4" data-testid="noperiods-wisdom">
           <p className="text-[#B4B0C8] text-[10px] tracking-widest uppercase mb-3">For today</p>
           <p className="text-white text-base italic leading-relaxed">&ldquo;{wisdom}&rdquo;</p>
         </div>
-
-        {/* v50: one gentle invitation to set reminders (dismissible,
-            never nags) for anyone who has not set them yet. */}
-        <RemindersCard user={user} token={token} updateUser={updateUser} />
 
         {/* Her recent days, from what she logged */}
         {recentDays.length > 0 && (
@@ -387,7 +380,7 @@ export default function HomePage() {
               ))}
             </div>
             <p className="text-[#B4B0C8] text-xs mt-3 pt-3 border-t border-white/10">
-              Every day you log lives on the Calendar. Tap any day to see it.
+              Every day you log lives in your Journal. Tap any day to see it.
             </p>
           </div>
         )}
@@ -444,8 +437,8 @@ export default function HomePage() {
             <Droplet className="w-5 h-5 text-[#ff6b6b] flex-shrink-0" fill="#ff6b6b" />
             <p className="text-[#b8b8d1] text-sm">
               {daysLate === 0
-                ? <>Period expected today • <span className="text-[#ff6b6b]">Reset in Calendar tab when it starts</span></>
-                : <>Period {daysLate} day{daysLate !== 1 ? 's' : ''} late • <span className="text-[#ff6b6b]">Reset in Calendar tab when it starts</span></>
+                ? <>Period expected today • <span className="text-[#ff6b6b]">Reset in your Journal when it starts</span></>
+                : <>Period {daysLate} day{daysLate !== 1 ? 's' : ''} late • <span className="text-[#ff6b6b]">Reset in your Journal when it starts</span></>
               }
             </p>
           </div>
@@ -502,7 +495,7 @@ export default function HomePage() {
         </h2>
         <p className="text-[#E6E0EE] text-sm mt-1">
           {phase === 'unknown'
-            ? 'Tap Calendar and log the day your period starts.'
+            ? 'Log the day your period starts in your Journal.'
             : periodIsLate
               ? `Expected ${cycle.cycle_length}-day cycle`
               : cycle.days_until_period > 0
@@ -530,12 +523,11 @@ export default function HomePage() {
         </p>
       )}
 
-      {/* v50: one gentle invitation to set reminders (dismissible,
-          never nags) for anyone who has not set them yet. */}
-      <RemindersCard user={user} token={token} updateUser={updateUser} />
-
-      {/* Quick log: static row of five buttons */}
-      <FloatingCarousel token={token} />
+      {/* v59: Home is read-only (her word, Oct 31, 2026): the day
+          prediction, the Daily Read, and what is going on in her
+          body. No logging, no questions, no reminders card; logging
+          lives in the Journal and reminder settings live in
+          Profile. */}
 
       {/* Card to the full Daily Read */}
       <div className="mb-4">
@@ -586,7 +578,7 @@ export default function HomePage() {
             </p>
           )}
           <p className="text-[#B4B0C8] text-xs mt-3 pt-3 border-t border-white/10">
-            Every day you log lives on the Calendar. Tap any day to see it.
+            Every day you log lives in your Journal. Tap any day to see it.
           </p>
         </div>
       )}

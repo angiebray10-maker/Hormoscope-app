@@ -1,12 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, MessageCircle, Calendar, User, BookOpen, Heart } from 'lucide-react';
+import { Home, MessageCircle, User, BookOpen, Heart } from 'lucide-react';
 
+// v59: the Calendar tab is removed; the calendar lives inside the
+// Journal tab. (There is no Devotional route in this build, so no
+// Devotional tab exists to order here.)
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/journal', icon: BookOpen, label: 'Journal' },
   { path: '/attunement', icon: Heart, label: 'Attunement' },
-  { path: '/calendar', icon: Calendar, label: 'Calendar' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
 

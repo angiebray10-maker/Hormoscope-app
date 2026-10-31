@@ -2533,6 +2533,107 @@ def _journal_entry_day(entry):
     return _journal_day(entry.get("created_at"))
 
 
+# v59: which single question category a cycle log belongs to. The
+# question UI (FloatingCarousel's QuickLogSheet) saves ONE category
+# per POST /cycle-logs, as a full snapshot of that group, but the
+# endpoint used to append a new row every time, so a day filled up
+# with a staircase of cumulative snapshots ("fatigue" /
+# "fatigue, backache" / "fatigue, backache, tender breasts") plus
+# exact duplicates. Detection here mirrors the sheet's own prefill
+# (FloatingCarousel.js): mood / emotion tags first, then the energy
+# tag, sleep tags, craving tags, collection tags and the
+# supplements tag, and finally plain symptom strings (any string
+# carrying none of the known prefixes) or a "No symptoms" note as
+# symptoms. An emptied group saves symptoms=[] with a "No ..."
+# note, and that note alone names its category.
+_CYCLE_LOG_TAG_CATEGORIES = (
+    ("mood:", "mood"),
+    ("emotion:", "mood"),
+    ("energy:", "energy"),
+    ("sleep:", "sleep"),
+    ("sleep_quality:", "sleep"),
+    ("craving:", "cravings"),
+    ("collection:", "collection"),
+    ("supplements:", "supplements"),
+)
+
+_CYCLE_LOG_EMPTY_NOTE_CATEGORIES = (
+    ("No mood or feelings", "mood"),
+    ("No symptoms", "symptoms"),
+    ("No cravings", "cravings"),
+    ("No collection", "collection"),
+    ("No supplements", "supplements"),
+)
+
+
+def _cycle_log_categories(log):
+    """The set of question categories a cycle log dict touches.
+
+    Period logs touch none (they are not question snapshots), and an
+    empty symptoms list with no "No ..." note is unclassifiable, so
+    both come back as an empty set."""
+    if not isinstance(log, dict) or log.get("is_period"):
+        return set()
+    categories = set()
+    has_plain = False
+    for s in log.get("symptoms") or []:
+        if not isinstance(s, str):
+            continue
+        for prefix, category in _CYCLE_LOG_TAG_CATEGORIES:
+            if s.startswith(prefix):
+                categories.add(category)
+                break
+        else:
+            has_plain = True
+    if has_plain:
+        categories.add("symptoms")
+    notes = log.get("notes")
+    if isinstance(notes, str):
+        for prefix, category in _CYCLE_LOG_EMPTY_NOTE_CATEGORIES:
+            if notes.startswith(prefix):
+                categories.add(category)
+                break
+    return categories
+
+
+def _cycle_log_category(log):
+    """The one category of a cycle log dict, or None.
+
+    None for period logs, for unclassifiable rows (no detectable
+    category), and for mixed rows touching more than one category:
+    only a row whose detected category set is exactly one category
+    is a question-UI snapshot of that group."""
+    categories = _cycle_log_categories(log)
+    if len(categories) != 1:
+        return None
+    return next(iter(categories))
+
+
+def _dedupe_cycle_logs_latest_per_category(logs):
+    """Keep only the latest row per question category (v59).
+
+    Period logs and rows with no single detectable category (mixed
+    legacy rows included) pass through untouched; among the rest,
+    the row with the newest created_at for each category wins, and
+    a later row wins a created_at tie. The order of the kept rows
+    is the order they arrived in. Nothing is deleted: this only
+    shapes what GET /journal/day returns, so old staircase days
+    read clean while the stored history stays exactly as it was."""
+    categories = []
+    latest = {}  # category -> (created_at string, index)
+    for idx, log in enumerate(logs):
+        category = None if (isinstance(log, dict) and log.get("is_period")) \
+            else _cycle_log_category(log)
+        categories.append(category)
+        if category is None:
+            continue
+        stamp = str(log.get("created_at") or "") if isinstance(log, dict) else ""
+        if category not in latest or stamp >= latest[category][0]:
+            latest[category] = (stamp, idx)
+    return [log for idx, log in enumerate(logs)
+            if categories[idx] is None or latest[categories[idx]][1] == idx]
+
+
 @api_router.post("/journal")
 async def create_journal_entry(entry: JournalEntryCreate, current_user: dict = Depends(get_current_user)):
     # The Journal is free for everyone (Angelita, Oct 18, 2026).
@@ -2631,6 +2732,12 @@ async def get_journal_day(date_str: str, current_user: dict = Depends(get_curren
     logs = await db.cycle_logs.find(
         {"user_id": current_user["id"], "date": target.isoformat()}, {"_id": 0}
     ).to_list(length=None)
+    # v59: days logged before replace-on-save landed carry the old
+    # staircase of cumulative snapshots per question category. The
+    # day view shows only the latest row per category; period logs
+    # and unclassifiable / mixed rows pass through as they are, and
+    # nothing stored is deleted or changed.
+    logs = _dedupe_cycle_logs_latest_per_category(logs)
     # v58: the merged day also carries that day's intimacy logs in
     # full (her own docs, _id excluded), so the day view is complete.
     intimacy = await db.intimacy_logs.find(
@@ -4931,6 +5038,36 @@ async def create_cycle_log(log: CycleLogCreate, current_user: dict = Depends(get
         "notes": log.notes,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    # v59: replace-on-save for the question UI. Each of its saves is
+    # a full snapshot of ONE category for that day, so the previous
+    # snapshot of the same category is replaced, not stacked under
+    # the new one as another staircase step. Only rows whose
+    # detected category set is exactly this save's single category
+    # are removed: period logs, other categories, mixed legacy rows
+    # and unclassifiable rows for the day all stay. (This is the
+    # POST /cycle-logs path only; the internal period inserts
+    # elsewhere in this file keep their own semantics.)
+    if not log.is_period:
+        category = _cycle_log_category(log_data)
+        if category is not None:
+            existing = await db.cycle_logs.find(
+                {"user_id": current_user["id"], "date": log.date}, {"_id": 0}
+            ).to_list(length=None)
+            for row in existing:
+                if row.get("is_period"):
+                    continue
+                if _cycle_log_category(row) != category:
+                    continue
+                if row.get("id") is not None:
+                    await db.cycle_logs.delete_many(
+                        {"id": row["id"], "user_id": current_user["id"],
+                         "date": log.date})
+                else:
+                    await db.cycle_logs.delete_many(
+                        {"user_id": current_user["id"], "date": log.date,
+                         "created_at": row.get("created_at"),
+                         "symptoms": row.get("symptoms"),
+                         "notes": row.get("notes")})
     await db.cycle_logs.insert_one(log_data)
 
     # If this is a period day, recompute last_period_date so ovulation/next-period update
