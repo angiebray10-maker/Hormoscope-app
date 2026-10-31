@@ -265,6 +265,22 @@ async def main():
     # CATALOG_PRODUCTS but missing from the ID set).
     results.append(("all server catalog ASINs accepted", accepted == len(server.CATALOG_PRODUCT_IDS) == 119))
 
+    # 12. Toggle round trip (the phone bug, Oct 31, 2026: unclicking a
+    # wishlisted item must take it out): remove the owner's last pick,
+    # the list is empty, and re-adding the same item works again.
+    code, res = await remove(OWNER, PADS)
+    results.append(("toggle: remove last pick removed 1", code == "ok" and res.get("removed") == 1))
+    code, res = await mine(OWNER)
+    results.append(("toggle: list empty after removing all", code == "ok" and res["items"] == []))
+    code, res = await add(OWNER, TEA)
+    results.append(("toggle: re-add after remove ok", code == "ok"))
+    code, res = await mine(OWNER)
+    results.append(("toggle: re-added item listed", code == "ok" and [i["product_id"] for i in res["items"]] == [TEA]))
+    code, res = await remove(OWNER, TEA)
+    results.append(("toggle: second remove also works", code == "ok" and res.get("removed") == 1))
+    code, res = await mine(OWNER)
+    results.append(("toggle: list empty again", code == "ok" and res["items"] == []))
+
     failed = [name for name, ok in results if not ok]
     for name, ok in results:
         print(("PASS" if ok else "FAIL"), "-", name)

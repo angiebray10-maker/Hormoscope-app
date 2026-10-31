@@ -269,9 +269,22 @@ export default function AttunementGifts() {
                   return (
                     <ProductCard key={p.asin} product={p}>
                       {inBoutique ? (
-                        <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium" style={{ ...poppins, color: '#9fd8b4', border: '1px solid rgba(159,216,180,0.45)' }} data-testid={`in-boutique-${p.asin}`}>
+                        // The "In your wishlist" pill is a TOGGLE, not a
+                        // label (Angelita, Oct 31, 2026): tapping it again
+                        // takes the item back out of the wishlist. It used
+                        // to be a plain span with no onClick, so tapping it
+                        // did nothing.
+                        <button
+                          onClick={() => removePick(p.asin)}
+                          disabled={busyAsin === p.asin}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium disabled:opacity-50"
+                          style={{ ...poppins, color: '#9fd8b4', background: 'transparent', border: '1px solid rgba(159,216,180,0.45)' }}
+                          data-testid={`in-boutique-${p.asin}`}
+                          aria-label={`Remove ${p.name} from my wishlist`}
+                          title="Tap to remove from your wishlist"
+                        >
                           <Heart className="w-3.5 h-3.5" fill="currentColor" /> In your wishlist
-                        </span>
+                        </button>
                       ) : (
                         <button
                           onClick={() => addPick(p.asin)}
