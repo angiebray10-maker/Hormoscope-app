@@ -714,7 +714,7 @@ export default function JournalPage() {
   );
 
   return (
-    <div className="relative min-h-screen pb-64 lg:ml-64" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="journal-page">
+    <div className="relative min-h-screen pb-80 lg:ml-64" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="journal-page">
       <div className="absolute top-0 left-0 w-full h-64 pointer-events-none overflow-hidden opacity-20">
         <div className="absolute top-4 left-4 text-2xl" style={{ color: '#f4a7b9' }}>✿</div>
         <div className="absolute top-12 right-8 text-xl" style={{ color: '#c9b8f0' }}>✿</div>
@@ -995,7 +995,7 @@ export default function JournalPage() {
 
         {/* The note: her writing for this day, saved as this day's
             journal entry. There is no separate entry place. */}
-        <div className="relative rounded-2xl mb-5 overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.2)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35)' }} data-testid="journal-note">
+        <div className="relative rounded-2xl mb-10 overflow-hidden" style={{ border: '1px solid rgba(244,167,185,0.2)', background: 'linear-gradient(180deg, rgba(253,243,246,0.05) 0%, rgba(255,79,154,0.02) 100%)', boxShadow: '0 18px 40px rgba(0,0,0,0.35)', scrollMarginBottom: '7.5rem' }} data-testid="journal-note">
           {/* v59: her life-stages progression artwork lives in the
               note now (clean art, no text baked in), faint behind
               the writing so the words stay fully readable. */}
@@ -1026,7 +1026,7 @@ export default function JournalPage() {
           {noteSaved && (
             <p className="relative z-10 px-4 pb-2 text-xs" style={{ ...POPPINS, color: '#7FD9A8' }} role="status" data-testid="journal-note-saved">Saved to this day.</p>
           )}
-          <div className="relative z-10 flex gap-2 p-3 border-t border-white/5 items-center">
+          <div className="relative z-10 flex gap-2 px-3 pt-3 pb-6 border-t border-white/5 items-center">
             <button
               onClick={() => setNoteIntimate(!noteIntimate)}
               title={noteIntimate ? 'Intimate' : 'Mark as intimate'}
