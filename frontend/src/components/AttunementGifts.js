@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Gift, Loader2, X, Heart, Trash2 } from 'lucide-react';
+import { Gift, Loader2, Heart, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
@@ -372,14 +372,24 @@ export default function AttunementGifts() {
               const product = PRODUCT_BY_ASIN[asin];
               return (
                 <ProductCard key={asin} product={product}>
+                  {/* A clear, labeled Delete button on every wishlist
+                      item (Angelita, Oct 31, 2026): easy to see,
+                      outlined like the rest of the app. It removes
+                      the item through the same removePick path
+                      (DELETE /wishlist/{asin}) as the "In your
+                      wishlist" pill toggle in the catalog, which
+                      keeps working too. This first tab is both her
+                      wishlist and her boutique (it carries her name),
+                      so this one button covers both. */}
                   <button
                     onClick={() => removePick(asin)}
                     disabled={busyAsin === asin}
-                    className="inline-flex items-center gap-1 px-3 py-2 rounded-full text-xs disabled:opacity-50"
-                    style={{ ...poppins, color: '#CFC3CC', border: '1px solid rgba(255,255,255,0.18)' }}
-                    data-testid={`remove-${asin}`}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium disabled:opacity-50"
+                    style={{ ...poppins, color: '#FF8FA3', background: 'transparent', border: '1.5px solid rgba(232,90,107,0.6)' }}
+                    data-testid={`delete-wishlist-${asin}`}
+                    aria-label={`Delete ${product.name} from my wishlist`}
                   >
-                    <X className="w-3.5 h-3.5" /> Remove
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
                   </button>
                 </ProductCard>
               );

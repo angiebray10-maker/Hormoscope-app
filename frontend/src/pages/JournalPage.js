@@ -1038,7 +1038,10 @@ export default function JournalPage() {
         </div>
 
         {/* Everything saved to this day: her entries, her answers,
-            her period and intimacy, each with its own delete. */}
+            her period and intimacy, each with its own delete. Oct 31,
+            2026 (Angelita): those deletes are now plainly visible
+            labeled Delete buttons, not faint trash icons. The
+            confirms and the delete paths behind them are unchanged. */}
         <div data-testid="journal-day-saved">
           <h2 className="text-xl text-white mb-3" style={POIRET}>Saved this day</h2>
           {dayLoading ? (
@@ -1067,8 +1070,8 @@ export default function JournalPage() {
                       <h3 className="text-white text-sm" style={POIRET}>{entry.title}</h3>
                       <p className="text-white/30 text-[10px] mt-0.5" style={POPPINS}>{fmtTime(entry.created_at)}</p>
                     </div>
-                    <button onClick={() => handleDeleteEntry(entry.id)} className="text-white/30 hover:text-red-400 p-1" title="Delete this entry" data-testid={`delete-entry-${entry.id}`}>
-                      <Trash2 className="w-3.5 h-3.5" />
+                    <button onClick={() => handleDeleteEntry(entry.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shrink-0" style={{ ...POPPINS, color: '#FF8FA3', background: 'transparent', border: '1.5px solid rgba(232,90,107,0.6)' }} data-testid={`delete-entry-${entry.id}`}>
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
                   </div>
                   {entry.is_intimate && (
@@ -1100,8 +1103,8 @@ export default function JournalPage() {
                             </>
                           )}
                         </div>
-                        <button onClick={() => handleDeleteLog(log.id)} className="text-white/30 hover:text-red-400 p-1 shrink-0" title="Delete this log" data-testid={`delete-log-${log.id}`}>
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <button onClick={() => handleDeleteLog(log.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shrink-0" style={{ ...POPPINS, color: '#FF8FA3', background: 'transparent', border: '1.5px solid rgba(232,90,107,0.6)' }} data-testid={`delete-log-${log.id}`}>
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
                         </button>
                       </div>
                     ))}
@@ -1117,8 +1120,8 @@ export default function JournalPage() {
                         <Heart className="w-3 h-3 inline mr-1" style={{ color: '#FF4F9A' }} fill="#FF4F9A" />
                         Intimate day{log.partners ? ` · with ${log.partners}` : ''}
                       </p>
-                      <button onClick={handleDeleteIntimacy} className="text-white/30 hover:text-red-400 p-1 shrink-0" title="Delete this intimacy log" data-testid={`delete-intimacy-${log.id}`}>
-                        <Trash2 className="w-3.5 h-3.5" />
+                      <button onClick={handleDeleteIntimacy} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium shrink-0" style={{ ...POPPINS, color: '#FF8FA3', background: 'transparent', border: '1.5px solid rgba(232,90,107,0.6)' }} data-testid={`delete-intimacy-${log.id}`}>
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
                       </button>
                     </div>
                   ))}
