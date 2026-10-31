@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
 import { PartnerAvatar } from '../pages/AttunementPage';
-import { CATALOG_PRODUCTS, PRODUCT_BY_ASIN, amazonUrl, CATALOG_SECTIONS, CATALOG_PRICES_LINE, formatPrice } from '../data/catalog';
+import { CATALOG_PRODUCTS, PRODUCT_BY_ASIN, amazonUrl, CATALOG_SECTIONS, formatPrice } from '../data/catalog';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const PINK = '#f4a7b9';
@@ -74,18 +74,19 @@ function ProductCard({ product, children }) {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          {/* Founder's personal favorite banner (Angelita, Oct 31,
-              2026): the two wild yam creams carry founder: true in the
-              catalog and show this small pink-outlined label above
+          {/* Founder banners (Angelita, Oct 31, 2026): eight products
+              carry a banner field in the catalog, in her exact words
+              (favorites, personal recommendations, and her personal
+              wish item). This small pink-outlined label sits above
               the product name, in the catalog and in wishlists alike,
-              since the same row serves both. Exact words are hers. */}
-          {product.founder && (
+              since the same row serves both. */}
+          {product.banner && (
             <span
               className="inline-block px-2.5 py-1 rounded-full text-[11px] font-medium mb-2"
               style={{ ...poppins, color: HOT, background: 'transparent', border: '1.5px solid #FF4F9A' }}
-              data-testid={`founder-favorite-${product.asin}`}
+              data-testid={`founder-banner-${product.asin}`}
             >
-              HORMOscope's founder's personal favorite
+              {product.banner}
             </span>
           )}
           {/* The product NAME is the Amazon link (Angelita, Oct 26, 2026):
@@ -450,7 +451,6 @@ export default function AttunementGifts() {
               </div>
             );
           })}
-          <p className="text-[#B4B0C8] text-[11px] leading-relaxed mt-4" style={poppins}>{CATALOG_PRICES_LINE}</p>
           <CommunityWall token={token} user={user} />
         </div>
       )}

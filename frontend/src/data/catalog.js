@@ -16,15 +16,15 @@
 // and clothing. Ten products fit none of her sections yet; they
 // stay at the very end under their old group labels as a temporary
 // hold until she rules on them, so nothing disappears: the
-// catalog still totals 119. The two wild yam creams in Beauty from
-// the Inside Out sit side by side and carry founder: true; their
-// rows show her banner, "HORMOscope's founder's personal
-// favorite".
+// catalog still totals 119. Eight products carry a banner (the
+// banner field): her words sit in a small pink outlined label
+// above the product name. The two wild yam creams in Beauty from
+// the Inside Out sit side by side among them.
 // Oct 31, 2026 (her order): every product photo is a LOCAL file
 // inside the app under /images/catalog/<ASIN>.jpg, so no tile
 // ever waits on a remote image host. We never invent an image or
-// a price. Prices are checked again each catalog update; the
-// catalog carries the line "Prices checked October 31, 2026."
+// a price. (Her earlier "Prices checked" line under the catalog
+// was removed Oct 31, 2026, on her order; product prices stay.)
 // The backend validates wishlist picks against this same ASIN list.
 // Picks that are still unidentified (B0FHWWCDJ2, B0H6J6LYLX,
 // B09ZFP9XLC; her screenshots pending) are NOT in this list and must
@@ -33,8 +33,6 @@
 export const AMAZON_TAG = 'hormoscope20-20';
 
 export const amazonUrl = (asin) => `https://www.amazon.com/dp/${asin}?tag=${AMAZON_TAG}`;
-
-export const CATALOG_PRICES_LINE = 'Prices checked October 31, 2026. Amazon shows the live price when you tap through.';
 
 // Her sections, in display order. A section with no products is
 // skipped. The last two labels are the temporary hold for the ten
@@ -98,14 +96,14 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0DGVVB8HW', name: 'EcoBlossom Menstrual Cup & Disc Applicator, Purple', blurb: 'Applicator and remover tool that fits most menstrual cups and discs. Easy insertion and removal, reusable and portable.', image: '/images/catalog/B0DGVVB8HW.jpg', price: 14.99, section: 'Period essentials' },
   { asin: 'B0GQ2BT3WG', name: 'Flex Plant Plus Disc, 24 Count', blurb: 'Plant based disposable period discs, capacity of 5 super tampons.', image: '/images/catalog/B0GQ2BT3WG.jpg', price: 33.99, section: 'Period essentials' },
   { asin: 'B00LWE69NU', name: 'Flex Reusable Disc', blurb: 'Medical grade silicone disc, holds up to 6 super tampons, reusable for years.', image: '/images/catalog/B00LWE69NU.jpg', price: 34.95, section: 'Period essentials' },
-  { asin: 'B0BLSVBMVY', name: 'Pixie Menstrual Disc Kit', blurb: 'Two medical grade silicone discs with wash, wipes, lube and a sterilizing carry cup.', image: '/images/catalog/B0BLSVBMVY.jpg', price: 39.95, section: 'Period essentials' },
-  { asin: 'B0DS1MRGBY', name: 'Pixie Disc + Applicator Bundle (2 discs)', blurb: 'Two reusable silicone discs with a tampon style applicator. Holds 5 to 7 tampons worth.', image: '/images/catalog/B0DS1MRGBY.jpg', price: 39.95, section: 'Period essentials' },
+  { asin: 'B0BLSVBMVY', name: 'Pixie Menstrual Disc Kit', blurb: 'Two medical grade silicone discs with wash, wipes, lube and a sterilizing carry cup.', image: '/images/catalog/B0BLSVBMVY.jpg', price: 39.95, banner: "HORMOscope's founder personal recommendation", section: 'Period essentials' },
+  { asin: 'B0DS1MRGBY', name: 'Pixie Disc + Applicator Bundle (2 discs)', blurb: 'Two reusable silicone discs with a tampon style applicator. Holds 5 to 7 tampons worth.', image: '/images/catalog/B0DS1MRGBY.jpg', price: 39.95, banner: "HORMOscope's founder personal recommendation", section: 'Period essentials' },
   { asin: 'B0C9LCM3HW', name: 'FLEX Reusable Menstrual Disc Starter Bundle', blurb: 'Silicone reusable disc with foaming wash and biodegradable wipes.', image: '/images/catalog/B0C9LCM3HW.jpg', price: 49.97, section: 'Period essentials' },
   { asin: 'B0BX78DC84', name: 'Pixie Menstrual Cup & Disc Boiler Sterilizer', blurb: 'Electric boiler sterilizer that cleans cups and discs in 3 minutes, no chemicals.', image: '/images/catalog/B0BX78DC84.jpg', price: 32.95, section: 'Period essentials' },
   { asin: 'B09S2Y1G7B', name: 'Rael Herbal Heating Patches, Large, 8 Count', blurb: 'Herbal heating patches for period cramps, 8 count.', image: '/images/catalog/B09S2Y1G7B.jpg', price: 15.99, section: 'Period essentials' },
   { asin: 'B0C1YG33PD', name: 'BouZaFoFa Portable Heating Pad for Cramps', blurb: 'Cordless heating belt with 6 heat levels and 6 massage modes.', image: '/images/catalog/B0C1YG33PD.jpg', price: 19.99, section: 'Period essentials' },
   { asin: 'B0FK5CJXRX', name: 'vilicert Heating Pad for Period Cramps, 12 x 24 in', blurb: 'Wrap heating pad with a 26 inch belt, 6 heat levels, 4 timers and auto shut off, for cramps and back pain.', image: '/images/catalog/B0FK5CJXRX.jpg', price: 28.47, section: 'Period essentials' },
-  { asin: 'B0DZ2J1GS1', name: 'Comfytemp Cordless Heating Belt', blurb: 'Dual zone heating belt for belly and back, 3 heat levels with a timer.', image: '/images/catalog/B0DZ2J1GS1.jpg', price: 35.99, section: 'Period essentials' },
+  { asin: 'B0DZ2J1GS1', name: 'Comfytemp Cordless Heating Belt', blurb: 'Dual zone heating belt for belly and back, 3 heat levels with a timer.', image: '/images/catalog/B0DZ2J1GS1.jpg', price: 35.99, banner: "HORMOscope's founder personal recommendation", section: 'Period essentials' },
   // Period underwear and clothing (8)
   { asin: 'B0CRDH79BK', name: 'Kvitko Period Underwear, 3 Layers Breathable', blurb: 'Breathable 3 layer menstrual period panties.', image: '/images/catalog/B0CRDH79BK.jpg', price: 19.99, section: 'Period underwear and clothing' },
   { asin: 'B0B836FZFB', name: 'Rael Disposable Period Underwear, Organic Cotton Cover, L-XL, 20 Count', blurb: 'Disposable period underwear with an organic cotton cover, size L-XL, 20 count.', image: '/images/catalog/B0B836FZFB.jpg', price: 27.99, section: 'Period underwear and clothing' },
@@ -129,8 +127,8 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0GXC53GZ8', name: 'AIFUFAND Cyperus Rotundus Oil', blurb: 'Plant based hair removal oil with a rose quartz roll on, 60 mL.', image: '/images/catalog/B0GXC53GZ8.jpg', price: 15.99, section: 'Beauty from the Inside Out' },
   { asin: 'B0D1H31PRY', name: 'Genesis Wild Yam Roll On Oil for Women, Organic', blurb: 'Organic wild yam roll on with chaste tree and red clover. Vegan friendly, unscented, made in USA.', image: '/images/catalog/B0D1H31PRY.jpg', price: 19.99, section: 'Beauty from the Inside Out' },
   { asin: 'B0GD6R7CFJ', name: 'BIODANCE Hydrogel Eye Patches, Collagen Peptide, 60 Count', blurb: 'Hydrogel under eye patches with collagen peptide for wrinkles and fine lines.', image: '/images/catalog/B0GD6R7CFJ.jpg', price: 23, section: 'Beauty from the Inside Out' },
-  { asin: 'B0DCLVWKVT', name: 'Genesis Wild Yam Cream for Women, Organic', blurb: 'Organic wild yam cream for women.', image: '/images/catalog/B0DCLVWKVT.jpg', price: 23.97, founder: true, section: 'Beauty from the Inside Out' },
-  { asin: 'B07YNL9VWM', name: 'Joellyne Naturals Wild Yam & Dong Quai Cream, 3.4 oz', blurb: 'Wild yam and dong quai cream, 3000 mg.', image: '/images/catalog/B07YNL9VWM.jpg', price: 28.01, founder: true, section: 'Beauty from the Inside Out' },
+  { asin: 'B0DCLVWKVT', name: 'Genesis Wild Yam Cream for Women, Organic', blurb: 'Organic wild yam cream for women.', image: '/images/catalog/B0DCLVWKVT.jpg', price: 23.97, banner: "HORMOscope's founder's personal favorite", section: 'Beauty from the Inside Out' },
+  { asin: 'B07YNL9VWM', name: 'Joellyne Naturals Wild Yam & Dong Quai Cream, 3.4 oz', blurb: 'Wild yam and dong quai cream, 3000 mg.', image: '/images/catalog/B07YNL9VWM.jpg', price: 28.01, banner: "HORMOscope's founder's personal favorite", section: 'Beauty from the Inside Out' },
   { asin: 'B087258KHP', name: 'Balm of Gilead Manuka Eczema Honey Cream', blurb: 'Manuka honey moisturizer with grass fed tallow for sensitive skin, eczema, psoriasis and dermatitis.', image: '/images/catalog/B087258KHP.jpg', price: 24.99, section: 'Beauty from the Inside Out' },
   { asin: 'B0BNJRJP6M', name: 'Balm of Gilead Foot Healing Cream, Frankincense & Sweet Myrrh', blurb: 'Deeply nourishing foot moisturizer for sensitive and diabetic skin.', image: '/images/catalog/B0BNJRJP6M.jpg', price: 24.99, section: 'Beauty from the Inside Out' },
   { asin: 'B0FTGKQZT6', name: 'Eva Naturals Peptide Serum + Derma Roller Kit, 2 oz', blurb: 'Collagen peptide serum with a 0.25mm titanium derma roller microneedling kit, for face and scalp.', image: '/images/catalog/B0FTGKQZT6.jpg', price: 25.99, section: 'Beauty from the Inside Out' },
@@ -140,13 +138,13 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0DHWFWSVF', name: 'Olay Super Cream with Sunscreen SPF 30, 1.7 oz', blurb: '5-in-1 face moisturizer with niacinamide, vitamin C and collagen peptide: hydrating, brightening, firming.', image: '/images/catalog/B0DHWFWSVF.jpg', price: 34.94, section: 'Beauty from the Inside Out' },
   { asin: 'B0DJYXR31R', name: 'Mama Bear Oasis Magnesium Cream, Lavender', blurb: 'Magnesium lotion with arnica, vitamin B6, aloe vera and MSM, for feet, hands and legs.', image: '/images/catalog/B0DJYXR31R.jpg', price: 34.99, section: 'Beauty from the Inside Out' },
   // Comfort (7)
-  { asin: 'B09PTGQ4CK', name: 'Menstruation Crustacean Lobster Heating Plush', blurb: 'Lavender scented lobster plush with a microwavable heating pouch for cramp days.', image: '/images/catalog/B09PTGQ4CK.jpg', price: 22.96, section: 'Comfort' },
+  { asin: 'B09PTGQ4CK', name: 'Menstruation Crustacean Lobster Heating Plush', blurb: 'Lavender scented lobster plush with a microwavable heating pouch for cramp days.', image: '/images/catalog/B09PTGQ4CK.jpg', price: 22.96, banner: "HORMOscope's founder's personal favorite", section: 'Comfort' },
   { asin: 'B0DNZF4ZL4', name: 'Mewaii Strawberry Cow Plush', blurb: 'Microwavable weighted plush for cramps, heatable and coolable, 10 inch.', image: '/images/catalog/B0DNZF4ZL4.jpg', price: 23.99, section: 'Comfort' },
   { asin: 'B0H714TLPH', name: 'Sakura Cat Plush USB Heating Pad', blurb: 'A 22 inch pink cat heated plush with a USB controller, for period cramps.', image: '/images/catalog/B0H714TLPH.jpg', price: 26.99, section: 'Comfort' },
   { asin: 'B0D7P58742', name: 'Anthonic Teddy Bear with Preserved Rose', blurb: 'A red teddy bear holding a preserved rose, with an elegant gift box.', image: '/images/catalog/B0D7P58742.jpg', price: 36.99, section: 'Comfort' },
   { asin: 'B0D7MRCJRL', name: 'Touchat Faux Rabbit Fur Throw Blanket, Cream White, 50 x 60', blurb: 'Soft fluffy plush striped throw; thick winter luxury for couch, bed and sofa.', image: '/images/catalog/B0D7MRCJRL.jpg', price: 30.99, section: 'Comfort' },
   { asin: 'B0HHJB27VJ', name: 'blunique Faux Fur Throw Blanket', blurb: 'Ultra soft fuzzy bubble blanket, 50 x 60 inches, dark brown leopard.', image: '/images/catalog/B0HHJB27VJ.jpg', price: 39.99, section: 'Comfort' },
-  { asin: 'B0GX7X6ZKL', name: 'CHOOSE-US Neck Massager with Heat, Cordless', blurb: '4D bionic kneading massager for neck, shoulders, back, calves and legs, 3 intensities.', image: '/images/catalog/B0GX7X6ZKL.jpg', price: 29.99, section: 'Comfort' },
+  { asin: 'B0GX7X6ZKL', name: 'CHOOSE-US Neck Massager with Heat, Cordless', blurb: '4D bionic kneading massager for neck, shoulders, back, calves and legs, 3 intensities.', image: '/images/catalog/B0GX7X6ZKL.jpg', price: 29.99, banner: "HORMOscope's founder's personal favorite. It works so good.", section: 'Comfort' },
   // Little extras (3)
   { asin: 'B08ZJJ3BVV', name: 'Sea Turtle Lava Bead Car Mirror Charm', blurb: 'Handmade beach diffuser charm with lava beads, for the rear view mirror.', image: '/images/catalog/B08ZJJ3BVV.jpg', price: 23.99, section: 'Little extras' },
   { asin: 'B0F1K99T6R', name: 'FOLKOR LIFE Rose Quartz Crystal Tree', blurb: 'Gemstone money tree with a built in night lamp, heart hands base.', image: '/images/catalog/B0F1K99T6R.jpg', price: 29.99, section: 'Little extras' },
@@ -173,12 +171,12 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B07VTDXFDC', name: 'Aromatherapy Associates Ultimate Wellbeing Bath & Shower Oil Set', blurb: '10 premium oils in a gift box, for dry skin and deep relaxation.', image: '/images/catalog/B07VTDXFDC.jpg', price: 199.99, section: 'Advent calendars and gift sets' },
   // Jewelry and extra special things (7)
   { asin: 'B07T9N5T79', name: 'PAVOI 14K Gold Plated CZ Tennis Bracelet', blurb: '14K gold plated tennis bracelet with cubic zirconia stones.', image: '/images/catalog/B07T9N5T79.jpg', price: 20.95, section: 'Jewelry and extra special things' },
-  { asin: 'B0CNC67C8B', name: 'Houston Diamond District Diamond Tennis Bracelet', blurb: 'A Houston Diamond District tennis bracelet. Twenty carats of EGL certified lab grown oval diamonds, FG color, VS1 to VS2 clarity, set in platinum on a 7 inch line. The lucky girl who gets this as a gift. And if it is you, please show it off in the comments below. Those diamonds dance, I heard.', image: '/images/catalog/B0CNC67C8B.jpg', price: 10999.99, section: 'Jewelry and extra special things' },
   { asin: 'B07QTFTCV2', name: 'PAVOI Crystal Solitaire CZ Choker Necklace', blurb: '14K gold plated dainty choker with a 1.5 carat cubic zirconia solitaire pendant.', image: '/images/catalog/B07QTFTCV2.jpg', price: 14.95, section: 'Jewelry and extra special things' },
   { asin: 'B0GGNN6PK4', name: 'Atsidexa 4-in-1 Beaded Charging Cable, Pure Pearl', blurb: 'MFi certified 60W fast charger cord, 3.3 ft, beaded pearl finish.', image: '/images/catalog/B0GGNN6PK4.jpg', price: 13.99, section: 'Jewelry and extra special things' },
   { asin: 'B0DBLLK8YG', name: 'Rislobx Bling Car Vent Clip Fresheners, 4 Pcs, Gold', blurb: 'Crystal diamond vent clip diffusers in high heel, bag, crown and perfume bottle designs.', image: '/images/catalog/B0DBLLK8YG.jpg', price: 11.54, section: 'Jewelry and extra special things' },
   { asin: 'B09HT62WR4', name: 'HDCRYSTALGIFTS Crystal Suncatchers, Wind Chime Style', blurb: 'Handmade crystal suncatcher rainbow maker for windows and garden, gold plated.', image: '/images/catalog/B09HT62WR4.jpg', price: 16.99, section: 'Jewelry and extra special things' },
   { asin: 'B0G5Q443HD', name: 'LXTMMRLJQ Cat Stained Glass Suncatcher', blurb: 'Hanging stained glass window suncatcher, black cat.', image: '/images/catalog/B0G5Q443HD.jpg', price: 26.99, section: 'Jewelry and extra special things' },
+  { asin: 'B0CNC67C8B', name: 'Houston Diamond District Diamond Tennis Bracelet', blurb: 'A Houston Diamond District tennis bracelet. Twenty carats of EGL certified lab grown oval diamonds, FG color, VS1 to VS2 clarity, set in platinum on a 7 inch line. The lucky girl who gets this as a gift. And if it is you, please show it off in the comments below. Those diamonds dance, I heard.', image: '/images/catalog/B0CNC67C8B.jpg', price: 10999.99, banner: "HORMOscope's founder's personal wish item", section: 'Jewelry and extra special things' },
   // Food & Drink (1)
   { asin: 'B0CNTSVB7Q', name: 'Biteyz Turkish Delight, Vegan Candy Gift Box, 36 Pieces', blurb: 'Assorted gourmet fruit flavors: lemon, apple, orange, pomegranate and raspberry. Handmade vegan treats.', image: '/images/catalog/B0CNTSVB7Q.jpg', price: 25.99, section: 'Food & Drink' },
   // Non Food & Drink (9)
