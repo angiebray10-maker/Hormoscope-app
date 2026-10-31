@@ -5016,7 +5016,7 @@ CATALOG_PRODUCTS = {
     "B0B75T46L8": {"name": "Viome Full Body Intelligence Test", "image": "/images/catalog/B0B75T46L8.jpg", "price": 299},
     "B0FGB2NS3C": {"name": "Philips Lumea 9000 Series IPL Hair Removal Device", "image": "/images/catalog/B0FGB2NS3C.jpg", "price": 579.95},
     "B07M5X4D3P": {"name": "iRESTORE Professional Laser Hair Growth System", "image": "/images/catalog/B07M5X4D3P.jpg", "price": 899},
-    "B0CNC67C8B": {"name": "Diamond Tennis Bracelet, 20 Carat Lab Grown, Platinum, 7 Inch", "image": None, "price": 10000},
+    "B0CNC67C8B": {"name": "Houston Diamond District Diamond Tennis Bracelet", "image": "/images/catalog/B0CNC67C8B.jpg", "price": 10999.99},
 }
 
 

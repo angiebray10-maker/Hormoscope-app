@@ -6,14 +6,15 @@
 // eaten or drunk, including ingestible supplements; everything
 // else is Non Food & Drink. Products whose price is not verified
 // yet sit at the end of their group and show no price; the
-// Diamond Tennis Bracelet (B0CNC67C8B) is priced at $10,000
-// (confirmed by Angelita, Oct 31, 2026) and always sits last.
+// Diamond Tennis Bracelet (B0CNC67C8B) is priced at $10,999.99
+// (the Platinum 20 Carat variant in Angelita's own Amazon
+// screenshot, Oct 31, 2026) and always sits last.
 // Oct 31, 2026 (her order): every product photo is a LOCAL file
 // inside the app under /images/catalog/<ASIN>.jpg, so no tile
-// ever waits on a remote image host. One product still shows
-// the placeholder because no verified photo of it could be
-// sourced: the Diamond Tennis Bracelet (B0CNC67C8B). We never invent an image or
-// a price. Prices are checked again each catalog update; the
+// ever waits on a remote image host. Every product now has a
+// photo; the last one added was the Diamond Tennis Bracelet
+// (B0CNC67C8B), cropped from Angelita's own Amazon screenshot
+// (Oct 31, 2026). We never invent an image or a price. Prices are checked again each catalog update; the
 // catalog carries the line "Prices checked October 31, 2026."
 // The backend validates wishlist picks against this same ASIN list.
 // Picks that are still unidentified (B0FHWWCDJ2, B0H6J6LYLX,
@@ -154,7 +155,7 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0B75T46L8', name: 'Viome Full Body Intelligence Test', blurb: '3 in 1 kit (blood, saliva, stool) with 50+ health scores, gut microbiome and biological age.', image: '/images/catalog/B0B75T46L8.jpg', price: 299, section: 'Non Food & Drink' },
   { asin: 'B0FGB2NS3C', name: 'Philips Lumea 9000 Series IPL Hair Removal Device', blurb: 'SenseIQ IPL with 4 attachments for body, face, bikini and underarms.', image: '/images/catalog/B0FGB2NS3C.jpg', price: 579.95, section: 'Non Food & Drink' },
   { asin: 'B07M5X4D3P', name: 'iRESTORE Professional Laser Hair Growth System', blurb: 'Red light therapy cap with 282 lasers and LEDs.', image: '/images/catalog/B07M5X4D3P.jpg', price: 899, section: 'Non Food & Drink' },
-  { asin: 'B0CNC67C8B', name: 'Diamond Tennis Bracelet, 20 Carat Lab Grown, Platinum, 7 Inch', blurb: 'EGL certified lab grown diamonds in an oval line bracelet.', image: null, price: 10000, section: 'Non Food & Drink' },
+  { asin: 'B0CNC67C8B', name: 'Houston Diamond District Diamond Tennis Bracelet', blurb: 'The lucky girl who gets this as a gift. And if it is you, please show it off in the comments below. Those diamonds dance, I heard.', image: '/images/catalog/B0CNC67C8B.jpg', price: 10999.99, section: 'Non Food & Drink' },
 ];
 
 export const PRODUCT_BY_ASIN = Object.fromEntries(CATALOG_PRODUCTS.map((p) => [p.asin, p]));
