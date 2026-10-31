@@ -155,7 +155,7 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B0B75T46L8', name: 'Viome Full Body Intelligence Test', blurb: '3 in 1 kit (blood, saliva, stool) with 50+ health scores, gut microbiome and biological age.', image: '/images/catalog/B0B75T46L8.jpg', price: 299, section: 'Non Food & Drink' },
   { asin: 'B0FGB2NS3C', name: 'Philips Lumea 9000 Series IPL Hair Removal Device', blurb: 'SenseIQ IPL with 4 attachments for body, face, bikini and underarms.', image: '/images/catalog/B0FGB2NS3C.jpg', price: 579.95, section: 'Non Food & Drink' },
   { asin: 'B07M5X4D3P', name: 'iRESTORE Professional Laser Hair Growth System', blurb: 'Red light therapy cap with 282 lasers and LEDs.', image: '/images/catalog/B07M5X4D3P.jpg', price: 899, section: 'Non Food & Drink' },
-  { asin: 'B0CNC67C8B', name: 'Houston Diamond District Diamond Tennis Bracelet', blurb: 'The lucky girl who gets this as a gift. And if it is you, please show it off in the comments below. Those diamonds dance, I heard.', image: '/images/catalog/B0CNC67C8B.jpg', price: 10999.99, section: 'Non Food & Drink' },
+  { asin: 'B0CNC67C8B', name: 'Houston Diamond District Diamond Tennis Bracelet', blurb: 'A Houston Diamond District tennis bracelet. Twenty carats of EGL certified lab grown oval diamonds, FG color, VS1 to VS2 clarity, set in platinum on a 7 inch line. The lucky girl who gets this as a gift. And if it is you, please show it off in the comments below. Those diamonds dance, I heard.', image: '/images/catalog/B0CNC67C8B.jpg', price: 10999.99, section: 'Non Food & Drink' },
 ];
 
 export const PRODUCT_BY_ASIN = Object.fromEntries(CATALOG_PRODUCTS.map((p) => [p.asin, p]));
