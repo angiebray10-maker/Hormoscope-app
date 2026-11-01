@@ -23,7 +23,7 @@
 // Four advent calendars are cross-listed (see FEATURED_TOP_OF
 // below): three chocolate ones also top the Chocolates section
 // and the Pukka tea one tops Drinks, so those sections display
-// 12 and 5 rows while the distinct product count stays 119. Nine products carry a banner (the
+// 12 and 5 rows while the distinct product count stays 119. Ten products carry a banner (the
 // banner field): her words sit in a mellow yellow corner ribbon in bold FOR SALE sign lettering
 // above the product name. The two wild yam creams in Beauty from
 // the Inside Out sit side by side among them.
@@ -117,7 +117,7 @@ export const CATALOG_PRODUCTS = [
   { asin: 'B00LWE69NU', name: 'Flex Reusable Disc', blurb: 'Medical grade silicone disc, holds up to 6 super tampons, reusable for years.', image: '/images/catalog/B00LWE69NU.jpg', price: 34.95, section: 'Period essentials' },
   { asin: 'B0BLSVBMVY', name: 'Pixie Menstrual Disc Kit', blurb: 'Two medical grade silicone discs with wash, wipes, lube and a sterilizing carry cup.', image: '/images/catalog/B0BLSVBMVY.jpg', price: 39.95, banner: "HORMOscope's founder personal recommendation", section: 'Period essentials' },
   { asin: 'B0DS1MRGBY', name: 'Pixie Disc + Applicator Bundle (2 discs)', blurb: 'Two reusable silicone discs with a tampon style applicator. Holds 5 to 7 tampons worth.', image: '/images/catalog/B0DS1MRGBY.jpg', price: 39.95, banner: "HORMOscope's founder personal recommendation", section: 'Period essentials' },
-  { asin: 'B0C9LCM3HW', name: 'FLEX Reusable Menstrual Disc Starter Bundle', blurb: 'Silicone reusable disc with foaming wash and biodegradable wipes.', image: '/images/catalog/B0C9LCM3HW.jpg', price: 49.97, section: 'Period essentials' },
+  { asin: 'B0C9LCM3HW', name: 'FLEX Reusable Menstrual Disc Starter Bundle', blurb: 'Silicone reusable disc with foaming wash and biodegradable wipes.', image: '/images/catalog/B0C9LCM3HW.jpg', price: 49.97, banner: "HORMOscope's founder personal recommendation", section: 'Period essentials' },
   { asin: 'B0BX78DC84', name: 'Pixie Menstrual Cup & Disc Boiler Sterilizer', blurb: 'Electric boiler sterilizer that cleans cups and discs in 3 minutes, no chemicals.', image: '/images/catalog/B0BX78DC84.jpg', price: 32.95, section: 'Period essentials' },
   { asin: 'B09S2Y1G7B', name: 'Rael Herbal Heating Patches, Large, 8 Count', blurb: 'Herbal heating patches for period cramps, 8 count.', image: '/images/catalog/B09S2Y1G7B.jpg', price: 15.99, section: 'Period essentials' },
   { asin: 'B0C1YG33PD', name: 'BouZaFoFa Portable Heating Pad for Cramps', blurb: 'Cordless heating belt with 6 heat levels and 6 massage modes.', image: '/images/catalog/B0C1YG33PD.jpg', price: 19.99, section: 'Period essentials' },
