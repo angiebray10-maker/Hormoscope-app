@@ -834,6 +834,15 @@ html.hs-orb-off .hs-orb-pulse { animation: none !important; }
   position: fixed; top: -120px; right: -140px; width: 420px; height: 420px;
   border-radius: 9999px; pointer-events: none; z-index: 0; filter: blur(8px);
 }
+/* Faded blue cobalt wallpaper (Angelita, Nov 1, 2026): replaces the
+   ambient orb. Her blueprint diagram, fixed behind everything, at
+   low opacity with the dark wash baked into its background layer,
+   so the navy app background stays dominant and text stays readable. */
+.hs-faded-wallpaper {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-size: cover; background-position: center top; background-repeat: no-repeat;
+  opacity: 0.14;
+}
 @media (prefers-reduced-motion: reduce) { .hs-orb-pulse { animation: none !important; } }
 
 /* Tiny peaches (Angelita, Oct 28, 2026): the flowers are OUT. A few

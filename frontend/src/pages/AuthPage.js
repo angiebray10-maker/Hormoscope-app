@@ -106,9 +106,7 @@ export default function AuthPage() {
         <div className="absolute inset-0" style={{ backgroundImage: `url(${HERO_BG})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
-        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,79,154,0.5) 0%, rgba(255,79,154,0) 70%)' }} />
-        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(201,184,240,0.5) 0%, rgba(201,184,240,0) 70%)', animationDelay: '1.6s' }} />
-        <div className="pulsating-orb" style={{ width: 110, height: 110, top: '46%', right: '12%', background: 'radial-gradient(circle, rgba(201,184,240,0.45) 0%, rgba(201,184,240,0) 70%)', animationDelay: '3.1s' }} />
+        <div aria-hidden="true" className="absolute inset-0 pointer-events-none" data-testid="auth-faded-wallpaper" style={{ backgroundImage: 'url(/images/blueprint-wallpaper.png)', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.14 }} />
 
         <div className="relative z-10 w-full max-w-xl mx-auto px-6 py-20 text-center sm:text-left">
           <h1 className="text-5xl sm:text-6xl text-white leading-tight mb-3" style={{ fontFamily: HEADING_FONT }} data-testid="hero-title">
@@ -309,9 +307,7 @@ export default function AuthPage() {
         <div className="absolute inset-0" style={{ backgroundImage: `url(${BACKDROPS[1]})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
-        <div className="pulsating-orb" style={{ width: 190, height: 190, top: '6%', left: '-60px', background: 'radial-gradient(circle, rgba(255,79,154,0.5) 0%, rgba(255,79,154,0) 70%)' }} />
-        <div className="pulsating-orb" style={{ width: 150, height: 150, bottom: '10%', right: '-40px', background: 'radial-gradient(circle, rgba(201,184,240,0.5) 0%, rgba(201,184,240,0) 70%)', animationDelay: '1.6s' }} />
-        <div className="pulsating-orb" style={{ width: 110, height: 110, top: '46%', right: '12%', background: 'radial-gradient(circle, rgba(201,184,240,0.45) 0%, rgba(201,184,240,0) 70%)', animationDelay: '3.1s' }} />
+        <div aria-hidden="true" className="absolute inset-0 pointer-events-none" data-testid="auth-faded-wallpaper" style={{ backgroundImage: 'url(/images/blueprint-wallpaper.png)', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.14 }} />
         <div className="max-w-lg mx-auto relative z-10">
           <h2 className="text-3xl sm:text-4xl mb-4 text-white" style={{ fontFamily: HEADING_FONT }} data-testid="final-cta-heading">
             You&apos;re not crazy,<br />

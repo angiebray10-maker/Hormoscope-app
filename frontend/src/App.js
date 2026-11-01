@@ -8,7 +8,7 @@ import { BottomNav } from './components/BottomNav';
 import { Toaster } from './components/ui/sonner';
 import { syncLocalNotifications } from './utils/localNotifications';
 import InstallPrompt from './components/InstallPrompt';
-import AmbientOrb from './components/PhaseOrb';
+import FadedBackdrop from './components/PhaseOrb';
 import FallingFlowers from './components/FallingFlowers';
 
 // Pages
@@ -144,7 +144,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen noise-overlay">
-      <AmbientOrb />
+      <FadedBackdrop />
       {FLOWER_TAB_ROUTES.includes(location.pathname) && <FallingFlowers />}
       {/* Email verification is the hard gate at the start of
           onboarding (v42): ProtectedRoute sends every signed-in
