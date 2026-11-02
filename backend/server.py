@@ -147,7 +147,10 @@ BOUTIQUE_VISIBILITY_VALUES = ("private", "partner", "public")
 
 
 class UserOnboarding(BaseModel):
-    name: str
+    # v61 (Angelita, Nov 1, 2026): the app no longer collects a name.
+    # Optional so the client omits it entirely; older clients that
+    # still send one keep working.
+    name: Optional[str] = None
     birthday: Optional[str] = None  # optional now; set from Profile
     # v55 (Angelita, Oct 30, 2026): onboarding no longer asks her cycle
     # length at all. Optional: omitted means the server stores the
@@ -194,6 +197,9 @@ class UserResponse(BaseModel):
     boutique_visibility: str = "private"
     conditions: List[str] = []
     email_verified: bool = False
+    # v61: True for anonymous auto-accounts (no email, password, name,
+    # birthday or photo was ever collected from the user).
+    is_anonymous: bool = False
     created_at: Optional[str] = None
 
 class TokenResponse(BaseModel):
@@ -825,6 +831,7 @@ def build_user_response(user: dict) -> UserResponse:
         # Accounts created before verification existed have no field;
         # they are treated as verified so nobody is nagged retroactively.
         email_verified=bool(user.get("email_verified", True)),
+        is_anonymous=bool(user.get("is_anonymous", False)),
         created_at=user.get("created_at")
     )
 
@@ -1588,6 +1595,59 @@ async def signup(user_data: UserCreate):
     user_response = build_user_response(user)
     return TokenResponse(access_token=token, user=user_response)
 
+class AnonymousCreate(BaseModel):
+    # v61 (Angelita, Nov 1, 2026): anonymous start. The only things the
+    # user confirms are the same two consent boxes signup used.
+    is_adult: bool = False
+    accepted_terms: bool = False
+
+
+@api_router.post("/auth/anonymous", response_model=TokenResponse)
+async def anonymous_start(body: AnonymousCreate):
+    """Create an anonymous auto-account and return a token.
+
+    The account system stays underneath (cycle logs, journal, wishlist
+    and partner sync all key off the user id), but the user never sees
+    or gives an email, password, name, birthday or photo. The stored
+    email is a synthetic per-account address nobody can log in with,
+    and the stored password is the hash of a random uuid nobody knows.
+    No verification email is ever started for these accounts.
+    """
+    if not body.is_adult:
+        raise HTTPException(status_code=400, detail="You must be 18 or older to use HORMOscope.")
+    if not body.accepted_terms:
+        raise HTTPException(status_code=400, detail="Please agree to the Terms, Privacy Policy and health-data processing to continue.")
+
+    user_id = str(uuid.uuid4())
+    user = {
+        "id": user_id,
+        "email": f"anon-{user_id}@anonymous.local",
+        "password": hash_password(str(uuid.uuid4())),
+        "name": None,
+        "birthday": None,
+        "cycle_length": 28,
+        "period_length": 5,
+        "last_period_date": None,
+        "profile_photo": None,
+        "is_premium": False,
+        "is_anonymous": True,
+        "email_verified": True,
+        "onboarding_complete": False,
+        "notifications_enabled": False,
+        "notification_preferences": {"period_reminder": False, "daily_tips": False},
+        "consent": {
+            "is_adult": True,
+            "accepted_terms_privacy_health_data": True,
+            "accepted_at": datetime.now(timezone.utc).isoformat(),
+        },
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(user)
+
+    token = create_token(user_id)
+    user_response = build_user_response(user)
+    return TokenResponse(access_token=token, user=user_response)
+
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(user_data: UserLogin):
     user = await db.users.find_one({"email": user_data.email}, {"_id": 0})
@@ -1611,12 +1671,15 @@ async def get_me(current_user: dict = Depends(get_current_user)):
 # account intact and the request can simply be repeated safely.
 
 class AccountDeleteRequest(BaseModel):
-    password: str
+    # v61: anonymous auto-accounts have no password the user knows, so
+    # the field is optional; it is only checked for legacy accounts.
+    password: Optional[str] = None
 
 @api_router.delete("/auth/account")
 async def delete_my_account(body: AccountDeleteRequest, current_user: dict = Depends(get_current_user)):
-    if not verify_password(body.password, current_user["password"]):
-        raise HTTPException(status_code=403, detail="That password does not match. Your account was not changed.")
+    if not current_user.get("is_anonymous"):
+        if not body.password or not verify_password(body.password, current_user["password"]):
+            raise HTTPException(status_code=403, detail="That password does not match. Your account was not changed.")
     uid = current_user["id"]
     email = current_user.get("email")
     removed = {}
@@ -1980,8 +2043,6 @@ async def revenuecat_webhook(request: Request):
 
 @api_router.post("/onboarding", response_model=UserResponse)
 async def complete_onboarding(data: UserOnboarding, current_user: dict = Depends(get_current_user)):
-    if not (data.name or "").strip():
-        raise HTTPException(status_code=400, detail="Please tell us your name.")
     if data.cycle_status not in CYCLE_STATUSES:
         raise HTTPException(status_code=400, detail="Unknown cycle situation.")
     # v55: cycle_length is optional now. A concrete value is still
@@ -2040,7 +2101,11 @@ async def complete_onboarding(data: UserOnboarding, current_user: dict = Depends
     await db.users.update_one(
         {"id": current_user["id"]},
         {"$set": {
-            "name": data.name.strip(),
+            # v61: name is optional and normally omitted (anonymous
+            # accounts). An omitted name keeps whatever is already
+            # stored (None for new anonymous accounts), so re-running
+            # onboarding never wipes an existing account's data.
+            "name": data.name.strip() if (data.name or "").strip() else current_user.get("name"),
             "birthday": data.birthday or current_user.get("birthday"),
             "cycle_length": stored_cycle_length,
             "cycle_length_is_estimate": cycle_length_is_estimate,

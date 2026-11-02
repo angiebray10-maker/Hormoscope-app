@@ -6,7 +6,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { PremiumProvider } from './context/PremiumContext';
 import { BottomNav } from './components/BottomNav';
 import { Toaster } from './components/ui/sonner';
-import { syncLocalNotifications } from './utils/localNotifications';
 import InstallPrompt from './components/InstallPrompt';
 import FadedBackdrop from './components/PhaseOrb';
 import FallingFlowers from './components/FallingFlowers';
@@ -26,7 +25,6 @@ import PartnerViewPage from './pages/PartnerViewPage';
 import PartnerHubPage from './pages/PartnerHubPage';
 import AttunementPage from './pages/AttunementPage';
 import NotFoundPage from './pages/NotFoundPage';
-import VerifyEmailPage from './pages/VerifyEmailPage';
 import AppMapPage from './pages/AppMapPage';
 
 import './index.css';
@@ -46,18 +44,6 @@ const ProtectedRoute = ({ children }) => {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
-  }
-
-  // Email verification is a HARD GATE (v42 correction, Angelita,
-  // Oct 25, 2026: "they need to verify email. Take Later off."). A
-  // signed-in but unverified user is routed to the verification gate
-  // at the start of onboarding before reaching ANY app screen, so the
-  // rule also holds for accounts created before this change. Resend
-  // lives inside the gate, so nobody is stuck without a code path.
-  // The /verify-email link page is a public route (not wrapped here),
-  // so the emailed link keeps working for unverified users too.
-  if (user.email_verified === false && location.pathname !== '/onboarding') {
-    return <Navigate to="/onboarding" replace />;
   }
 
   // Compare the ROUTER path, not window.location.pathname: under a
@@ -84,7 +70,7 @@ const FLOWER_TAB_ROUTES = ['/', '/journal'];
 
 // App Content with routing
 const AppContent = () => {
-  const { user, token, loading } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -118,22 +104,6 @@ const AppContent = () => {
     return () => { removed = true; if (handle) handle.remove(); };
   }, [navigate]);
 
-  // v43: on-device local notifications are reconciled once per app
-  // open for a signed-in, onboarded user. This is what keeps the
-  // Daily Read text fresh (the schedule is rebuilt with today's
-  // headline) and the cycle alerts lined up with her current cycle
-  // data. Permission is requested in context only if she has the
-  // preference on and has never been asked; a denial is left alone
-  // (Profile carries one plain line about it). No-op on web.
-  const notifSyncUserRef = useRef(null);
-  useEffect(() => {
-    if (!user || !token || loading) return;
-    if (!user.onboarding_complete || user.email_verified === false) return;
-    if (notifSyncUserRef.current === user.id) return;
-    notifSyncUserRef.current = user.id;
-    syncLocalNotifications({ user, token, requestPermission: true }).catch(() => {});
-  }, [user, token, loading]);
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -146,9 +116,6 @@ const AppContent = () => {
     <div className="min-h-screen noise-overlay">
       <FadedBackdrop />
       {FLOWER_TAB_ROUTES.includes(location.pathname) && <FallingFlowers />}
-      {/* Email verification is the hard gate at the start of
-          onboarding (v42): ProtectedRoute sends every signed-in
-          unverified user there before any app screen. */}
       <div className="pb-24 lg:pb-0 relative z-[1]">
       <Routes>
         {/* Public routes */}
@@ -158,7 +125,6 @@ const AppContent = () => {
         <Route path="/founders-note" element={<FoundersNotePage />} />
         <Route path="/guide" element={<GuidePage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/app-map" element={<AppMapPage />} />
         <Route path="/partner/:linkCode" element={<PartnerViewPage />} />
 

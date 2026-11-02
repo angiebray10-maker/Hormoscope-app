@@ -101,25 +101,6 @@ function VisibilityChecklist({ vis, onToggle }) {
   );
 }
 
-// Shown instead of the sync setup when the user has no profile picture:
-// no picture, no invite. The button takes her to Profile to add one.
-function PhotoRequiredPrompt() {
-  return (
-    <div className="card p-5 mb-4 text-center" data-testid="photo-required">
-      <div className="w-12 h-12 rounded-full bg-[#FF4F9A]/15 flex items-center justify-center mx-auto mb-3">
-        <Camera className="w-5 h-5 text-[#FF4F9A]" />
-      </div>
-      <h2 className="text-white text-xl mb-2" style={script}>Add your picture first</h2>
-      <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
-        A profile picture is required to sync your cycle, so your partner can see who they are syncing with. Your face will sit beside your name wherever they see you, like on your wishlist.
-      </p>
-      <Link to="/profile" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="photo-required-btn">
-        Add my picture
-      </Link>
-    </div>
-  );
-}
-
 export default function AttunementPage() {
   const { token, user, updateUser } = useAuth();
 
@@ -131,7 +112,6 @@ export default function AttunementPage() {
   const [copied, setCopied] = useState(false);
   const [setupType, setSetupType] = useState(null); // 'man' | 'woman-sync' | 'woman-view' | 'share'
   const [womanQuestion, setWomanQuestion] = useState(false);
-  const [needPhoto, setNeedPhoto] = useState(false);
   const [vis, setVis] = useState(() => ({ ...DEFAULT_VIS, ...(user?.partner_visibility || {}) }));
   const [visSaving, setVisSaving] = useState(false);
   const [visMsg, setVisMsg] = useState('');
@@ -163,7 +143,6 @@ export default function AttunementPage() {
   const pendingView = sentInvites.find((i) => i.status === 'pending' && i.kind === 'view' && i.view_token);
   const acceptedInvite = sentInvites.find((i) => i.status === 'accepted');
 
-  const hasPhoto = !!(user && user.profile_photo);
   const toggleVis = (id, on) => { setVis((prev) => ({ ...prev, [id]: on })); setVisMsg(''); };
 
   // The checklist saves through the SAME mechanism the Profile form
@@ -189,22 +168,11 @@ export default function AttunementPage() {
     }
   };
 
-  // Tapping a sync card opens the setup step (checklist first). With
-  // no profile picture there is no setup: the picture prompt shows.
+  // Tapping a sync card opens the setup step (checklist first).
   // "Sync my cycle with her" detours through one question first:
   // does her partner get a period? (v46: the owner decides the kind.)
   const startSetup = (type) => {
     setInviteError(null);
-    if (!hasPhoto) {
-      setNeedPhoto(true);
-      setSetupType(null);
-      setWomanQuestion(false);
-      setTimeout(() => {
-        document.querySelector('[data-testid="photo-required"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 60);
-      return;
-    }
-    setNeedPhoto(false);
     if (type === 'woman') {
       setSetupType(null);
       setWomanQuestion(true);
@@ -256,15 +224,13 @@ export default function AttunementPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const firstName = (user?.name || '').trim().split(/\s+/)[0] || '';
-
   const shareSyncInvite = async (code) => {
-    const outcome = await shareInviteText(syncInviteMessage(code, firstName));
+    const outcome = await shareInviteText(syncInviteMessage(code, ''));
     setShareMsg(outcome === 'copied' ? 'Copied. Paste it wherever you talk to her.' : outcome === 'failed' ? "Sharing didn't open. Copy the code above and send it to her." : '');
   };
 
   const shareViewInvite = async (viewToken) => {
-    const outcome = await shareInviteText(viewInviteMessage(partnerViewUrl(viewToken), firstName));
+    const outcome = await shareInviteText(viewInviteMessage(partnerViewUrl(viewToken), ''));
     setShareMsg(outcome === 'copied' ? 'Copied. Paste the link wherever you talk to them.' : outcome === 'failed' ? "Sharing didn't open. Copy the link above and send it to them." : '');
   };
 
@@ -390,9 +356,8 @@ export default function AttunementPage() {
           <CycleSync token={token} />
           <div className="card p-5 mb-4 text-center">
             <div className="flex items-center justify-center gap-2.5 mb-1">
-              <PartnerAvatar photo={status.partner_photo} name={status.partner_name} size={30} />
               <p className="text-white text-base" style={poppins}>
-                You are in tune with <span className="font-semibold" style={{ color: PINK }}>{status.partner_name}</span>
+                You are in tune with <span className="font-semibold" style={{ color: PINK }}>your partner</span>
               </p>
             </div>
             <p className="text-[#CFC3CC] text-xs mb-4" style={poppins}>
@@ -426,7 +391,6 @@ export default function AttunementPage() {
           </>
         ) : (
           <>
-            {needPhoto && <PhotoRequiredPrompt />}
 
             {/* Choice 1: partner is a man (Angelita, Oct 25, 2026:
                 the man choice comes first, headed by what she wants to

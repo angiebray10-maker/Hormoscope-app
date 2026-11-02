@@ -3,7 +3,7 @@ import { BACKDROPS, BACKDROP_OVERLAY } from '../lib/backdrops';
 import SecurityNotice from '../components/SecurityNotice';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, ChevronDown, Shield, Check, ArrowRight, Heart, Users, Calendar, MessageCircle } from 'lucide-react';
+import { ChevronDown, Shield, Check, ArrowRight, Heart, Users, Calendar, MessageCircle } from 'lucide-react';
 
 const BRAND_FONT = "'Poiret One', sans-serif";
 const HEADING_FONT = "'Poiret One', sans-serif";
@@ -31,35 +31,31 @@ const BrandName = ({ className = '', style = {} }) => (
 
 export default function AuthPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isLogin, setIsLogin] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isAdult, setIsAdult] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const { login, signup } = useAuth();
+  const { startAnonymous } = useAuth();
   const navigate = useNavigate();
   const scienceRef = useRef(null);
   const focusRef = useRef(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const openSignup = () => { setIsLogin(false); setShowAuthModal(true); setError(''); setMobileMenuOpen(false); };
-  const openLogin = () => { setIsLogin(true); setShowAuthModal(true); setError(''); setMobileMenuOpen(false); };
+  // v61 (Angelita, Nov 1, 2026): there is no sign-up form and no
+  // sign-in any more. Get Started opens a start panel with only the
+  // two consent confirmations; continuing creates an anonymous
+  // account behind the scenes.
+  const openSignup = () => { setShowAuthModal(true); setError(''); setMobileMenuOpen(false); };
   const scrollTo = (ref) => { ref.current?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!isLogin) {
-      if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
-      if (!isAdult) { setError('You must be 18 or older to use HORMOscope.'); return; }
-      if (!acceptedTerms) { setError('Please agree to the Terms, Privacy Policy and health-data processing to continue.'); return; }
-    }
+    if (!isAdult) { setError('You must be 18 or older to use HORMOscope.'); return; }
+    if (!acceptedTerms) { setError('Please agree to the Terms, Privacy Policy and health-data processing to continue.'); return; }
     setLoading(true);
     try {
-      const user = isLogin ? await login(email, password) : await signup(email, password, { is_adult: isAdult, accepted_terms: acceptedTerms });
+      const user = await startAnonymous({ is_adult: isAdult, accepted_terms: acceptedTerms });
       navigate(user.onboarding_complete ? '/' : '/onboarding');
     } catch (err) {
       setError(typeof err.response?.data?.detail === 'string' ? err.response.data.detail : (err.response ? 'Something went wrong. Please try again.' : 'Could not reach HORMOscope. Check your connection and try again.'));
@@ -82,7 +78,6 @@ export default function AuthPage() {
           <div className="hidden sm:flex items-center gap-6">
             <button onClick={() => scrollTo(focusRef)} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>How It Works</button>
             <button onClick={() => scrollTo(scienceRef)} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>The Science</button>
-            <button onClick={openLogin} className="text-sm hover:text-white transition-colors" style={{ color: PINK_MUTED }}>Sign In</button>
             <button onClick={openSignup} className="px-5 py-1.5 rounded-full text-white text-sm font-medium transition-all hover:shadow-lg" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)' }} data-testid="nav-signup-btn">Get Started</button>
           </div>
           <div className="flex sm:hidden items-center gap-3">
@@ -96,7 +91,6 @@ export default function AuthPage() {
           <div className="sm:hidden px-5 pb-4 space-y-3 border-t border-white/5 pt-3">
             <button onClick={() => scrollTo(focusRef)} className="block text-sm" style={{ color: PINK_MUTED }}>How It Works</button>
             <button onClick={() => scrollTo(scienceRef)} className="block text-sm" style={{ color: PINK_MUTED }}>The Science</button>
-            <button onClick={openLogin} className="block text-sm" style={{ color: PINK_MUTED }}>Sign In</button>
           </div>
         )}
       </nav>
@@ -133,7 +127,7 @@ export default function AuthPage() {
             Bonus: includes Attuned Partner Mode
           </p>
           <p className="text-xs flex items-center justify-center sm:justify-start gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-            <Shield className="w-3.5 h-3.5" /> HTTPS, hashed passwords, never sold.
+            <Shield className="w-3.5 h-3.5" /> No email, no name, no photo. Never sold.
           </p>
         </div>
         <button onClick={() => scrollTo(focusRef)} className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce" style={{ color: PINK_MUTED }}>
@@ -320,7 +314,7 @@ export default function AuthPage() {
             Get Started
           </button>
           <p className="text-xs mt-4 flex items-center justify-center gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-            <Shield className="w-3.5 h-3.5" /> HTTPS, hashed passwords, never sold.
+            <Shield className="w-3.5 h-3.5" /> No email, no name, no photo. Never sold.
           </p>
         </div>
       </section>
@@ -337,48 +331,26 @@ export default function AuthPage() {
             <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 hover:text-white transition-colors text-xl" style={{ color: PINK_MUTED }} data-testid="auth-close-btn">&times;</button>
             <div className="text-center mb-6">
               <img src={NEW_LOGO} alt="HORMOscope" className="w-14 h-14 rounded-full mx-auto mb-3 object-cover" style={{ border: '1px solid rgba(139,92,246,0.2)' }} />
-              <h2 className="text-2xl text-white" style={{ fontFamily: HEADING_FONT }}>{isLogin ? 'Welcome Back' : 'Get Started'}</h2>
-              <p className="text-sm" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>{isLogin ? 'Sign in to continue' : 'Create your account'}</p>
+              <h2 className="text-2xl text-white" style={{ fontFamily: HEADING_FONT }}>Get Started</h2>
+              <p className="text-sm" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>No email, no name, no photo. Just two quick confirmations.</p>
             </div>
             {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 text-red-400 text-sm text-center" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="auth-error">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-xs tracking-wider uppercase block mb-2" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>Email</label>
-                <input data-testid="auth-email-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" className="w-full rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-colors" style={{ background: 'rgba(123,79,166,0.08)', border: '1px solid rgba(123,79,166,0.2)', fontFamily: 'Poppins, sans-serif' }} required autoFocus />
+              <div className="space-y-3 text-left" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                <label className="flex items-start gap-3 text-sm text-white/85 cursor-pointer">
+                  <input data-testid="auth-adult-checkbox" type="checkbox" checked={isAdult} onChange={(e) => setIsAdult(e.target.checked)} className="mt-1 w-4 h-4 accent-[#FF4F9A]" />
+                  <span>I am 18 or older.</span>
+                </label>
+                <label className="flex items-start gap-3 text-sm text-white/85 cursor-pointer">
+                  <input data-testid="auth-consent-checkbox" type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-1 w-4 h-4 accent-[#FF4F9A]" />
+                  <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" className="underline" style={{ color: PINK }}>Terms</a> and <a href="/privacy" target="_blank" rel="noreferrer" className="underline" style={{ color: PINK }}>Privacy Policy</a>, and I consent to HORMOscope processing my cycle and health data to run the app.</span>
+                </label>
               </div>
-              <div>
-                <label className="text-xs tracking-wider uppercase block mb-2" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>Password</label>
-                <div className="relative">
-                  <input data-testid="auth-password-input" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isLogin ? 'Your password' : 'Create a password (8+ characters)'} className="w-full rounded-xl px-4 py-3 text-sm text-white focus:outline-none pr-12 transition-colors" style={{ background: 'rgba(123,79,166,0.08)', border: '1px solid rgba(123,79,166,0.2)', fontFamily: 'Poppins, sans-serif' }} required />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 hover:text-white transition-colors" style={{ color: PINK_MUTED }}>
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              {!isLogin && (
-                <div className="space-y-3 text-left" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                  <p className="text-xs" style={{ color: PINK_MUTED }}>At least 8 characters.</p>
-                  <label className="flex items-start gap-3 text-sm text-white/85 cursor-pointer">
-                    <input data-testid="auth-adult-checkbox" type="checkbox" checked={isAdult} onChange={(e) => setIsAdult(e.target.checked)} className="mt-1 w-4 h-4 accent-[#FF4F9A]" />
-                    <span>I am 18 or older.</span>
-                  </label>
-                  <label className="flex items-start gap-3 text-sm text-white/85 cursor-pointer">
-                    <input data-testid="auth-consent-checkbox" type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-1 w-4 h-4 accent-[#FF4F9A]" />
-                    <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" className="underline" style={{ color: PINK }}>Terms</a> and <a href="/privacy" target="_blank" rel="noreferrer" className="underline" style={{ color: PINK }}>Privacy Policy</a>, and I consent to HORMOscope processing my cycle and health data to run the app.</span>
-                  </label>
-                </div>
-              )}
-              {!isLogin && <SecurityNotice compact />}
+              <SecurityNotice compact />
               <button data-testid="auth-submit-btn" type="submit" disabled={loading} className="w-full py-3 rounded-full text-white font-medium text-sm tracking-wide transition-all duration-300" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)', fontFamily: 'Poppins, sans-serif' }}>
-                {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
+                {loading ? 'Please wait...' : 'Continue'}
               </button>
             </form>
-            <p className="text-center text-sm mt-5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-              {isLogin ? "Don't have an account? " : 'Already have an account? '}
-              <button data-testid="auth-toggle-btn" onClick={() => { setIsLogin(!isLogin); setError(''); }} className="hover:underline font-medium" style={{ color: PINK }}>
-                {isLogin ? 'Sign up' : 'Sign in'}
-              </button>
-            </p>
           </div>
         </div>
       )}

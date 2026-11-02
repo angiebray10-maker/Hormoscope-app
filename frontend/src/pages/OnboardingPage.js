@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import DateSelect from '../components/DateSelect';
-import VerifyEmailBanner from '../components/VerifyEmailBanner';
 import { ChevronRight, ChevronLeft, ChevronDown, Heart, BookOpen, Lock, Gift, Shield, KeyRound } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -15,7 +14,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Slim onboarding (Angelita, Oct 26, 2026, v50): fewer questions, show
 // what the app does, and get her to her cycle day fast. Three steps:
-// welcome (what HORMOscope does, her name, the privacy promise in one
+// welcome (what HORMOscope does, the privacy promise in one
 // proud line with the full text a tap away, an optional partner code)
 // -> last period (approximate is fine, no penalty) -> her situation.
 // v55 (Angelita, Oct 30, 2026): NO cycle length question anywhere in
@@ -64,7 +63,6 @@ const choiceClass = (active) =>
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
-  const [name, setName] = useState('');
   const [showSecurity, setShowSecurity] = useState(false);
   const [lastPeriodDate, setLastPeriodDate] = useState('');
   const [dontRemember, setDontRemember] = useState(false);
@@ -78,7 +76,7 @@ export default function OnboardingPage() {
   const [inviteCode, setInviteCode] = useState('');
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteError, setInviteError] = useState('');
-  const [inviteLinked, setInviteLinked] = useState(null); // partner name
+  const [inviteLinked, setInviteLinked] = useState(false); // v61: boolean only, no partner name is ever shown
   const { token, user, updateUser } = useAuth();
   const navigate = useNavigate();
   const totalSteps = 3;
@@ -98,7 +96,7 @@ export default function OnboardingPage() {
     axios.get(`${API}/partner/status`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
       .then((res) => {
         if (!cancelled && res.data?.is_linked) {
-          setInviteLinked(res.data.partner_name || 'your partner');
+          setInviteLinked(true);
         }
       })
       .catch(() => {});
@@ -112,8 +110,8 @@ export default function OnboardingPage() {
     setInviteBusy(true);
     setInviteError('');
     try {
-      const res = await axios.post(`${API}/partner/accept-invite`, { invite_code: code }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setInviteLinked(res.data.linked_to || 'your partner');
+      await axios.post(`${API}/partner/accept-invite`, { invite_code: code }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
+      setInviteLinked(true);
     } catch (err) {
       setInviteError(err.response?.data?.detail || "That code didn't work. Check it and try again, or continue without linking.");
       logger.error('Onboarding invite accept error:', err);
@@ -122,26 +120,16 @@ export default function OnboardingPage() {
     }
   };
 
-  // The verification gate (v42) also catches EXISTING accounts that
-  // finished onboarding long ago but never verified (ProtectedRoute
-  // sends them here). Remember whether this user ARRIVED already
-  // complete: once she verifies, she goes straight home instead of
-  // being walked through onboarding again. A new user arrives with
-  // onboarding_complete false, so this never fires mid-onboarding.
-  const arrivedComplete = useRef(null);
+  // v61: an existing user who already finished onboarding (for
+  // example after an app update) is never walked through it again.
   useEffect(() => {
-    if (user && arrivedComplete.current === null) {
-      arrivedComplete.current = !!user.onboarding_complete;
-    }
-  }, [user]);
-  useEffect(() => {
-    if (user && user.email_verified !== false && arrivedComplete.current && user.onboarding_complete) {
+    if (user && user.onboarding_complete) {
       navigate('/', { replace: true });
     }
   }, [user, navigate]);
 
   const canNext =
-    (step === 1 && name.trim().length > 0) ||
+    step === 1 ||
     (step === 2 && (noPeriods || dontRemember || !!lastPeriodDate)) ||
     step >= 3;
 
@@ -154,7 +142,6 @@ export default function OnboardingPage() {
       // the checklist lives in Attunement, and reminders are set from
       // the Home card or Profile, so nothing is collected here.
       const res = await axios.post(`${API}/onboarding`, {
-        name: name.trim(),
         last_period_date: noPeriods || dontRemember ? null : lastPeriodDate,
         cycle_status: effSituation,
         no_periods: effSituation === 'no_periods',
@@ -176,40 +163,6 @@ export default function OnboardingPage() {
       setLoading(false);
     }
   };
-
-  // HARD GATE (v42 correction, Angelita, Oct 25, 2026): an unverified
-  // user sees ONLY this panel. Code entry, Verify, and Resend email;
-  // no Later, no skip, no steps, no way forward until the email is
-  // verified. The banner's Verify calls fetchUser, so the moment the
-  // account verifies, this gate lifts on its own: a new user lands on
-  // step 1 below, and an existing user is sent home by the effect
-  // above. Once verified it never shows again.
-  if (user && user.email_verified === false) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden" style={{ background: BRAND.bg, fontFamily: BODY_FONT }}>
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true" data-testid="onboarding-bg">
-          <img src={STEP_BG[1]} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
-        </div>
-          <div className="w-full max-w-md relative">
-          <div className="rounded-3xl p-7 border border-white/10" style={{ background: 'rgba(21,21,43,0.92)' }} data-testid="verify-gate">
-            <div className="text-center mb-2">
-              <div className="mx-auto mb-5 w-24 h-24 rounded-full overflow-hidden flex items-center justify-center" style={{ background: '#000', border: '1px solid rgba(255,79,154,0.5)' }}>
-                <img src="/images/logo-wordmark.png" alt="HORMOscope" className="w-full h-full object-contain" style={{ padding: 10 }} />
-              </div>
-              <h1 className="text-2xl text-white" style={{ fontFamily: HEADING_FONT }}>Confirm your email</h1>
-              <p className="text-center mt-2 text-[15px] leading-relaxed" style={{ color: BRAND.textMuted }}>
-                One quick step before you start. Enter the 6-digit code we sent you, and you are in.
-              </p>
-            </div>
-            <div className="-mx-4 empty:hidden">
-              <VerifyEmailBanner hardGate />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const H = ({ children }) => (
     <h2 className="text-3xl text-white text-center" style={{ fontFamily: HEADING_FONT }}>{children}</h2>
@@ -256,11 +209,6 @@ export default function OnboardingPage() {
                 ))}
               </div>
 
-              <div>
-                <label className="block mb-2 text-sm text-white" htmlFor="ob-name">What should we call you?</label>
-                <Input id="ob-name" data-testid="onboarding-name-input" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your first name" className="input-dark text-lg" autoFocus />
-              </div>
-
               {/* Privacy is the number one promise (Angelita, Oct 26,
                   2026): ONE proud line up front, the full five points
                   a single tap away. */}
@@ -287,7 +235,6 @@ export default function OnboardingPage() {
                       <li>Everything you write and log is encrypted while it travels and while it rests with us.</li>
                       <li>We keep our security updated ahead of the standard, always.</li>
                       <li>Your information is never sold. It is shared only where you choose, like with a partner you link, and only the parts you turn on.</li>
-                      <li>Your password is stored scrambled, so it cannot be read in plain form, not even by us.</li>
                       <li>Your journal stays private unless you choose to share it with your partner.</li>
                     </ul>
                   </div>
@@ -298,7 +245,7 @@ export default function OnboardingPage() {
                   invisible pressure if she was not. */}
               {inviteLinked ? (
                 <div className="rounded-xl p-4 border border-[#FF4F9A]/40 text-center" style={{ background: 'rgba(255,79,154,0.08)' }} data-testid="onboarding-invite-linked">
-                  <p className="text-white text-[15px]">You're linked with {inviteLinked}.</p>
+                  <p className="text-white text-[15px]">You are linked with your partner.</p>
                   <p className="text-xs mt-1" style={{ color: BRAND.textMuted }}>Now let's set up your own side.</p>
                 </div>
               ) : showCode ? (

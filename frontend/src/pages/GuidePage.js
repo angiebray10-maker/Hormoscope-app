@@ -6,8 +6,8 @@ import { ChevronLeft } from 'lucide-react';
 // the Profile tab next to the Founder's Note (Angelita, Oct 17; rewritten
 // shorter and plainer Oct 31, 2026, to match the app as it now stands:
 // four tabs, read-only Home, all logging in Journal, Attunement holding
-// partner sync and the Gift Catalog, Profile holding account and
-// notification settings only).
+// partner sync and the Gift Catalog, Profile holding account
+// settings only).
 export default function GuidePage() {
   return (
     <div className="min-h-screen pb-32 lg:pl-80" style={{ background: '#0B0B1E' }} data-testid="guide-page">
@@ -29,10 +29,6 @@ export default function GuidePage() {
             <h2 className="text-xl sm:text-2xl text-white mb-3">What HORMOscope does</h2>
             <p className="mb-3">HORMOscope has four tabs, in this order: Home, Journal, Attunement and Profile. Home is where you read your day. Journal is where you log it.</p>
             <p className="mb-3">Your daily reads come from your cycle and what you log, not from astrology.</p>
-          </section>
-          <section data-testid="guide-verify">
-            <h2 className="text-xl sm:text-2xl text-white mb-3">Confirm your email</h2>
-            <p className="mb-3">When you sign up, we email you a link and a 6-digit code. Use either one to confirm your email and finish setting up your account. If the email has not arrived, check your spam folder.</p>
           </section>
           <section data-testid="guide-home">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Home</h2>
@@ -63,12 +59,12 @@ export default function GuidePage() {
             <h2 className="text-xl sm:text-2xl text-white mb-3">Gift Catalog</h2>
             <p className="mb-3">The Gift Catalog lives in Attunement. It runs in sections: Flowers, Chocolates, Drinks, Period essentials, Period underwear and clothing, Beauty from the Inside Out, Comfort, Little extras, Candles and scented products, Advent calendars and gift sets, and Jewelry and extra special things. Inside each section, like sits with like.</p>
             <p className="mb-3">A few products carry a small founder banner: a personal favorite, a personal recommendation, or her personal wish item.</p>
-            <p className="mb-3">Tap the heart on anything you like and it goes onto your wishlist. Your picks also gather in your boutique, your own named list, which a linked partner can see. Tap a product name to open it on Amazon.</p>
+            <p className="mb-3">Tap the heart on anything you like and it goes onto your wishlist. Your picks also gather in your boutique, your own list, which a linked partner can see. Tap a product name to open it on Amazon.</p>
             <p className="mb-3">At the bottom of the catalog is the Community wall. Comment there on which items you tried and liked, and leave suggestions of what you would like to see. Looking for something you want? Leave a comment and Angelita will find it for you.</p>
           </section>
           <section data-testid="guide-profile">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Profile</h2>
-            <p className="mb-3">Profile holds your name and photo, the conditions you live with (like PMDD, PCOS or endometriosis), your notification settings, and your account. You can sign out here, and delete your account and data here at any time.</p>
+            <p className="mb-3">Profile holds the conditions you live with (like PMDD, PCOS or endometriosis) and your account. HORMOscope does not ask for your email, name, birthday or photo. You can sign out here, and delete your account and data here at any time.</p>
             <p className="mb-3">Profile is also where the Founder&apos;s Note, this guide and the App Map live. What your partner can see is chosen in Attunement, not here.</p>
           </section>
           <section data-testid="guide-appmap">

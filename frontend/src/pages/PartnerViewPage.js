@@ -74,7 +74,7 @@ export default function PartnerViewPage() {
             Attunement Mode
           </p>
           <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>
-            {data.name}'s Cycle
+            Her Cycle
           </h1>
           <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Updated in real time

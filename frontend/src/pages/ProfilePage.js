@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { User, LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Camera, Loader2, BookOpen, Trash2, Bell } from 'lucide-react';
-import { syncLocalNotifications, checkNotificationPermission, getNotificationPrefs, isNativePlatform, NOTIFICATION_TIMES } from '../utils/localNotifications';
+import { User, LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Loader2, BookOpen, Trash2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -66,200 +65,10 @@ function MyDetailsSection({ user, token, updateUser }) {
   );
 }
 
-// v43: on-device local notifications live here now. This is the one
-// place the daily reminder preference can be changed after onboarding
-// (onboarding step 5 writes the same local storage keys and the same
-// server fields). Changing anything re-schedules on the device at
-// once. If Android permission is denied there is exactly ONE plain
-// line about it (per the Oct 22 plan: no nagging, ever).
-function NotificationsSection({ user, token, updateUser }) {
-  const prefs = getNotificationPrefs(user);
-  const [enabled, setEnabled] = useState(prefs.enabled);
-  const [time, setTime] = useState(prefs.time);
-  // v49: the same three choices onboarding offers (Angelita, Oct 26).
-  const [periodAlert, setPeriodAlert] = useState(prefs.period);
-  const [ovulationAlert, setOvulationAlert] = useState(prefs.ovulation);
-  // v55: the partner daily note reminder is a fourth choice, but it
-  // belongs to partners only: the row renders only when this account
-  // is a linked partner (checked against /partner/status below).
-  const [partnerDaily, setPartnerDaily] = useState(prefs.partnerDaily);
-  const [partnerTime, setPartnerTime] = useState(prefs.partnerTime || '09:00');
-  const [isPartner, setIsPartner] = useState(false);
-  const [permDisplay, setPermDisplay] = useState(null);
-  const [msg, setMsg] = useState('');
-  const native = isNativePlatform();
-
-  useEffect(() => {
-    let live = true;
-    checkNotificationPermission().then((d) => { if (live) setPermDisplay(d); });
-    return () => { live = false; };
-  }, []);
-
-  useEffect(() => {
-    let live = true;
-    axios.get(`${API}/partner/status`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
-      .then((res) => { if (live) setIsPartner(!!(res.data?.is_linked && res.data?.role === 'partner')); })
-      .catch(() => {});
-    return () => { live = false; };
-  }, [token]);
-
-  const apply = async (nextEnabled, nextTime, nextPeriod = periodAlert, nextOvulation = ovulationAlert, nextPartnerDaily = partnerDaily, nextPartnerTime = partnerTime) => {
-    setEnabled(nextEnabled);
-    setTime(nextTime);
-    setPeriodAlert(nextPeriod);
-    setOvulationAlert(nextOvulation);
-    setPartnerDaily(nextPartnerDaily);
-    setPartnerTime(nextPartnerTime);
-    setMsg('');
-    const anyOn = nextEnabled || nextPeriod || nextOvulation || nextPartnerDaily;
-    const mergedPrefs = { ...(user.notification_preferences || {}), period_reminder: nextPeriod, ovulation_reminder: nextOvulation, partner_daily_note: nextPartnerDaily, partner_daily_time: nextPartnerTime };
-    try {
-      localStorage.setItem('hormoscope-notifications-enabled', nextEnabled ? 'true' : 'false');
-      localStorage.setItem('hormoscope-notification-time', nextTime);
-      localStorage.setItem('hormoscope-notifications-period', nextPeriod ? 'true' : 'false');
-      localStorage.setItem('hormoscope-notifications-ovulation', nextOvulation ? 'true' : 'false');
-      localStorage.setItem('hormoscope-notifications-partner-daily', nextPartnerDaily ? 'true' : 'false');
-      localStorage.setItem('hormoscope-notification-partner-time', nextPartnerTime);
-    } catch (e) { /* storage unavailable: server fields below still save */ }
-    try {
-      const res = await axios.put(`${API}/profile`, { notifications_enabled: nextEnabled, notification_time: nextTime, notification_preferences: mergedPrefs }, { headers: { Authorization: `Bearer ${token}` } });
-      updateUser(res.data);
-    } catch (err) {
-      logger.error('Notification preference save failed:', err);
-    }
-    const result = await syncLocalNotifications({
-      user: { ...user, notifications_enabled: nextEnabled, notification_time: nextTime, notification_preferences: mergedPrefs },
-      token,
-      requestPermission: anyOn,
-    });
-    if (result && result.permission) setPermDisplay(result.permission);
-    setMsg(anyOn ? 'Saved.' : 'Notifications off.');
-  };
-
-  const row = 'flex items-center gap-3 py-1.5 text-sm text-[#F7F4FA] cursor-pointer';
-
-  return (
-    <div className="glass-card p-5 mb-6 space-y-4" data-testid="notifications-section" style={{ fontFamily: 'Poppins, sans-serif' }}>
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-[#FF4F9A]/20 flex items-center justify-center">
-          <Bell className="w-5 h-5 text-[#FF4F9A]" />
-        </div>
-        <div>
-          <p className="text-[#F4D3DC] text-sm font-medium">Daily Notifications</p>
-          <p className="text-[#CFC3CC] text-xs">Your Daily Read and cycle alerts, on this device.</p>
-        </div>
-      </div>
-      <label className={row}>
-        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={enabled} onChange={(e) => apply(e.target.checked, time)} data-testid="notifications-enabled-toggle" />
-        Daily Read reminder
-      </label>
-      <div>
-        <p className="text-white text-base mb-2">Reminder time</p>
-        <select value={time} disabled={!enabled} onChange={(e) => apply(enabled, e.target.value)} className="w-full rounded-xl px-3 py-2.5 bg-white/5 border border-white/15 text-white disabled:opacity-50" data-testid="notification-time-select">
-          {NOTIFICATION_TIMES.map((t) => <option key={t.time} value={t.time} className="bg-[#15152B]">{t.label}</option>)}
-        </select>
-      </div>
-      <label className={row}>
-        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={periodAlert} onChange={(e) => apply(enabled, time, e.target.checked, ovulationAlert)} data-testid="notifications-period-toggle" />
-        <span>Period coming
-          <span className="block text-xs text-[#CFC3CC]">A gentle note the evening before your period is estimated to start.</span>
-        </span>
-      </label>
-      <label className={row}>
-        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={ovulationAlert} onChange={(e) => apply(enabled, time, periodAlert, e.target.checked)} data-testid="notifications-ovulation-toggle" />
-        <span>Ovulation week starting
-          <span className="block text-xs text-[#CFC3CC]">A note the morning your ovulation week is estimated to begin.</span>
-        </span>
-      </label>
-      {isPartner && (
-        <>
-          <label className={row}>
-            <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={partnerDaily} onChange={(e) => apply(enabled, time, periodAlert, ovulationAlert, e.target.checked, partnerTime)} data-testid="notifications-partner-daily-toggle" />
-            <span>Daily partner note reminder
-              <span className="block text-xs text-[#CFC3CC]">A daily nudge to log in and see what your person is wishing for you to do for them today. The note itself never appears on your lock screen.</span>
-            </span>
-          </label>
-          <div>
-            <p className="text-white text-base mb-2">Partner reminder time</p>
-            <select value={partnerTime} disabled={!partnerDaily} onChange={(e) => apply(enabled, time, periodAlert, ovulationAlert, partnerDaily, e.target.value)} className="w-full rounded-xl px-3 py-2.5 bg-white/5 border border-white/15 text-white disabled:opacity-50" data-testid="notification-partner-time-select">
-              {NOTIFICATION_TIMES.map((t) => <option key={t.time} value={t.time} className="bg-[#15152B]">{t.label}</option>)}
-            </select>
-          </div>
-        </>
-      )}
-      {native && (enabled || periodAlert || ovulationAlert) && permDisplay === 'denied' && (
-        <p className="text-sm text-[#E6E0EE]" data-testid="notifications-denied-line">Notifications are turned off for HORMOscope in your phone settings. Turn them on there to get your Daily Read and cycle alerts.</p>
-      )}
-      {msg && <p className="text-sm text-[#E6E0EE]" role="status">{msg}</p>}
-    </div>
-  );
-}
-
 export default function ProfilePage() {
   const { user, token, logout, updateUser } = useAuth();
   const { companionEntitled } = usePremium();
-  const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(user?.name || '');
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState(user?.profile_photo || null);
-  const fileInputRef = useRef(null);
   const navigate = useNavigate();
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const res = await axios.put(`${API}/profile`, {
-        name
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      updateUser(res.data);
-      setIsEditing(false);
-    } catch (err) {
-      logger.error('Save error:', err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handlePhotoClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Preview immediately
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPhotoPreview(reader.result);
-    };
-    reader.readAsDataURL(file);
-
-    // Upload
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const res = await axios.post(`${API}/profile/photo`, formData, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      updateUser(res.data);
-      setPhotoPreview(res.data.profile_photo);
-    } catch (err) {
-      logger.error('Photo upload error:', err);
-      alert('Failed to upload photo. Please try again.');
-      setPhotoPreview(user?.profile_photo || null);
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -286,7 +95,7 @@ export default function ProfilePage() {
     try {
       await axios.delete(`${API}/auth/account`, {
         headers: { Authorization: `Bearer ${token}` },
-        data: { password: deletePassword }
+        data: user?.is_anonymous ? {} : { password: deletePassword }
       });
       setDeleted(true);
     } catch (err) {
@@ -311,90 +120,22 @@ export default function ProfilePage() {
             Profile
           </h1>
         </div>
-        {!isEditing ? (
-          <button
-            data-testid="edit-profile-btn"
-            onClick={() => setIsEditing(true)}
-            className="btn-glass"
-          >
-            Edit
-          </button>
-        ) : (
-          <button
-            data-testid="save-profile-btn"
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-2 rounded-full bg-transparent border-[1.5px] border-[#E8A4B8] text-[#F4D3DC] font-medium text-sm"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        )}
       </div>
 
-      {/* Profile Photo & Info */}
+      {/* v61 (Angelita, Nov 1, 2026): no name, no email, no photo.
+          The top card is a plain anonymous card. */}
       <div className="glass-card p-6 mb-6">
         <div className="flex items-center gap-5">
-          {/* Photo Upload */}
-          <div className="relative">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handlePhotoChange}
-              accept="image/*"
-              className="hidden"
-              id="profile-photo-input"
-            />
-            <label
-              htmlFor="profile-photo-input"
-              className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#F4D3DC] to-[#C9B8F0] flex items-center justify-center overflow-hidden border-2 border-[#F4D3DC]/30 hover:border-[#F4D3DC] transition-all cursor-pointer block"
-              data-testid="profile-photo-btn"
-            >
-              {photoPreview ? (
-                <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-10 h-10 text-white" />
-              )}
-              
-              {/* Upload overlay */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                {uploading ? (
-                  <Loader2 className="w-6 h-6 text-white animate-spin" />
-                ) : (
-                  <Camera className="w-6 h-6 text-white" />
-                )}
-              </div>
-            </label>
-            
-            {/* Camera badge — only show when no photo */}
-            {!photoPreview && (
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#F4D3DC] flex items-center justify-center shadow-lg pointer-events-none">
-                <Camera className="w-4 h-4 text-[#12090E]" />
-              </div>
-            )}
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#F4D3DC] to-[#C9B8F0] flex items-center justify-center border-2 border-[#F4D3DC]/30">
+            <User className="w-10 h-10 text-white" />
           </div>
-          
           <div className="flex-1 min-w-0">
-            {isEditing ? (
-              <input
-                data-testid="profile-name-input"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="input-luxe text-lg font-medium mb-1 w-full"
-                placeholder="Your name"
-              />
-            ) : (
-              <h2 className="text-xl font-medium text-[#FDF8FA] tracking-wide">
-                {user?.name || 'Beautiful'}
-              </h2>
-            )}
-            <p className="text-[#E6E0EE] text-xs break-all" data-testid="profile-email">{user?.email}</p>
+            <h2 className="text-xl font-medium text-[#FDF8FA] tracking-wide">
+              My Profile
+            </h2>
           </div>
         </div>
       </div>
-
-      {/* Email verification lived here in v39-v41. v42 (Angelita,
-          Oct 25, 2026): it moved to the START of onboarding, where the
-          email is first given. Nothing renders here anymore. */}
 
       {/* Links */}
       <div className="bento-card overflow-hidden mb-6">
@@ -469,9 +210,11 @@ export default function ProfilePage() {
           (Angelita, Oct 31, 2026): Attunement has its own tab, and
           this duplicate only cluttered Profile. */}
       <MyDetailsSection user={user} token={token} updateUser={updateUser} />
-      <NotificationsSection user={user} token={token} updateUser={updateUser} />
 
-      {/* Logout */}
+      {/* Logout: legacy email accounts only (v61). An anonymous
+          user has no sign-in to return to, so a Sign Out button
+          would only throw her data away with no way back. */}
+      {!user?.is_anonymous && (
       <button
         data-testid="logout-btn"
         onClick={handleLogout}
@@ -480,6 +223,7 @@ export default function ProfilePage() {
         <LogOut className="w-5 h-5" />
         Sign Out
       </button>
+      )}
 
       {/* Delete account */}
       <button
@@ -518,20 +262,29 @@ export default function ProfilePage() {
                   <li>Your partner connections (they are disconnected)</li>
                 </ul>
                 <p className="text-sm text-[#CDBEC6] leading-relaxed mb-3">
-                  This cannot be undone, and your email will no longer sign in. If you have a
+                  This cannot be undone.{user?.is_anonymous
+                    ? ' The app data stored on the server is erased, and this device starts fresh.'
+                    : ' Your email will no longer sign in.'} If you have a
                   Journal Companion subscription through Google Play, cancel it in Google Play
                   too, deleting your account does not cancel Play billing. Billing records
                   the law requires are kept without your name or email.
                 </p>
-                <p className="text-sm text-[#F4D3DC] mb-2">Type your password to confirm it is really you.</p>
-                <Input
-                  type="password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  placeholder="Your password"
-                  data-testid="delete-password-input"
-                  className="mb-3"
-                />
+                {!user?.is_anonymous && (
+                  <>
+                    <p className="text-sm text-[#F4D3DC] mb-2">Type your password to confirm it is really you.</p>
+                    <Input
+                      type="password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      placeholder="Your password"
+                      data-testid="delete-password-input"
+                      className="mb-3"
+                    />
+                  </>
+                )}
+                {user?.is_anonymous && (
+                  <p className="text-sm text-[#F4D3DC] mb-3">Tap Permanently delete to confirm.</p>
+                )}
                 {deleteError && <p className="text-sm mb-3" style={{ color: '#FF8FA3' }}>{deleteError}</p>}
                 <div className="flex gap-3">
                   <button
@@ -543,7 +296,7 @@ export default function ProfilePage() {
                   </button>
                   <button
                     onClick={handleDeleteAccount}
-                    disabled={deleting || !deletePassword}
+                    disabled={deleting || (!user?.is_anonymous && !deletePassword)}
                     data-testid="confirm-delete-btn"
                     className="flex-1 py-3 rounded-full text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
                     style={{ background: '#C62F45' }}
@@ -557,8 +310,9 @@ export default function ProfilePage() {
               <>
                 <h2 className="text-2xl text-[#F4D3DC] mb-3" style={{ fontFamily: "'Poiret One', sans-serif" }}>Your account is deleted</h2>
                 <p className="text-sm text-[#CDBEC6] leading-relaxed mb-5">
-                  Your account and your personal data have been removed. You have been
-                  signed out, and this email can no longer sign in. Thank you for the
+                  Your account and your personal data have been removed.{user?.is_anonymous
+                    ? ' This device starts fresh the next time you open the app.'
+                    : ' You have been signed out, and this email can no longer sign in.'} Thank you for the
                   time you spent here, and take good care of yourself.
                 </p>
                 <button

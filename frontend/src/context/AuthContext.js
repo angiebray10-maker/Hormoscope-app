@@ -74,6 +74,23 @@ export const AuthProvider = ({ children }) => {
     return res.data.user;
   }, []);
 
+  // v61 (Angelita, Nov 1, 2026): anonymous start. No email, no
+  // password, no name: the backend creates an anonymous auto-account
+  // from just the two consent confirmations and returns a token.
+  const startAnonymous = useCallback(async (consent = {}) => {
+    let res;
+    try {
+      res = await axios.post(`${API}/auth/anonymous`, { ...consent }, { timeout: 90000 });
+    } catch (firstErr) {
+      if (firstErr.response) throw firstErr;
+      res = await axios.post(`${API}/auth/anonymous`, { ...consent }, { timeout: 90000 });
+    }
+    localStorage.setItem('token', res.data.access_token);
+    setToken(res.data.access_token);
+    setUser(res.data.user);
+    return res.data.user;
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     setToken(null);
@@ -85,8 +102,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const value = useMemo(
-    () => ({ user, token, loading, login, signup, logout, updateUser, fetchUser }),
-    [user, token, loading, login, signup, logout, updateUser, fetchUser]
+    () => ({ user, token, loading, login, signup, startAnonymous, logout, updateUser, fetchUser }),
+    [user, token, loading, login, signup, startAnonymous, logout, updateUser, fetchUser]
   );
 
   return (

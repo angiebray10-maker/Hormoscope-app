@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
-import { Link } from 'react-router-dom';
-import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2, Camera, BookOpen, Bell } from 'lucide-react';
+import { Heart, Shield, Loader2, Calendar as CalendarIcon, Send, Trash2, Link2, BookOpen } from 'lucide-react';
 import axios from 'axios';
 import { PHASE_COLORS as SHARED_PHASE_COLORS, phaseTint, phaseOther } from '../lib/phases';
-import { syncLocalNotifications, getNotificationPrefs, NOTIFICATION_TIMES } from '../utils/localNotifications';
 import logger from '../utils/logger';
 import CycleSync from '../components/CycleSync';
-import { PartnerAvatar } from './AttunementPage';
 
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -119,7 +116,7 @@ function NotesTab({ token, currentUserId, onUnreadChange }) {
                   )}
                 </div>
                 <p className="text-white/25 text-[10px] mt-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                  {n.author_name} · {n.created_at ? new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                  {mine ? 'You' : 'Your partner'} · {n.created_at ? new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
                 </p>
               </div>
             );
@@ -342,76 +339,6 @@ function PartnerIntimacyTab({ token, partnerName }) {
   );
 }
 
-// v55: the partner is ASKED, here in their own hub, whether they want
-// the daily partner note reminder on their own phone (Angelita, Oct
-// 30, 2026). Their opt-in, their time (default 9 AM). Saving writes
-// the same local keys and the same PUT /profile merge as every other
-// notification choice, then reschedules on this device. The reminder
-// itself is generic and only ever schedules while she shares her
-// phase (the gate lives in utils/notificationPlan.js).
-function PartnerDailyReminderCard({ user, token }) {
-  const prefs = getNotificationPrefs(user);
-  const [enabled, setEnabled] = useState(prefs.partnerDaily);
-  const [time, setTime] = useState(prefs.partnerTime || '09:00');
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState('');
-
-  const save = async (nextEnabled, nextTime) => {
-    setEnabled(nextEnabled);
-    setTime(nextTime);
-    setSaving(true);
-    setMsg('');
-    const mergedPrefs = { ...(user.notification_preferences || {}), partner_daily_note: nextEnabled, partner_daily_time: nextTime };
-    try {
-      localStorage.setItem('hormoscope-notifications-partner-daily', nextEnabled ? 'true' : 'false');
-      localStorage.setItem('hormoscope-notification-partner-time', nextTime);
-    } catch (e) { /* storage unavailable: the server fields below still save */ }
-    try {
-      await axios.put(`${API}/profile`, { notification_preferences: mergedPrefs }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-    } catch (err) {
-      logger.error('Partner daily reminder save failed:', err);
-    }
-    try {
-      await syncLocalNotifications({
-        user: { ...user, notification_preferences: mergedPrefs },
-        token,
-        requestPermission: nextEnabled,
-      });
-    } catch (err) {
-      logger.error('Partner daily reminder sync failed:', err);
-    }
-    setSaving(false);
-    setMsg(nextEnabled ? 'Saved. Your daily reminder is on.' : 'Saved. Your daily reminder is off.');
-  };
-
-  const row = 'flex items-center gap-3 py-1.5 text-sm text-[#F7F4FA] cursor-pointer';
-  return (
-    <div className="rounded-3xl p-5 border border-white/10 mb-4" style={{ background: '#15152B', fontFamily: 'Poppins, sans-serif' }} data-testid="partner-daily-reminder">
-      <div className="flex items-start gap-3 mb-2">
-        <div className="w-10 h-10 rounded-full bg-[#FF4F9A]/20 flex items-center justify-center shrink-0">
-          <Bell className="w-5 h-5 text-[#FF4F9A]" />
-        </div>
-        <div className="flex-1">
-          <p className="text-[#F4D3DC] text-sm font-medium">Your daily reminder</p>
-          <p className="text-[#CFC3CC] text-xs leading-relaxed">
-            Want a daily nudge to check what your person is wishing for today? It only ever says to log in and look. The note itself waits for you here, never on your lock screen.
-          </p>
-        </div>
-      </div>
-      <label className={row}>
-        <input type="checkbox" className="w-4 h-4 accent-[#FF4F9A]" checked={enabled} disabled={saving}
-          onChange={(e) => save(e.target.checked, time)} data-testid="partner-daily-toggle" />
-        Daily partner note reminder
-      </label>
-      <select value={time} disabled={!enabled || saving} onChange={(e) => save(enabled, e.target.value)}
-        className="w-full rounded-xl px-3 py-2.5 bg-white/5 border border-white/15 text-white disabled:opacity-50" data-testid="partner-daily-time">
-        {NOTIFICATION_TIMES.map((t) => <option key={t.time} value={t.time} className="bg-[#15152B]">{t.label}</option>)}
-      </select>
-      {msg && <p className="text-sm text-[#E6E0EE] mt-2" role="status">{msg}</p>}
-    </div>
-  );
-}
-
 export default function PartnerHubPage() {
   const { token, user } = useAuth();
   const { loading: rcLoading } = usePremium();
@@ -454,12 +381,6 @@ export default function PartnerHubPage() {
   const handleAccept = async () => {
     const code = inviteCode.trim();
     if (!code || accepting) return;
-    // Picture gate (v42): the form is hidden without a picture, and
-    // this refuses here too so no path accepts an invite pictureless.
-    if (!user?.profile_photo) {
-      setAcceptError('Add your profile picture first: tap "Add my picture" above.');
-      return;
-    }
     setAccepting(true);
     setAcceptError(null);
     try {
@@ -501,25 +422,6 @@ export default function PartnerHubPage() {
             Ask her for the invite code from her Attunement tab, then enter it below. You will be able to follow her cycle —
             ovulation days, fertile window, and when to expect her period.
           </p>
-          {!user?.profile_photo ? (
-            /* v42 (Angelita, Oct 25, 2026): a picture is mandatory to
-               sync, on the accepting side too. No picture, no link: she
-               adds one first, so the person she syncs with sees her
-               face beside her name. */
-            <div className="rounded-3xl p-6 border border-white/10 mb-3" style={{ background: '#15152B' }} data-testid="photo-required">
-              <div className="w-12 h-12 rounded-full bg-[#FF4F9A]/15 flex items-center justify-center mx-auto mb-3">
-                <Camera className="w-5 h-5 text-[#FF4F9A]" />
-              </div>
-              <h2 className="text-white text-xl mb-2" style={{ fontFamily: "'Poiret One', sans-serif" }}>Add your picture first</h2>
-              <p className="text-[#CFC3CC] text-sm leading-relaxed mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                A profile picture is required to sync your cycle, so your partner can see who they are syncing with. Add yours, then come back and enter the code.
-              </p>
-              <Link to="/profile" className="block w-full py-3 rounded-full text-white text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif', background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="photo-required-btn">
-                Add my picture
-              </Link>
-            </div>
-          ) : (
-          <>
           <input
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value.toUpperCase().slice(0, 8))}
@@ -537,8 +439,6 @@ export default function PartnerHubPage() {
             data-testid="accept-invite-btn">
             {accepting ? 'Linking...' : 'Link Accounts'}
           </button>
-          </>
-          )}
           <p className="text-[#B4B0C8] text-[10px] mt-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Her intimacy log is private unless she chooses to share it. You only see what she chose to share.
           </p>
@@ -563,28 +463,18 @@ export default function PartnerHubPage() {
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>
             Attunement Mode
           </p>
-          {/* Her face beside her name (v42): the cycle belongs to a
-              person, and her partner sees who it is. */}
-          {calData && (
-            <div className="flex justify-center mb-2">
-              <PartnerAvatar photo={calData.profile_photo || status.partner_photo} name={calData.name || status.partner_name} size={52} />
-            </div>
-          )}
           <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>
-            {calData ? (ownerNoPeriods ? `${calData.name}'s Days` : `${calData.name}'s Cycle`) : 'Partner Hub'}
+            {calData ? (ownerNoPeriods ? "Your partner's Days" : "Your partner's Cycle") : 'Partner Hub'}
           </h1>
           {status.role === 'owner' && (
             <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              Linked with {status.partner_name} · this is what they see
+              Linked with your partner · this is what they see
             </p>
           )}
         </div>
 
         {/* Two-cycle sync: shows both cycles when both share their phase */}
         {status.role === 'partner' && <CycleSync token={token} />}
-
-        {/* The daily reminder ask lives with the partner, not the owner */}
-        {status.role === 'partner' && <PartnerDailyReminderCard user={user} token={token} />}
 
         {/* Tabs — Notes sits here quietly, discovered naturally */}
         <div className="flex gap-2 mb-6">
@@ -731,9 +621,9 @@ export default function PartnerHubPage() {
 
         {tab === 'notes' && <NotesTab token={token} currentUserId={user?.id} onUnreadChange={setUnread} />}
 
-        {tab === 'journal' && <PartnerJournalTab token={token} partnerName={status.partner_name} />}
+        {tab === 'journal' && <PartnerJournalTab token={token} partnerName="Your partner" />}
 
-        {tab === 'intimacy' && <PartnerIntimacyTab token={token} partnerName={status.partner_name} />}
+        {tab === 'intimacy' && <PartnerIntimacyTab token={token} partnerName="Your partner" />}
 
       </div>
     </div>

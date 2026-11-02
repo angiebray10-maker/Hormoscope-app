@@ -263,7 +263,7 @@ export default function ChatPage() {
               />
               <h3 className="text-xl text-[#ff8fab] mb-1 font-script">Hormone Health Coach</h3>
               <p className="text-white text-base font-medium mb-2">
-                Hello, {user?.name || 'Beautiful'}!
+                Hello.
               </p>
               <p className="text-[#b8b8d1] text-sm max-w-xs leading-relaxed mb-3">
                 Ask me about your cycle, hormones, nutrition, or wellness.
@@ -277,13 +277,9 @@ export default function ChatPage() {
             messages.map((msg, i) => (
               <div key={msg.id || `${msg.role}-${i}-${msg.created_at || ''}`} className={`flex items-end gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                 {msg.role === 'user' ? (
-                  user?.profile_photo ? (
-                    <img src={user.profile_photo} alt="You" className="w-6 h-6 rounded-full flex-shrink-0 object-cover" />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full flex-shrink-0 bg-gradient-to-br from-[#ff8fab] to-[#ffc2d1] flex items-center justify-center">
-                      <User className="w-3 h-3 text-[#1a1a2e]" />
-                    </div>
-                  )
+                  <div className="w-6 h-6 rounded-full flex-shrink-0 bg-gradient-to-br from-[#ff8fab] to-[#ffc2d1] flex items-center justify-center">
+                    <User className="w-3 h-3 text-[#1a1a2e]" />
+                  </div>
                 ) : (
                   <img src="/logo192.png" alt="horMoscope" className="w-6 h-6 rounded-full flex-shrink-0 object-cover" />
                 )}
