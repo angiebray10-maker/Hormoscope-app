@@ -6,12 +6,14 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Two-cycle syncing (launch fixes): both linked people side by side, plus
 // the next 4 weeks with overlap highlights. Only what each chose to share.
-// v61: no photos and no names anywhere. The avatar is a plain
-// gradient disc with no initial and no picture.
-function SideAvatar({ size = 36 }) {
+// v62: names are back (v61 removed them). Photos stay out: the avatar
+// is the v60 no-picture fallback, a gradient disc with her initial.
+function SideAvatar({ name, size = 36 }) {
+  const initial = (name || 'P').trim().charAt(0).toUpperCase() || 'P';
   return (
-    <span className="rounded-full flex items-center justify-center mx-auto mb-1.5" aria-hidden="true"
-      style={{ width: size, height: size, background: 'linear-gradient(135deg, #FF5C8A, #8B5CF6)' }}>
+    <span className="rounded-full flex items-center justify-center mx-auto mb-1.5 text-white font-semibold" aria-hidden="true"
+      style={{ width: size, height: size, background: 'linear-gradient(135deg, #FF5C8A, #8B5CF6)', fontSize: Math.round(size * 0.45) }}>
+      {initial}
     </span>
   );
 }
@@ -21,8 +23,8 @@ function Side({ p }) {
   const color = PHASE_COLORS[p.phase] || PHASE_COLORS.unknown;
   return (
     <div className="flex-1 rounded-2xl p-4 text-center border border-white/10" style={{ background: 'rgba(255,255,255,0.04)' }}>
-      <SideAvatar />
-      <p className="text-white text-sm font-medium truncate">{p.is_self ? 'You' : 'Your partner'}</p>
+      <SideAvatar name={p.is_self ? 'You' : p.name} />
+      <p className="text-white text-sm font-medium truncate">{p.is_self ? 'You' : p.name}</p>
       {!p.shared ? (
         <p className="text-[#E6E0EE] text-xs mt-3">Keeping this private</p>
       ) : p.no_periods ? (
@@ -76,7 +78,7 @@ export default function CycleSync({ token }) {
           shares her mood and energy). */}
       {[data.me, data.them].filter((p) => p && p.no_periods && p.shared && Array.isArray(p.log_days)).map((p) => (
         <div key={p.is_self ? 'me-logs' : 'them-logs'} className="mb-5" data-testid="sync-logged-days">
-          <p className="text-white text-sm mb-2">{p.is_self ? 'Your' : "Your partner's"} recent days</p>
+          <p className="text-white text-sm mb-2">{p.is_self ? 'Your' : `${p.name}'s`} recent days</p>
           {p.log_days.filter((d) => d.logged).length === 0 ? (
             <p className="text-[#E6E0EE] text-xs">Nothing logged in the last few weeks yet.</p>
           ) : (
@@ -114,7 +116,7 @@ export default function CycleSync({ token }) {
               </div>
             ))}
           </div>
-          <p className="text-[#E6E0EE] text-[11px] mt-3">Top bar: you. Bottom bar: your partner. Pink outline: same phase that day.</p>
+          <p className="text-[#E6E0EE] text-[11px] mt-3">Top bar: you. Bottom bar: {data.them.name}. Pink outline: same phase that day.</p>
         </>
       ) : (
         <p className="text-[#E6E0EE] text-xs">When you both share your phase, you'll see the next 4 weeks together here.</p>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 import { usePremium } from '../context/PremiumContext';
 import { Droplet, X, Check } from 'lucide-react';
 import axios from 'axios';
@@ -118,6 +119,21 @@ const summarizeOwnLogs = (logs) => {
   });
   return { feelings, symptoms, mood, flow, isPeriod, notes };
 };
+
+
+// v62 (Angelita, Nov 2, 2026): one gentle prompt for accounts created
+// anonymously under v61. Not a gate and not a lockout: everything
+// keeps working exactly as it does now; the prompt only points her to
+// Profile, where she can add her email and name when she wants to.
+function AnonUpgradeBanner() {
+  return (
+    <div className="rounded-2xl p-4 mb-6 border border-white/15 text-center" style={{ background: 'rgba(255,255,255,0.04)' }} data-testid="anon-upgrade-banner">
+      <p className="text-sm text-[#E6E0EE]" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        You started without an account. <Link to="/profile" className="underline" style={{ color: '#FF4F9A' }}>Add your email and name in Profile</Link> so you can sign in on any device. Everything you have logged stays right where it is.
+      </p>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const { user, token } = useAuth();
@@ -325,6 +341,8 @@ export default function HomePage() {
           </p>
         </div>
 
+        {user?.is_anonymous && <AnonUpgradeBanner />}
+
         {showWelcome && (
           <div className="rounded-2xl p-5 mb-10 border border-[#FF4F9A]/40 text-center" style={{ background: 'rgba(255,79,154,0.08)' }} data-testid="welcome-banner">
             <p className="text-xl font-script mb-1 text-white">Welcome to your HORMOscope.</p>
@@ -410,6 +428,8 @@ export default function HomePage() {
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
         </p>
       </div>
+
+      {user?.is_anonymous && <AnonUpgradeBanner />}
 
       {/* Welcome message after onboarding */}
       {showWelcome && (

@@ -263,7 +263,7 @@ export default function ChatPage() {
               />
               <h3 className="text-xl text-[#ff8fab] mb-1 font-script">Hormone Health Coach</h3>
               <p className="text-white text-base font-medium mb-2">
-                Hello.
+                Hello, {user?.name || 'Beautiful'}!
               </p>
               <p className="text-[#b8b8d1] text-sm max-w-xs leading-relaxed mb-3">
                 Ask me about your cycle, hormones, nutrition, or wellness.

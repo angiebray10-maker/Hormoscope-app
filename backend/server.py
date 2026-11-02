@@ -1587,9 +1587,12 @@ async def signup(user_data: UserCreate):
         },
         "created_at": datetime.now(timezone.utc).isoformat()
     }
-    user["email_verified"] = False
+    # v62 (Angelita, Nov 2, 2026): email is back, the verification
+    # gate is NOT. A new account is usable the moment it is created:
+    # no code is sent and nothing waits on one. The legacy
+    # verification endpoints stay in place, dormant, untouched.
+    user["email_verified"] = True
     await db.users.insert_one(user)
-    await _start_email_verification(user)
     
     token = create_token(user_id)
     user_response = build_user_response(user)
@@ -1647,6 +1650,49 @@ async def anonymous_start(body: AnonymousCreate):
     token = create_token(user_id)
     user_response = build_user_response(user)
     return TokenResponse(access_token=token, user=user_response)
+
+class AttachEmailRequest(BaseModel):
+    # v62 (Angelita, Nov 2, 2026): the upgrade path for accounts
+    # created anonymously under v61. She adds a real email, a
+    # password she chooses, and her name; the account keeps its id,
+    # so every cycle log, journal entry, wishlist pick and partner
+    # link carries over untouched.
+    email: str
+    password: str
+    name: Optional[str] = None
+
+
+@api_router.post("/auth/attach-email", response_model=TokenResponse)
+async def attach_email(body: AttachEmailRequest, current_user: dict = Depends(get_current_user)):
+    """Turn an anonymous auto-account into a regular email account.
+
+    Only anonymous accounts can use this: an account that already has
+    a real email signs in the normal way. No verification code is
+    involved (v62: email is back, the verification gate is not), so
+    the account is a normal sign-in account the moment this returns.
+    """
+    if not current_user.get("is_anonymous"):
+        raise HTTPException(status_code=400, detail="This account already has an email. Sign in with it instead.")
+    email = (body.email or "").strip().lower()
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(status_code=400, detail="That email does not look right. Check it and try again.")
+    if len(body.password or "") < PASSWORD_MIN_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Password must be at least {PASSWORD_MIN_LENGTH} characters.")
+    existing = await db.users.find_one({"email": email})
+    if existing and existing.get("id") != current_user["id"]:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    updates = {
+        "email": email,
+        "password": hash_password(body.password),
+        "is_anonymous": False,
+        "email_verified": True,
+    }
+    if (body.name or "").strip():
+        updates["name"] = body.name.strip()
+    await db.users.update_one({"id": current_user["id"]}, {"$set": updates})
+    token = create_token(current_user["id"])
+    user_response = build_user_response({**current_user, **updates})
+    return TokenResponse(access_token=token, token_type="bearer", user=user_response)
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(user_data: UserLogin):

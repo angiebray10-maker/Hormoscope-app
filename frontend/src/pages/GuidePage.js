@@ -64,7 +64,7 @@ export default function GuidePage() {
           </section>
           <section data-testid="guide-profile">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Profile</h2>
-            <p className="mb-3">Profile holds the conditions you live with (like PMDD, PCOS or endometriosis) and your account. HORMOscope does not ask for your email, name, birthday or photo. You can sign out here, and delete your account and data here at any time.</p>
+            <p className="mb-3">Profile holds your name, the conditions you live with (like PMDD, PCOS or endometriosis), and your account. You can sign out here, and delete your account and data here at any time.</p>
             <p className="mb-3">Profile is also where the Founder&apos;s Note, this guide and the App Map live. What your partner can see is chosen in Attunement, not here.</p>
           </section>
           <section data-testid="guide-appmap">

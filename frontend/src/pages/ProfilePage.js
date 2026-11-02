@@ -65,10 +65,89 @@ function MyDetailsSection({ user, token, updateUser }) {
   );
 }
 
+// v62 (Angelita, Nov 2, 2026): the upgrade path for accounts created
+// anonymously under v61. She adds her email, a password she chooses,
+// and her name; the backend converts the same account in place, so
+// nothing she logged is lost. Shown only while the account is still
+// anonymous; it disappears for good once she has an email.
+function AttachEmailSection() {
+  const { user, attachEmail } = useAuth();
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async () => {
+    setError('');
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    setSaving(true);
+    try {
+      await attachEmail(email.trim(), password, name.trim());
+    } catch (err) {
+      setError(typeof err.response?.data?.detail === 'string' ? err.response.data.detail : "Couldn't save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const label = 'text-xs tracking-wider uppercase block mb-2 text-[#CFC3CC]';
+  const input = 'w-full rounded-xl px-4 py-3 text-sm text-white focus:outline-none bg-white/5 border border-white/15';
+
+  return (
+    <div className="glass-card p-5 mb-6 space-y-4" data-testid="attach-email-section" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      <div>
+        <p className="text-[#F4D3DC] text-sm font-medium">Add your email</p>
+        <p className="text-[#CFC3CC] text-xs mt-1 leading-relaxed">
+          You started without an account. Add your email and name so you can sign in on any device. Everything you have logged stays right where it is.
+        </p>
+      </div>
+      <div>
+        <label className={label} htmlFor="attach-name">Name</label>
+        <input id="attach-name" data-testid="attach-name-input" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your first name" className={input} />
+      </div>
+      <div>
+        <label className={label} htmlFor="attach-email">Email</label>
+        <input id="attach-email" data-testid="attach-email-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" className={input} />
+      </div>
+      <div>
+        <label className={label} htmlFor="attach-password">Password</label>
+        <input id="attach-password" data-testid="attach-password-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Create a password (8+ characters)" className={input} />
+      </div>
+      {error && <p className="text-sm" role="alert" style={{ color: '#FF8FA3' }}>{error}</p>}
+      <button onClick={save} disabled={saving} className="w-full py-2.5 rounded-full text-white text-sm font-medium disabled:opacity-50" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="attach-email-save-btn">
+        {saving ? 'Saving…' : 'Save my email'}
+      </button>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const { user, token, logout, updateUser } = useAuth();
   const { companionEntitled } = usePremium();
   const navigate = useNavigate();
+  // v62: the name edit is back (restored from v60). The photo upload
+  // and the notifications section are NOT: she did not ask for them.
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(user?.name || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await axios.put(`${API}/profile`, {
+        name
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      updateUser(res.data);
+      setIsEditing(false);
+    } catch (err) {
+      logger.error('Save error:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -120,22 +199,56 @@ export default function ProfilePage() {
             Profile
           </h1>
         </div>
+        {!isEditing ? (
+          <button
+            data-testid="edit-profile-btn"
+            onClick={() => { setName(user?.name || ''); setIsEditing(true); }}
+            className="btn-glass"
+          >
+            Edit
+          </button>
+        ) : (
+          <button
+            data-testid="save-profile-btn"
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6 py-2 rounded-full bg-transparent border-[1.5px] border-[#E8A4B8] text-[#F4D3DC] font-medium text-sm"
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        )}
       </div>
 
-      {/* v61 (Angelita, Nov 1, 2026): no name, no email, no photo.
-          The top card is a plain anonymous card. */}
+      {/* v62 (Angelita, Nov 2, 2026): name and email are back on the
+          top card (restored from v60). No photo: the circle stays a
+          plain gradient with the User icon, there is no upload. */}
       <div className="glass-card p-6 mb-6">
         <div className="flex items-center gap-5">
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#F4D3DC] to-[#C9B8F0] flex items-center justify-center border-2 border-[#F4D3DC]/30">
             <User className="w-10 h-10 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-medium text-[#FDF8FA] tracking-wide">
-              My Profile
-            </h2>
+            {isEditing ? (
+              <input
+                data-testid="profile-name-input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="input-luxe text-lg font-medium mb-1 w-full"
+                placeholder="Your name"
+              />
+            ) : (
+              <h2 className="text-xl font-medium text-[#FDF8FA] tracking-wide">
+                {user?.name || 'Beautiful'}
+              </h2>
+            )}
+            {!user?.is_anonymous && (
+              <p className="text-[#E6E0EE] text-xs break-all" data-testid="profile-email">{user?.email}</p>
+            )}
           </div>
         </div>
       </div>
+
+      {user?.is_anonymous && <AttachEmailSection />}
 
       {/* Links */}
       <div className="bento-card overflow-hidden mb-6">

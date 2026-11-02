@@ -6,6 +6,7 @@ import logger from '../utils/logger';
 import { PHASE_PAIRS, PHASE_NAMES, phaseTint, phaseOther, phaseForDate, cycleDayForDate } from '../lib/phases';
 import FloatingCarousel from '../components/FloatingCarousel';
 import DateSelect from '../components/DateSelect';
+import TabFooter from '../components/TabFooter';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -256,6 +257,7 @@ export default function JournalPage() {
   const [newPeriodDate, setNewPeriodDate] = useState(todayISO());
   const daySectionRef = React.useRef(null);
 
+  const firstName = (user?.name || '').trim().split(/\s+/).filter(Boolean)[0] || null;
   const auth = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }), [token]);
   const phaseColorFor = useCallback(
     (ds) => phaseTint(phaseForDate(ds, user?.last_period_date, user?.cycle_length || 28)),
@@ -726,7 +728,7 @@ export default function JournalPage() {
         {/* Header Row */}
         <div className="mb-4">
           <p className="text-[10px] tracking-widest uppercase" style={{ ...POPPINS, color: '#f4a7b9' }}>Your pages</p>
-          <h1 className="text-3xl text-white" style={POIRET}>My Journal</h1>
+          <h1 className="text-3xl text-white" style={POIRET}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
         </div>
 
         {/* THE calendar (v59): the old Calendar tab's calendar,
@@ -1286,6 +1288,10 @@ export default function JournalPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* v62 (Angelita, Nov 2, 2026): the logo and rights line sit at
+          the very end of EVERY tab. Journal was missing it. */}
+      <TabFooter />
     </div>
   );
 }

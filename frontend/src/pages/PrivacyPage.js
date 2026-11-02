@@ -40,7 +40,7 @@ export default function PrivacyPage() {
             Information We Collect
           </h2>
           <ul className="list-disc list-inside space-y-2">
-            <li>Nothing that identifies you: HORMOscope does not collect your email, name, birthday or photo. Your account is anonymous</li>
+            <li>Account information (email, name)</li>
             <li>Cycle tracking data (period dates, cycle length)</li>
             <li>Health-related notes and symptoms you choose to log</li>
             <li>Journal entries and notes you choose to log</li>

@@ -7,6 +7,9 @@ import axios from 'axios';
 import logger from '../utils/logger';
 import CycleSync from '../components/CycleSync';
 import AttunementGifts from '../components/AttunementGifts';
+import { usePremium } from '../context/PremiumContext';
+import { getPackages, findPackageForPlan, purchasePlan, restorePurchases, isBillingConfigured } from '../utils/revenueCat';
+import TabFooter from '../components/TabFooter';
 import { partnerViewUrl, shareInviteText, syncInviteMessage, viewInviteMessage } from '../lib/invite';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -101,8 +104,101 @@ function VisibilityChecklist({ vis, onToggle }) {
   );
 }
 
+
+// v62 (Angelita, Nov 2, 2026): the paywall is back, and Attunement is
+// the paid feature. A user without the HORMOscope Pro entitlement
+// sees this screen on the Attunement tab instead of the partner
+// features; a subscribed user never sees it. Prices come from the
+// Play Store through RevenueCat (the existing $6.99/month and
+// $49.99/year products); the plain prices below are only the fallback
+// label when the store cannot be reached. No new products, no price
+// changes. The one month trial she mentioned is a Play Console offer
+// setting, not app code, so nothing about a trial is written here.
+function AttunementPaywall() {
+  const { refreshCustomerInfo } = usePremium();
+  const [packages, setPackages] = useState([]);
+  const [busy, setBusy] = useState('');
+  const [msg, setMsg] = useState('');
+  const billing = isBillingConfigured();
+
+  useEffect(() => {
+    let live = true;
+    getPackages().then((pkgs) => { if (live) setPackages(pkgs || []); }).catch(() => {});
+    return () => { live = false; };
+  }, []);
+
+  const priceFor = (plan, fallback) => {
+    const pkg = findPackageForPlan(packages, plan);
+    return pkg?.product?.priceString || fallback;
+  };
+
+  const buy = async (plan) => {
+    setBusy(plan);
+    setMsg('');
+    try {
+      const result = await purchasePlan(packages, plan);
+      if (result.isPro) {
+        await refreshCustomerInfo();
+      } else if (!result.cancelled) {
+        setMsg('The purchase did not finish. If Google Play completed it, tap Restore Purchases below.');
+      }
+    } catch (err) {
+      logger.error('Attunement purchase failed:', err);
+      setMsg('The purchase did not finish. Please try again.');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const restore = async () => {
+    setBusy('restore');
+    setMsg('');
+    try {
+      const result = await restorePurchases();
+      if (result.isPro) {
+        await refreshCustomerInfo();
+      } else {
+        setMsg('No subscription was found to restore.');
+      }
+    } catch (err) {
+      logger.error('Restore purchases failed:', err);
+      setMsg('Restore did not finish. Please try again.');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const planBtn = 'w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-50 mb-3';
+
+  return (
+    <div className="card p-6 mb-4 text-center" data-testid="attunement-paywall">
+      <div className="w-12 h-12 rounded-full bg-[#FF4F9A]/15 flex items-center justify-center mx-auto mb-3">
+        <Heart className="w-5 h-5 text-[#FF4F9A]" fill="#FF4F9A" />
+      </div>
+      <h2 className="text-white text-xl mb-2" style={script}>Attunement is a HORMOscope Pro feature</h2>
+      <p className="text-[#b8b8d1] text-sm leading-relaxed mb-5" style={poppins}>
+        Sync your cycle with your partner, share your days both ways, and open your shared space together. Home, Journal and your cycle tracking stay open to everyone.
+      </p>
+      <button onClick={() => buy('monthly')} disabled={!billing || busy !== ''} className={planBtn} style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="paywall-monthly-btn">
+        {busy === 'monthly' ? 'Opening Google Play…' : `Monthly · ${priceFor('monthly', '$6.99')}`}
+      </button>
+      <button onClick={() => buy('yearly')} disabled={!billing || busy !== ''} className={planBtn} style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="paywall-yearly-btn">
+        {busy === 'yearly' ? 'Opening Google Play…' : `Yearly · ${priceFor('yearly', '$49.99')}`}
+      </button>
+      {!billing && (
+        <p className="text-[#CFC3CC] text-xs mb-2" style={poppins}>Subscribe in the Android app to unlock Attunement.</p>
+      )}
+      <button onClick={restore} disabled={!billing || busy !== ''} className="w-full py-2.5 rounded-full text-sm disabled:opacity-50" style={{ ...poppins, color: '#CFC3CC', border: '1px solid rgba(255,255,255,0.2)' }} data-testid="paywall-restore-btn">
+        {busy === 'restore' ? 'Restoring…' : 'Restore Purchases'}
+      </button>
+      {msg && <p className="text-sm mt-3" role="status" style={{ ...poppins, color: '#FF8FA3' }}>{msg}</p>}
+    </div>
+  );
+}
+
 export default function AttunementPage() {
   const { token, user, updateUser } = useAuth();
+  const { isPro, loading: premiumLoading } = usePremium();
 
   const [status, setStatus] = useState(null);
   // The invite she just created: { kind: 'sync' | 'view', code, viewToken }.
@@ -224,13 +320,15 @@ export default function AttunementPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const firstName = (user?.name || '').trim().split(/\s+/)[0] || '';
+
   const shareSyncInvite = async (code) => {
-    const outcome = await shareInviteText(syncInviteMessage(code, ''));
+    const outcome = await shareInviteText(syncInviteMessage(code, firstName));
     setShareMsg(outcome === 'copied' ? 'Copied. Paste it wherever you talk to her.' : outcome === 'failed' ? "Sharing didn't open. Copy the code above and send it to her." : '');
   };
 
   const shareViewInvite = async (viewToken) => {
-    const outcome = await shareInviteText(viewInviteMessage(partnerViewUrl(viewToken), ''));
+    const outcome = await shareInviteText(viewInviteMessage(partnerViewUrl(viewToken), firstName));
     setShareMsg(outcome === 'copied' ? 'Copied. Paste the link wherever you talk to them.' : outcome === 'failed' ? "Sharing didn't open. Copy the link above and send it to them." : '');
   };
 
@@ -349,6 +447,12 @@ export default function AttunementPage() {
           </p>
         </div>
 
+        {premiumLoading ? (
+          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-[#f4a7b9] animate-spin" /></div>
+        ) : !isPro ? (
+          <AttunementPaywall />
+        ) : (
+          <>
         {status === null ? (
           <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-[#f4a7b9] animate-spin" /></div>
         ) : status.is_linked ? (
@@ -357,7 +461,7 @@ export default function AttunementPage() {
           <div className="card p-5 mb-4 text-center">
             <div className="flex items-center justify-center gap-2.5 mb-1">
               <p className="text-white text-base" style={poppins}>
-                You are in tune with <span className="font-semibold" style={{ color: PINK }}>your partner</span>
+                You are in tune with <span className="font-semibold" style={{ color: PINK }}>{status.partner_name}</span>
               </p>
             </div>
             <p className="text-[#CFC3CC] text-xs mb-4" style={poppins}>
@@ -528,6 +632,9 @@ export default function AttunementPage() {
             the Gift Catalog live here in Attunement, in a
             tabbed section under everything else. */}
         <AttunementGifts />
+          </>
+        )}
+        <TabFooter />
       </div>
     </div>
   );

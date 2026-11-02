@@ -116,7 +116,7 @@ function NotesTab({ token, currentUserId, onUnreadChange }) {
                   )}
                 </div>
                 <p className="text-white/25 text-[10px] mt-2" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                  {mine ? 'You' : 'Your partner'} · {n.created_at ? new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                  {n.author_name} · {n.created_at ? new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
                 </p>
               </div>
             );
@@ -464,11 +464,11 @@ export default function PartnerHubPage() {
             Attunement Mode
           </p>
           <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>
-            {calData ? (ownerNoPeriods ? "Your partner's Days" : "Your partner's Cycle") : 'Partner Hub'}
+            {calData ? (ownerNoPeriods ? `${calData.name}'s Days` : `${calData.name}'s Cycle`) : 'Partner Hub'}
           </h1>
           {status.role === 'owner' && (
             <p className="text-[#CFC3CC] text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              Linked with your partner · this is what they see
+              Linked with {status.partner_name} · this is what they see
             </p>
           )}
         </div>
@@ -621,9 +621,9 @@ export default function PartnerHubPage() {
 
         {tab === 'notes' && <NotesTab token={token} currentUserId={user?.id} onUnreadChange={setUnread} />}
 
-        {tab === 'journal' && <PartnerJournalTab token={token} partnerName="Your partner" />}
+        {tab === 'journal' && <PartnerJournalTab token={token} partnerName={status.partner_name} />}
 
-        {tab === 'intimacy' && <PartnerIntimacyTab token={token} partnerName="Your partner" />}
+        {tab === 'intimacy' && <PartnerIntimacyTab token={token} partnerName={status.partner_name} />}
 
       </div>
     </div>

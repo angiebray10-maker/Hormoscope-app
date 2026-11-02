@@ -8,7 +8,7 @@ import { Shield } from 'lucide-react';
 // Do NOT add "encrypted at rest" or "security tested" unless that becomes true.
 export const SECURITY_POINTS = [
   'Your data travels over HTTPS (encrypted in transit).',
-  'You use HORMOscope anonymously. No email, name, birthday, or photo is asked for.',
+  'Passwords are stored only as secure hashes (bcrypt), never as plain text.',
   'We never sell your data.',
   'You can delete your account and data at any time from Profile.',
   "We follow Google Play's User Data and health app policies.",

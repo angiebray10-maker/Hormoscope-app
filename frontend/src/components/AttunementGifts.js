@@ -27,6 +27,12 @@ const script = { fontFamily: "'Poiret One', sans-serif" };
 // Amazon links open OUTSIDE the WebView (Amazon's rule): the Capacitor
 // shell treats window.open(url, '_system') as an external browser open.
 
+function wishlistTitle(name, fallback) {
+  const first = (name || '').trim().split(/\s+/)[0];
+  if (!first) return fallback;
+  return first.endsWith('s') || first.endsWith('S') ? `${first}' Wishlist` : `${first}'s Wishlist`;
+}
+
 function openAmazon(asin) {
   window.open(amazonUrl(asin), '_system');
 }
@@ -265,6 +271,7 @@ export default function AttunementGifts() {
       .catch(() => setMyPicks([]));
     axios.get(`${API}/partner/wishlist`, auth)
       .then((res) => setPartnerBoutique({
+        name: res.data.partner_name,
         items: (res.data.items || []).map((i) => i.product_id).filter((a) => PRODUCT_BY_ASIN[a]),
       }))
       .catch(() => setPartnerBoutique(null));
@@ -302,8 +309,8 @@ export default function AttunementGifts() {
   }, [busyAsin, token]);
 
   const tabs = [
-    { id: 'boutique', label: 'My Wishlist' },
-    ...(partnerBoutique ? [{ id: 'partner', label: 'Their Wishlist' }] : []),
+    { id: 'boutique', label: wishlistTitle(user?.name, 'My Wishlist') },
+    ...(partnerBoutique ? [{ id: 'partner', label: wishlistTitle(partnerBoutique.name, 'Their Wishlist') }] : []),
     { id: 'catalog', label: 'Gift Catalog' },
   ];
 
@@ -348,7 +355,7 @@ export default function AttunementGifts() {
         <div data-testid="boutique-tab">
           <div className="flex items-center gap-3 mb-2">
             <div>
-              <h3 className="text-white text-lg leading-tight" style={script}>My Wishlist</h3>
+              <h3 className="text-white text-lg leading-tight" style={script}>{wishlistTitle(user?.name, 'My Wishlist')}</h3>
               <p className="text-[#B4B0C8] text-[11px]" style={poppins}>The pieces you picked, gathered in one place.</p>
             </div>
           </div>
@@ -395,7 +402,7 @@ export default function AttunementGifts() {
         <div data-testid="partner-boutique-tab">
           <p className="text-[#CFC3CC] text-xs mb-3" style={poppins}>Your partner's wishlist</p>
           <div className="flex items-center gap-3 mb-4">
-            <h3 className="text-white text-lg leading-tight" style={script}>Your partner's Wishlist</h3>
+            <h3 className="text-white text-lg leading-tight" style={script}>{wishlistTitle(partnerBoutique.name, 'Their Wishlist')}</h3>
           </div>
           {partnerBoutique.items.length === 0 ? (
             <p className="text-[#b8b8d1] text-sm leading-relaxed" style={poppins}>

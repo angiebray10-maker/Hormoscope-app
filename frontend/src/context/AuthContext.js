@@ -91,6 +91,21 @@ export const AuthProvider = ({ children }) => {
     return res.data.user;
   }, []);
 
+  // v62 (Angelita, Nov 2, 2026): upgrade path for accounts created
+  // anonymously under v61. The user adds a real email, a password she
+  // chooses, and her name; the backend converts the SAME account, so
+  // her logs, journal, wishlist and partner link all carry over.
+  const attachEmail = useCallback(async (email, password, name) => {
+    const res = await axios.post(`${API}/auth/attach-email`, { email, password, name }, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 90000,
+    });
+    localStorage.setItem('token', res.data.access_token);
+    setToken(res.data.access_token);
+    setUser(res.data.user);
+    return res.data.user;
+  }, [token]);
+
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     setToken(null);
@@ -102,8 +117,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const value = useMemo(
-    () => ({ user, token, loading, login, signup, startAnonymous, logout, updateUser, fetchUser }),
-    [user, token, loading, login, signup, startAnonymous, logout, updateUser, fetchUser]
+    () => ({ user, token, loading, login, signup, startAnonymous, attachEmail, logout, updateUser, fetchUser }),
+    [user, token, loading, login, signup, startAnonymous, attachEmail, logout, updateUser, fetchUser]
   );
 
   return (
