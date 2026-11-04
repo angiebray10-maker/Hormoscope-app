@@ -1,5 +1,5 @@
-"""Standalone verification for journal sharing (v49, Angelita, Oct 26,
-2026; follow-the-toggle update v57, Oct 31, 2026).
+"""Standalone verification for journal privacy (v65, Angelita, Nov 4,
+2026: journal sharing is retired; the journal is NEVER shared).
 
 Her journal is shared ONLY when she turns the Journal choice on
 (partner_visibility.share_journal). The default is off for everyone:
@@ -245,50 +245,26 @@ async def section_on_then_off(results):
               "include_note": True}
     owner, partner = seed(db, owner_kw={"partner_visibility": dict(vis_on)})
 
+    # v65 (Angelita, Nov 4, 2026): the stored toggle is ON here on
+    # purpose, and it must not matter. Her journal is never shared,
+    # on any surface, whatever the stored flag says.
     code, res = await call(server.get_partner_status, dict(partner))
-    results.append(("on: status flags journal shared",
-                    code == "ok" and res.get("partner_shares_journal") is True))
+    results.append(("on: status sends no shares flag (v65 never shared)",
+                    code == "ok" and not has_key_deep(res, "partner_shares_journal")))
+    scan_clean(res, "on status", results)
 
     code, res = await call(server.get_partner_journal, dict(partner))
-    results.append(("on: partner journal returns ok", code == "ok"))
-    days = res.get("days") or []
-    results.append(("on: days newest first",
-                    len(days) == 2 and days[0]["date"] > days[1]["date"]))
-    results.append(("on: all three owner entries served",
-                    sum(len(d.get("entries") or []) for d in days) == 3))
-    blob = json.dumps(res, default=str)
-    results.append(("on: shared entries served",
-                    "SHAREDWORDSONE" in blob and "SHAREDWORDSTWO" in blob))
-    results.append(("on: intimate-marked entry served too (follow the toggle)",
-                    "INTIMATESECRETWORDS" in blob and "Eyes only" in blob))
-    results.append(("on: partner's own entries not served back",
-                    "PARTNEROWNWORDS" not in blob))
-    results.append(("on: no intimacy or vault content",
-                    "SECRETINTIMACY" not in blob and "SECRETVAULT" not in blob))
+    results.append(("on: partner journal refused even with toggle on (403)", code == 403))
 
-    # View links follow the toggle too (v57): while sharing is on,
-    # the journal rides along, intimate-marked entries included.
     payload = await server._partner_view_payload("tok-view-1")
-    pblob = json.dumps(payload, default=str)
-    results.append(("on: view payload carries the journal",
-                    "SHAREDWORDSONE" in pblob and "SHAREDWORDSTWO" in pblob))
-    results.append(("on: view payload carries intimate-marked entries too",
-                    "INTIMATESECRETWORDS" in pblob))
-    results.append(("on: view payload keeps partner's own and other secrets out",
-                    "PARTNEROWNWORDS" not in pblob and "SECRETINTIMACY" not in pblob
-                    and "SECRETVAULT" not in pblob))
+    scan_clean(payload, "on view payload", results)
     page = server._render_partner_view_html(payload)
-    results.append(("on: view page renders the journal",
-                    "SHAREDWORDSONE" in page and "INTIMATESECRETWORDS" in page))
+    results.append(("on: view page renders no journal (v65)",
+                    "SHAREDWORDSONE" not in page and "INTIMATESECRETWORDS" not in page))
     code, res = await call(server.get_partner_view, "LEGACY1")
-    lblob = json.dumps(res, default=str)
-    results.append(("on: legacy view echoes share_journal",
-                    code == "ok" and has_key_deep(res, "share_journal")))
-    results.append(("on: legacy view serves the journal incl intimate-marked",
-                    "SHAREDWORDSONE" in lblob and "INTIMATESECRETWORDS" in lblob))
-    results.append(("on: legacy view keeps other secrets out",
-                    "SECRETINTIMACY" not in lblob and "SECRETVAULT" not in lblob
-                    and "PARTNEROWNWORDS" not in lblob))
+    results.append(("on: legacy view does not echo share_journal (v65)",
+                    code == "ok" and not has_key_deep(res, "share_journal")))
+    scan_clean(res, "on legacy view", results)
 
     # Turn it back off through the profile mechanism she actually uses.
     owner_now = await db.users.find_one({"id": "u-owner"})
@@ -401,7 +377,7 @@ async def section_note_gate(results):
     owner, partner = seed(db, owner_kw={"partner_visibility": dict(vis)})
 
     code, res = await call(server.get_partner_journal, dict(partner))
-    results.append(("note gate: partner journal still ok", code == "ok"))
+    results.append(("note gate: partner journal refused (v65 never shared)", code == 403))
     blob = json.dumps(res, default=str)
     results.append(("note gate: no entry text in partner journal",
                     "SHAREDWORDSONE" not in blob and "SHAREDWORDSTWO" not in blob

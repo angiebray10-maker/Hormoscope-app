@@ -390,10 +390,11 @@ async def section_view(results):
     results.append(("payload has next period", bool(payload.get("next_period_date"))))
     results.append(("payload has fertile window", bool(payload.get("fertile_window"))))
     results.append(("payload has feeling today", payload.get("feeling_today") == "Okay"))
-    results.append(("wishlist present despite toggle history and private boutique",
-                    [w["name"] for w in payload.get("wishlist") or []] == ["Dona Tea Library"]))
-    results.append(("wishlist link carries her tag",
-                    "tag=hormoscope20-20" in (payload["wishlist"][0]["url"])))
+    # v63 (Angelita, Nov 4, 2026): the catalog and wishlist were
+    # removed from the app entirely, so the view payload never
+    # carries a wishlist anymore.
+    results.append(("no wishlist in payload (v63 removed)",
+                    not payload.get("wishlist")))
     scan_clean(payload, "view payload all-on", results)
     page = server._render_partner_view_html(payload)
     results.append(("page renders phase", "phase" in page.lower()))
@@ -402,19 +403,17 @@ async def section_view(results):
     # Old wishlist toggle OFF in stored data: still present (Refinement 4).
     db.users.docs[0]["partner_visibility"] = {**all_on, "wishlist": False}
     payload = await server._partner_view_payload(token)
-    results.append(("wishlist present with old toggle off",
-                    len(payload.get("wishlist") or []) == 1))
+    results.append(("no wishlist with old toggle off either (v63)",
+                    not payload.get("wishlist")))
 
-    # Everything off: only identity and the always-on wishlist remain.
+    # Everything off: only identity remains (v63: no wishlist).
     db.users.docs[0]["partner_visibility"] = {
         "phase": False, "mood_energy": False, "period_dates": False,
         "fertile_window": False, "wishlist": False}
     payload = await server._partner_view_payload(token)
     keys = set(payload.keys())
-    results.append(("all-off payload holds only name, photo, wishlist",
-                    keys <= {"owner_name", "owner_photo", "wishlist"}))
-    results.append(("all-off wishlist still there and non-empty",
-                    len(payload.get("wishlist") or []) == 1))
+    results.append(("all-off payload holds only name and photo",
+                    keys <= {"owner_name", "owner_photo"}))
     page = server._render_partner_view_html(payload)
     results.append(("all-off page hides phase", "in her cycle" not in page))
     results.append(("all-off page hides next period", "next period is estimated" not in page))
@@ -462,8 +461,8 @@ async def section_view(results):
                     and "next_period_date" not in payload))
     results.append(("no_periods view payload has feeling today",
                     payload.get("feeling_today") == "Good"))
-    results.append(("no_periods view wishlist is an empty list, cleanly",
-                    payload.get("wishlist") == []))
+    results.append(("no_periods view has no wishlist (v63 removed)",
+                    not payload.get("wishlist")))
     scan_clean(payload, "no_periods view payload", results)
 
 

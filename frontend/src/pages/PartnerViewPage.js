@@ -71,7 +71,7 @@ export default function PartnerViewPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>
-            Attunement Mode
+            Shared With You
           </p>
           <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>
             {data.name}'s Cycle

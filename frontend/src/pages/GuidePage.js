@@ -27,7 +27,7 @@ export default function GuidePage() {
         <div className="space-y-10 text-[#d4d4e0] text-sm sm:text-base leading-relaxed" data-testid="guide-body">
           <section data-testid="guide-overview">
             <h2 className="text-xl sm:text-2xl text-white mb-3">What HORMOscope does</h2>
-            <p className="mb-3">HORMOscope has two tabs. Your Home tab is one long page: Home at the top, where you read your day, then Journal, where you log it, then Attunement. The second tab is Profile, with your picture, your reminder settings, and the legal and privacy pages.</p>
+            <p className="mb-3">HORMOscope has two tabs. Your Home tab is one long page: Home at the top, where you read your day, then Journal, where you log it, then Share your cycle at the bottom. The second tab is Profile, with your picture, your reminder settings, and the legal and privacy pages.</p>
             <p className="mb-3">Your daily reads come from your cycle and what you log, not from astrology.</p>
           </section>
           <section data-testid="guide-home">
@@ -43,22 +43,22 @@ export default function GuidePage() {
             <p className="mb-3">On any day you can add or remove your period and set its flow, mark intimacy, and use Reset period to set a new Day 1. You can change or delete anything on any day later.</p>
             <p className="mb-3">Under the calendar is your history: your past days by month and by year, and a chart of your cycles with your mood and energy trends.</p>
             <p className="mb-3">Fertile and ovulation days are estimates from the period dates you log. They are not measurements. HORMOscope is for awareness, not contraception.</p>
-            <p className="mb-3">Your entries are yours. A linked partner sees them only if you turn on the sharing choices in Attunement.</p>
+            <p className="mb-3">Your entries are yours. Your journal is never shared with anyone, not even a linked partner.</p>
           </section>
           <section data-testid="guide-attuned">
-            <h2 className="text-xl sm:text-2xl text-white mb-3">Attunement</h2>
-            <p className="mb-3">Attunement is where you link with a partner, so they can follow your cycle with you.</p>
+            <h2 className="text-xl sm:text-2xl text-white mb-3">Share your cycle</h2>
+            <p className="mb-3">At the bottom of your Home tab you can share your cycle with someone close, so they can follow it with you.</p>
             <ul className="list-disc pl-5 space-y-1 mb-3">
-              <li><strong>Invite code:</strong> in Attunement, lower on your Home tab, create an invite code and send it to your partner. They enter it in the Partner Hub.</li>
+              <li><strong>With her:</strong> she gets a link that starts her at the beginning, with her own account. When she enters your code in the Partner Hub, your accounts link and you follow each other both ways.</li>
               <li><strong>Partner without a cycle:</strong> they get a view of your phase, what it may feel like, and how to show up for you.</li>
-              <li><strong>Partner who also gets a period:</strong> you can sync, and Attunement shows both of your cycles side by side.</li>
-              <li><strong>Sharing choices:</strong> in Attunement, you pick what your partner sees. Your journal and your intimacy log stay private unless you turn their sharing on. You can also share your daily log and your note. Anything you leave off is never sent.</li>
+              <li><strong>With him:</strong> he gets a link straight to a simple page with your cycle. No app, no account for him.</li>
+              <li><strong>Sharing choices:</strong> you pick what your partner sees. Your journal and your intimacy log are always only yours: they are never shared, and there is no setting that changes that. You can also share your daily log and your note. Anything you leave off is never sent.</li>
             </ul>
           </section>
           <section data-testid="guide-profile">
             <h2 className="text-xl sm:text-2xl text-white mb-3">Profile</h2>
             <p className="mb-3">Profile holds your name, the conditions you live with (like PMDD, PCOS or endometriosis), and your account. You can sign out here, and delete your account and data here at any time.</p>
-            <p className="mb-3">Profile is also where the Founder&apos;s Note, this guide and the App Map live. What your partner can see is chosen in Attunement, not here.</p>
+            <p className="mb-3">Profile is also where the Founder&apos;s Note, this guide and the App Map live. What your partner can see is chosen in Share your cycle, not here.</p>
           </section>
           <section data-testid="guide-appmap">
             <h2 className="text-xl sm:text-2xl text-white mb-3">App Map</h2>

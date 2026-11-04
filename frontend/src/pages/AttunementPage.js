@@ -9,7 +9,7 @@ import CycleSync from '../components/CycleSync';
 import { usePremium } from '../context/PremiumContext';
 import { getPackages, findPackageForPlan, purchasePlan, restorePurchases, isBillingConfigured } from '../utils/revenueCat';
 import TabFooter from '../components/TabFooter';
-import { partnerViewUrl, shareInviteText, syncInviteMessage, viewInviteMessage } from '../lib/invite';
+import { partnerViewUrl, partnerInviteLandingUrl, shareInviteText, syncInviteMessage, viewInviteMessage } from '../lib/invite';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const GOLD = '#C9B8F0';
@@ -45,15 +45,11 @@ const VIS_OPTIONS = [
   { id: 'mood_energy', label: 'My mood and energy' },
   { id: 'period_dates', label: 'When my next period is due' },
   { id: 'fertile_window', label: 'My fertile window' },
-  // v49 (Angelita, Oct 26, 2026): journal sharing is a choice now.
-  // Off unless she ticks it. v57 (Oct 31, 2026): follow the toggle,
-  // it reaches a linked partner inside the app AND a partner view
-  // link, whole journal, intimate-marked entries included.
-  { id: 'share_journal', label: 'My journal entries' },
-  // v54 (Angelita, Oct 30, 2026): the intimacy log is a choice too,
-  // reversing the old never-shared rule. Off unless she ticks it, and
-  // it reaches only a linked partner inside the app, never a view link.
-  { id: 'share_intimacy', label: 'My intimacy log' },
+  // v65 (Angelita, Nov 4, 2026): there is NO journal option and NO
+  // intimacy option here anymore. Her journal and her intimacy log
+  // are hers only, never shared, and there is no setting that
+  // changes that. The old stored fields stay in the database,
+  // unread.
   // v58 (Angelita, Oct 31, 2026): her daily log answers and her note
   // are choices too, in the same checklist, off unless she ticks them.
   // They save through the same partner_visibility update as every
@@ -61,7 +57,7 @@ const VIS_OPTIONS = [
   { id: 'share_daily_log', label: 'Share my daily log' },
   { id: 'include_note', label: 'Include my note' },
 ];
-const DEFAULT_VIS = { phase: true, mood_energy: true, period_dates: true, fertile_window: false, share_journal: false, share_intimacy: false, share_daily_log: false, include_note: false };
+const DEFAULT_VIS = { phase: true, mood_energy: true, period_dates: true, fertile_window: false, share_daily_log: false, include_note: false };
 
 // The face beside a partner's name. Falls back to a neutral initial
 // disc for accounts that have no picture (legacy partners).
@@ -98,7 +94,7 @@ function VisibilityChecklist({ vis, onToggle }) {
           </button>
         );
       })}
-      <p className="text-[#E6E0EE] text-xs mt-1" style={poppins}>Your journal and your intimacy log are private unless you choose to share them, and only if you tick them above. Your journal follows its tick everywhere, including a partner view link. Your intimacy log follows its tick for a linked partner inside the app. Your daily log is shared only if you tick it above, and your note is included only if you tick that too.</p>
+      <p className="text-[#E6E0EE] text-xs mt-1" style={poppins}>Your journal and your intimacy log are always only yours. They are never shared, not with a partner and not on a link, and there is no setting that changes that. Your daily log is shared only if you tick it above, and your note is included only if you tick that too.</p>
     </div>
   );
 }
@@ -142,7 +138,7 @@ function AttunementPaywall() {
         setMsg('The purchase did not finish. If Google Play completed it, tap Restore Purchases below.');
       }
     } catch (err) {
-      logger.error('Attunement purchase failed:', err);
+      logger.error('Share purchase failed:', err);
       setMsg('The purchase did not finish. Please try again.');
     } finally {
       setBusy('');
@@ -170,11 +166,11 @@ function AttunementPaywall() {
   const planBtn = 'w-full py-3 rounded-full text-white text-sm font-medium disabled:opacity-50 mb-3';
 
   return (
-    <div className="card p-6 mb-4 text-center" data-testid="attunement-paywall">
+    <div className="card p-6 mb-4 text-center" data-testid="share-paywall">
       <div className="w-12 h-12 rounded-full bg-[#FF4F9A]/15 flex items-center justify-center mx-auto mb-3">
         <Heart className="w-5 h-5 text-[#FF4F9A]" fill="#FF4F9A" />
       </div>
-      <h2 className="text-white text-xl mb-2" style={script}>Attunement is a HORMOscope Pro feature</h2>
+      <h2 className="text-white text-xl mb-2" style={script}>Sharing your cycle is a HORMOscope Pro feature</h2>
       <p className="text-[#b8b8d1] text-sm leading-relaxed mb-5" style={poppins}>
         Sync your cycle with your partner, share your days both ways, and open your shared space together. Home, Journal and your cycle tracking stay open to everyone.
       </p>
@@ -185,7 +181,7 @@ function AttunementPaywall() {
         {busy === 'yearly' ? 'Opening Google Play…' : `Yearly · ${priceFor('yearly', '$49.99')}`}
       </button>
       {!billing && (
-        <p className="text-[#CFC3CC] text-xs mb-2" style={poppins}>Subscribe in the Android app to unlock Attunement.</p>
+        <p className="text-[#CFC3CC] text-xs mb-2" style={poppins}>Subscribe in the Android app to unlock cycle sharing.</p>
       )}
       <button onClick={restore} disabled={!billing || busy !== ''} className="w-full py-2.5 rounded-full text-sm disabled:opacity-50" style={{ ...poppins, color: '#CFC3CC', border: '1px solid rgba(255,255,255,0.2)' }} data-testid="paywall-restore-btn">
         {busy === 'restore' ? 'Restoring…' : 'Restore Purchases'}
@@ -307,7 +303,7 @@ export default function AttunementPage({ embedded = false } = {}) {
       loadSentInvites();
     } catch (err) {
       setInviteError(err.response?.data?.detail || 'Could not create an invite just now. Try again in a moment.');
-      logger.error('Attunement invite error:', err);
+      logger.error('Share invite error:', err);
     } finally {
       setGenerating(false);
     }
@@ -322,7 +318,7 @@ export default function AttunementPage({ embedded = false } = {}) {
   const firstName = (user?.name || '').trim().split(/\s+/)[0] || '';
 
   const shareSyncInvite = async (code) => {
-    const outcome = await shareInviteText(syncInviteMessage(code, firstName));
+    const outcome = await shareInviteText(syncInviteMessage(code, firstName, partnerInviteLandingUrl(code)));
     setShareMsg(outcome === 'copied' ? 'Copied. Paste it wherever you talk to her.' : outcome === 'failed' ? "Sharing didn't open. Copy the code above and send it to her." : '');
   };
 
@@ -381,17 +377,20 @@ export default function AttunementPage({ embedded = false } = {}) {
       {invite && invite.kind === 'sync' && invite.code && (
         <div className="rounded-2xl p-4 mb-4 text-center" style={{ border: '1px solid rgba(244,167,185,0.35)', background: 'rgba(244,167,185,0.06)' }} data-testid="sync-invite-result">
           <p className="text-[#CFC3CC] text-xs mb-2" style={poppins}>
-            Share this code with your person. They make their own HORMOscope account, then enter this code in the Partner Hub to link with you.
+            Send her this link. It starts her at the beginning: she gets the app, makes her own account, and enters your code, and then your accounts are linked both ways.
           </p>
-          <button onClick={() => copyText(invite.code)} className="w-full py-3 rounded-xl text-center" style={{ background: 'rgba(255,79,154,0.08)', border: '1px dashed rgba(255,79,154,0.4)' }}>
-            <span className="text-white text-xl font-bold tracking-[0.3em]" style={poppins}>{invite.code}</span>
+          <button onClick={() => copyText(partnerInviteLandingUrl(invite.code))} className="w-full py-3 px-3 rounded-xl text-center" style={{ background: 'rgba(255,79,154,0.08)', border: '1px dashed rgba(255,79,154,0.4)' }}>
+            <span className="text-white text-xs break-all" style={poppins}>{partnerInviteLandingUrl(invite.code)}</span>
             <span className="flex items-center justify-center gap-1 text-[#CFC3CC] text-[10px] mt-1" style={poppins}>
-              {copied ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Tap to copy</>}
+              {copied ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Tap to copy the link</>}
             </span>
           </button>
           <button onClick={() => shareSyncInvite(invite.code)} className="w-full py-3 rounded-full text-white text-sm font-medium mt-3" style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }} data-testid="share-invite-btn">
-            Share invite
+            Share her link
           </button>
+          <p className="text-[#B4B0C8] text-[11px] mt-3" style={poppins}>
+            Her code, if the link ever asks: <span className="text-white font-semibold tracking-[0.2em]">{invite.code}</span>
+          </p>
         </div>
       )}
       {invite && invite.kind === 'view' && invite.viewToken && viewLinkCard(invite.viewToken, 'view-invite-result')}
@@ -406,7 +405,7 @@ export default function AttunementPage({ embedded = false } = {}) {
   );
 
   return (
-    <div className={embedded ? 'relative px-5 pt-8' : 'relative min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8'} style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="attunement-page">
+    <div className={embedded ? 'relative px-5 pt-8' : 'relative min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8'} style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="share-page">
       {/* Couples wallpaper: the man-and-woman couple and the hallway
           couple (Angelita's pick, Oct 26, 2026). CONTAINED fit, never
           cover (Angelita, Oct 31, 2026: with object-cover into a box
@@ -448,10 +447,9 @@ export default function AttunementPage({ embedded = false } = {}) {
           <div className="w-14 h-14 rounded-full bg-[#FF4F9A]/15 flex items-center justify-center mx-auto mb-4">
             <Heart className="w-6 h-6 text-[#FF4F9A]" fill="#FF4F9A" />
           </div>
-          <p className="text-[10px] tracking-widest uppercase mb-2" style={{ ...poppins, color: PINK }}>Attunement Mode</p>
-          <h1 className="text-3xl text-white mb-3" style={script}>Your people, in tune with you</h1>
+          <h1 className="text-3xl text-white mb-3" style={script}>Share your cycle</h1>
           <p className="text-[#b8b8d1] text-sm leading-relaxed" style={poppins}>
-            Attunement lets your people follow your cycle with you, so care lands right on time and home feels close.
+            Invite someone close to follow your cycle with you. Simple and private: only the parts you choose, and your journal and intimacy log are always only yours.
           </p>
         </div>
 
@@ -469,11 +467,11 @@ export default function AttunementPage({ embedded = false } = {}) {
           <div className="card p-5 mb-4 text-center">
             <div className="flex items-center justify-center gap-2.5 mb-1">
               <p className="text-white text-base" style={poppins}>
-                You are in tune with <span className="font-semibold" style={{ color: PINK }}>{status.partner_name}</span>
+                You are sharing your cycle with <span className="font-semibold" style={{ color: PINK }}>{status.partner_name}</span>
               </p>
             </div>
             <p className="text-[#CFC3CC] text-xs mb-4" style={poppins}>
-              They can see your cycle calendar and leave you little notes. Your journal is shared only if you turn it on above.
+              They can see your cycle calendar and leave you little notes. Your journal and your intimacy log are always only yours.
             </p>
             {acceptedInvite && (
               <p className="text-[#B4B0C8] text-[11px] mb-4" style={poppins} data-testid="partner-kind-label">
@@ -507,11 +505,11 @@ export default function AttunementPage({ embedded = false } = {}) {
             {/* Choice 1: partner is a man (Angelita, Oct 25, 2026:
                 the man choice comes first, headed by what she wants to
                 do, not who he is) */}
-            <div className="card overflow-hidden mb-4" data-testid="attunement-man">
+            <div className="card overflow-hidden mb-4" data-testid="share-him">
               <div className="p-5">
-                <h2 className="text-white text-xl mb-2" style={script}>Sync my cycle with him</h2>
+                <h2 className="text-white text-xl mb-2" style={script}>With him</h2>
                 <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
-                  He follows your cycle, so he knows when to bring tea, when to give you room, and when you are glowing.
+                  He gets a link straight to a simple page with your cycle, only the parts you choose. No app, no account for him.
                 </p>
                 <button
                   onClick={() => startSetup('man')}
@@ -525,11 +523,11 @@ export default function AttunementPage({ embedded = false } = {}) {
             </div>
 
             {/* Choice 2: partner is a woman */}
-            <div className="card overflow-hidden mb-4" data-testid="attunement-woman">
+            <div className="card overflow-hidden mb-4" data-testid="share-her">
               <div className="p-5">
-                <h2 className="text-white text-xl mb-2" style={script}>Sync my cycle with her</h2>
+                <h2 className="text-white text-xl mb-2" style={script}>With her</h2>
                 <p className="text-[#b8b8d1] text-sm leading-relaxed mb-4" style={poppins}>
-                  You track side by side, in tune with each other. Send her a sign-up link and she can join you here.
+                  She gets a link that starts her at the beginning: her own account, her own setup, and then your accounts link so you follow each other both ways.
                 </p>
                 <button
                   onClick={() => startSetup('woman')}
@@ -540,7 +538,7 @@ export default function AttunementPage({ embedded = false } = {}) {
                   Invite her
                 </button>
                 <p className="text-[#B4B0C8] text-[11px] mt-3 leading-relaxed" style={poppins}>
-                  Once she joins and you link up, you'll both see each other's phase and day side by side, with the days you're in sync highlighted. You each choose what the other can see.
+                  Once you link up, you each see the other's phase and day side by side. You each choose what the other can see.
                 </p>
               </div>
             </div>
@@ -556,7 +554,7 @@ export default function AttunementPage({ embedded = false } = {}) {
             relationship types came off; one simple share instead. Since
             v46 this makes a view invite: a read-only link page with
             only what she checked off, no account on their side.) */}
-        <div className="card p-5 mb-4" data-testid="attunement-share">
+        <div className="card p-5 mb-4" data-testid="share-anyone">
           <div className="flex items-center gap-2 mb-2">
             <Share2 className="w-5 h-5" style={{ color: PINK }} />
             <h2 className="text-white text-xl" style={script}>Share your cycle</h2>
@@ -626,7 +624,7 @@ export default function AttunementPage({ embedded = false } = {}) {
               style={{ ...poppins, background: 'transparent', border: '1.5px solid #FF4F9A' }}
               data-testid="create-invite-btn"
             >
-              {generating ? 'Making your invite…' : setupType === 'woman-sync' ? 'Create my invite code' : 'Create my invite link'}
+              {generating ? 'Making your link…' : setupType === 'woman-sync' ? 'Create her link' : 'Create my invite link'}
             </button>
             {inviteError && (
               <p className="text-red-400 text-xs text-center mt-3" style={poppins}>{inviteError}</p>

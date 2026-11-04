@@ -228,40 +228,27 @@ async def section_on_then_off(results):
               "include_note": True}
     owner, partner = seed(db, owner_kw={"partner_visibility": dict(vis_on)})
 
+    # v65 (Angelita, Nov 4, 2026): both stored toggles are ON here on
+    # purpose, and neither may matter. Her intimacy log and her
+    # journal are never served to a partner, on any surface.
     code, res = await call(server.get_partner_status, dict(partner))
-    results.append(("on: status flags intimacy shared",
-                    code == "ok" and res.get("partner_shares_intimacy") is True))
+    results.append(("on: status sends no intimacy flag (v65 never shared)",
+                    code == "ok" and not has_key_deep(res, "partner_shares_intimacy")))
 
     code, res = await call(server.get_partner_intimacy, dict(partner))
-    results.append(("on: partner intimacy returns ok", code == "ok"))
-    days = res.get("days") or []
-    results.append(("on: days newest first",
-                    len(days) == 2 and days[0]["date"] == "2026-10-25" and days[1]["date"] == "2026-10-20"))
-    blob = json.dumps(res, default=str)
-    results.append(("on: names and notes served via the gated path",
-                    "LOVERNAMESECRET" in blob and "INTIMACYNOTESECRET" in blob))
-    results.append(("on: partner's own logs not served back",
-                    "PARTNEROWNLOG" not in blob))
-    results.append(("on: intimate journal entry never served here",
-                    "INTIMATESECRETWORDS" not in blob))
+    results.append(("on: partner intimacy refused even with toggle on (403)", code == 403))
 
-    # Follow the toggle (v57): the journal endpoint serves intimate
-    # marked entries while JOURNAL sharing is on (it is on here).
     code, res = await call(server.get_partner_journal, dict(partner))
-    jblob = json.dumps(res, default=str)
-    results.append(("on: partner journal ok, intimate-marked entry served (journal toggle)",
-                    code == "ok" and "INTIMATESECRETWORDS" in jblob))
+    results.append(("on: partner journal refused even with toggle on (403)", code == 403))
 
-    # View links still never carry intimacy LOG data; the journal
-    # itself follows its own toggle, so its words may ride along.
     payload = await server._partner_view_payload("tok-view-1")
     pblob2 = json.dumps(payload, default=str)
     results.append(("on: view payload carries no intimacy log content",
                     "LOVERNAMESECRET" not in pblob2 and "INTIMACYNOTESECRET" not in pblob2))
     results.append(("on: view payload share_intimacy key absent",
                     not has_key_deep(payload, "share_intimacy")))
-    results.append(("on: view payload journal follows its toggle",
-                    "INTIMATESECRETWORDS" in pblob2))
+    results.append(("on: view payload carries no journal either (v65)",
+                    "INTIMATESECRETWORDS" not in pblob2))
     page = server._render_partner_view_html(payload)
     results.append(("on: view page carries no intimacy log content",
                     "LOVERNAMESECRET" not in page and "INTIMACYNOTESECRET" not in page))

@@ -415,11 +415,11 @@ export default function PartnerHubPage() {
             <Link2 className="w-7 h-7 text-[#FF4F9A]" />
           </div>
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>
-            Attunement Mode
+            Shared Cycle
           </p>
           <h1 className="text-2xl text-white mb-3" style={{ fontFamily: "'Poiret One', sans-serif" }}>Link Your Accounts</h1>
           <p className="text-[#CFC3CC] text-sm mb-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Ask her for the invite code from Attunement on her Home tab, then enter it below. You will be able to follow her cycle —
+            Ask her for the invite code from the Share your cycle section on her Home tab, then enter it below. You will be able to follow her cycle —
             ovulation days, fertile window, and when to expect her period.
           </p>
           <input
@@ -440,7 +440,7 @@ export default function PartnerHubPage() {
             {accepting ? 'Linking...' : 'Link Accounts'}
           </button>
           <p className="text-[#B4B0C8] text-[10px] mt-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Her intimacy log is private unless she chooses to share it. You only see what she chose to share.
+            Her journal and her intimacy log are always only hers. You only see what she chose to share.
           </p>
         </div>
       </div>
@@ -461,7 +461,7 @@ export default function PartnerHubPage() {
       <div className="max-w-md mx-auto">
         <div className="text-center mb-6">
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>
-            Attunement Mode
+            Shared Cycle
           </p>
           <h1 className="text-2xl text-white mb-1" style={{ fontFamily: "'Poiret One', sans-serif" }}>
             {calData ? (ownerNoPeriods ? `${calData.name}'s Days` : `${calData.name}'s Cycle`) : 'Partner Hub'}

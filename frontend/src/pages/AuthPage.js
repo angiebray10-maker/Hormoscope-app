@@ -130,7 +130,7 @@ export default function AuthPage() {
               2026): the logo keeps its ONE tagline, so the partner mode
               rides here on the front page as a small extra line. */}
           <p className="text-xs mb-2 text-center sm:text-left" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }} data-testid="hero-bonus-line">
-            Bonus: includes Attuned Partner Mode
+            Bonus: share your cycle with someone close
           </p>
           <p className="text-xs flex items-center justify-center sm:justify-start gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
             <Shield className="w-3.5 h-3.5" /> HTTPS, hashed passwords, never sold.
@@ -161,12 +161,12 @@ export default function AuthPage() {
       <section ref={focusRef} className="py-20 px-6 relative overflow-hidden">
         <div className="max-w-2xl mx-auto relative z-10 space-y-5">
           <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,79,154,0.07)', border: '1px solid rgba(255,79,154,0.35)' }} data-testid="focus-attuned">
-            <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: '#FF4F9A', fontFamily: 'Poppins, sans-serif' }}>Attuned Partner Mode</p>
-            <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>Stay in tune with the one you love</h2>
+            <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: '#FF4F9A', fontFamily: 'Poppins, sans-serif' }}>Share Your Cycle</p>
+            <h2 className="text-white text-2xl mb-3" style={{ fontFamily: HEADING_FONT }}>Stay close to the one you love</h2>
             <ul className="space-y-2 text-sm leading-relaxed" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
               <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />Sync cycles with your girlfriend: both your phases side by side, with the days you&apos;re in sync highlighted.</li>
-              <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />Or invite your boyfriend so he knows what each phase may feel like and how to show up.</li>
-              <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />You choose exactly what they see. Your intimacy log and your journal are private unless you choose to share them.</li>
+              <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />Or send your boyfriend a simple link so he knows what each phase may feel like and how to show up.</li>
+              <li><Check className="w-4 h-4 inline mr-2" style={{ color: '#FF4F9A' }} />You choose exactly what they see. Your journal and your intimacy log are always only yours.</li>
             </ul>
           </div>
 

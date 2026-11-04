@@ -29,7 +29,7 @@ const STEP_BG = { 1: ONBOARDING_BG, 2: ONBOARDING_BG };
 
 const WHAT_IT_DOES = [
   { icon: BookOpen, text: 'Your Daily Read, written for your exact cycle day' },
-  { icon: Heart, text: 'Attuned Partner Mode: share your cycle, only what you choose' },
+  { icon: Heart, text: 'Share your cycle with someone close, only what you choose' },
   { icon: Lock, text: 'Your private Journal: your words, yours alone' },
 ];
 

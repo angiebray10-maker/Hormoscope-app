@@ -121,27 +121,19 @@ class UserLogin(BaseModel):
 CYCLE_STATUSES = {"regular", "unsure", "hormonal_birth_control", "pregnant", "postpartum", "menopause", "no_periods"}
 NO_FERTILITY_STATUSES = {"hormonal_birth_control", "pregnant", "postpartum", "menopause", "no_periods"}
 PARTNER_VISIBILITY_KEYS = ("phase", "mood_energy", "period_dates", "fertile_window", "wishlist", "share_journal", "share_intimacy", "share_daily_log", "include_note")
-# share_journal (v49, Angelita, Oct 26, 2026): her journal entries are
-# shared with her linked in-app partner ONLY when she turns this on.
-# Default False for everyone: new users, existing users, existing
-# relationships. FOLLOW THE TOGGLE (v57, Angelita, Oct 31, 2026): when
-# it is on, partner surfaces serve her whole journal, entries marked
-# intimate included, and view links carry the journal too; when it is
-# off, no partner surface carries any of it.
-# share_intimacy (v54, Angelita, Oct 30, 2026): she REVERSED the old
-# "intimacy log is never shared" rule. Her intimacy LOG (the Calendar
-# intimacy days and the names stored with them) is now a checklist
-# choice like the journal: shared with her linked in-app partner ONLY
-# when she turns this on, default False for everyone, and it never
-# applies to view links.
-# share_daily_log / include_note (v58, Oct 31, 2026): finer-grained
-# gates layered on the choices above, both default False. Her day's
-# question answers / cycle log data reach a partner ONLY when
-# share_daily_log is on, and her journal/note TEXT reaches a partner
-# ONLY when include_note is on AND share_journal already permits
-# reaching the journal at all. Partner payload builders strip the
-# gated data server-side while a flag is off; the client is never
-# trusted to hide it.
+# share_journal and share_intimacy are RETIRED keys (v65, Angelita,
+# Nov 4, 2026): her journal and her intimacy log are hers only and
+# are never an option for a partner to see, on any surface. The keys
+# stay in the stored shape so old data parses, but every partner
+# payload builder strips them and the /partner/journal and
+# /partner/intimacy endpoints refuse unconditionally. This reverses
+# the v49/v54/v57 sharing choices for good.
+# share_daily_log / include_note (v58, Oct 31, 2026): both default
+# False. Her day's question answers / cycle log data reach a partner
+# ONLY when share_daily_log is on, and her note TEXT reaches a
+# partner ONLY when include_note is on as well. Partner payload
+# builders strip the gated data server-side while a flag is off;
+# the client is never trusted to hide it.
 DEFAULT_PARTNER_VISIBILITY = {"phase": True, "mood_energy": True, "period_dates": True, "fertile_window": False, "wishlist": True, "share_journal": False, "share_intimacy": False, "share_daily_log": False, "include_note": False}
 BOUTIQUE_VISIBILITY_VALUES = ("private", "partner", "public")
 
@@ -3852,22 +3844,14 @@ async def get_partner_view(link_code: str):
     tips = _partner_tips_for_phase(phase)
     
     # Only what she chose to share (Profile > partner visibility).
-    # Follow the toggle (v57, Oct 31, 2026): when she turns Journal
-    # sharing on, her journal travels through this view link too, all
-    # entries, intimate-marked included, and the choice is echoed in
-    # the visibility below; while it is off the choice is not echoed
-    # and no journal data rides along. The intimacy log choice (v54)
-    # is still not echoed here, and intimacy data never travels
-    # through a view link.
+    # v65 (Angelita, Nov 4, 2026): her journal and her intimacy log
+    # are hers only, never an option, on any surface. Both stored
+    # fields are stripped here and no journal or intimacy data ever
+    # rides along, whatever an old stored toggle says.
     vis = {**DEFAULT_PARTNER_VISIBILITY, **(user.get("partner_visibility") or {})}
-    share_journal = bool(vis.pop("share_journal", False))
+    vis.pop("share_journal", None)
     vis.pop("share_intimacy", None)
     out = {"name": user.get("name", "Her"), "visibility": vis}
-    if share_journal:
-        out["visibility"]["share_journal"] = True
-        # v58: entry text only when include_note is also on.
-        out["journal_entries"] = await _journal_entries_for_partner(
-            user["id"], include_note=bool(vis.get("include_note")))
     if vis.get("phase"):
         out.update({
             "cycle_day": cycle_info.get("cycle_day", 1),
@@ -4039,12 +4023,10 @@ async def get_partner_status(current_user: dict = Depends(get_current_user)):
         # schedule time, from data the partner's app already fetches.
         if other_vis.get("phase"):
             out["partner_shares_phase"] = True
-        if other_vis.get("share_journal"):
-            out["partner_shares_journal"] = True
-        # v54: same present-only-when-on pattern for the intimacy log,
-        # so the hub can show its Intimacy tab only while she shares it.
-        if other_vis.get("share_intimacy"):
-            out["partner_shares_intimacy"] = True
+        # v65 (Angelita, Nov 4, 2026): partner_shares_journal and
+        # partner_shares_intimacy are never sent anymore. Her journal
+        # and intimacy log are hers only, so the hub has no Journal
+        # or Intimacy tab for a partner, ever.
     return out
 
 def _phase_for_cycle_day(cycle_day: int) -> str:
@@ -4329,10 +4311,10 @@ async def _partner_view_payload(token: str):
         # cycle log data and also requires share_daily_log.
         if vis.get("mood_energy") and vis.get("share_daily_log"):
             payload["feeling_today"] = await _mood_today_for(owner_id)
-    if vis.get("share_journal"):
-        # v58: entry text only when include_note is also on.
-        payload["journal_entries"] = await _journal_entries_for_partner(
-            owner_id, include_note=bool(vis.get("include_note")))
+    # v65 (Angelita, Nov 4, 2026): no journal block here at all. Her
+    # journal never rides a view link, whatever the stored toggle
+    # says; the journal render section below simply never receives
+    # entries from this payload.
     return payload
 
 
@@ -4493,6 +4475,60 @@ async def partner_view_page(token: str):
     return HTMLResponse(_render_partner_view_html(payload))
 
 
+@app.get("/partner/invite/{code}")
+async def partner_invite_page(code: str):
+    """Public landing page for a two-way sync invite (v65, Angelita,
+    Nov 4, 2026). This is the link the "With her" button makes: she
+    sends it, her partner opens it and starts at the beginning, gets
+    the app, makes her own account, then enters the code in the
+    Partner Hub, and the two accounts link both ways. The page shows
+    no cycle data at all; the code is the only thing on it."""
+    code = (code or "").strip().upper()
+    invite = await db.partner_invites.find_one(
+        {"invite_code": code, "status": "pending", "kind": "sync"}, {"_id": 0})
+    esc = html_lib.escape
+    if invite:
+        owner = await db.users.find_one(
+            {"id": invite["inviter_id"]}, {"_id": 0, "name": 1})
+        first = ((owner or {}).get("name") or "A friend").split(" ")[0]
+        inner = (
+            f'<p class="sub">{esc(first)} invited you to share her cycle on HORMOscope.</p>'
+            '<div class="card"><p class="label">Your invite code</p>'
+            f'<p class="code">{esc(code)}</p>'
+            '<p class="note">Three steps and you are linked:</p>'
+            '<p class="step">1. Get the HORMOscope app.</p>'
+            '<p class="step">2. Make your own account and finish your own setup.</p>'
+            '<p class="step">3. Open the Partner Hub and enter the code above.</p>'
+            f'<a class="btn" href="https://play.google.com/apps/internaltest/4701064432006721163">Get HORMOscope</a>'
+            '<p class="note">Once you link, you follow each other both ways, and each of you chooses what the other can see. Her journal and her intimacy log are always only hers.</p></div>'
+        )
+    else:
+        inner = (
+            '<p class="sub">This invite is not active anymore.</p>'
+            '<div class="card"><p class="note">It may have been used, replaced, or turned off. Ask her to send you a fresh link.</p></div>'
+        )
+    return HTMLResponse(
+        "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+        "<title>HORMOscope</title>"
+        "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">"
+        "<link href=\"https://fonts.googleapis.com/css2?family=Poiret+One&family=Poppins:wght@300;400;500;600&display=swap\" rel=\"stylesheet\">"
+        "<style>"
+        "body{margin:0;background:#0B0B1E;color:#EDEDF5;font-family:Poppins,system-ui,sans-serif;}"
+        ".wrap{max-width:520px;margin:0 auto;padding:32px 20px 48px;}"
+        "h1{font-family:'Poiret One',serif;font-weight:400;font-size:34px;margin:10px 0 4px;color:#fff;}"
+        ".sub{color:#B8B8D1;font-size:14px;margin:0 0 22px;}"
+        ".card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:18px;padding:18px;margin:0 0 14px;}"
+        ".label{color:#F4A7B9;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;margin:0 0 8px;}"
+        ".code{font-size:30px;letter-spacing:0.3em;color:#fff;margin:0 0 14px;font-weight:600;}"
+        ".note{color:#B8B8D1;font-size:13px;line-height:1.6;}"
+        ".step{color:#EDEDF5;font-size:14px;margin:4px 0;}"
+        ".btn{display:block;text-align:center;margin:16px 0 6px;padding:13px;border-radius:999px;border:1.5px solid #FF4F9A;color:#fff;text-decoration:none;font-size:14px;}"
+        "</style></head><body><div class=\"wrap\"><h1>HORMOscope</h1>"
+        + inner +
+        "</div></body></html>")
+
+
 @api_router.get("/partner/calendar")
 async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
     """Her cycle calendar for a linked partner. NEVER includes journal entries
@@ -4624,75 +4660,29 @@ async def get_partner_calendar(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/partner/journal")
 async def get_partner_journal(current_user: dict = Depends(get_current_user)):
-    """Her journal, for her linked in-app partner, ONLY when she turned
-    journal sharing on (partner_visibility.share_journal, v49). While
-    the choice is off (the default for everyone) this refuses, and no
-    journal data appears in any partner payload. FOLLOW THE TOGGLE
-    (v57, Angelita, Oct 31, 2026): while sharing is on, ALL her entries
-    are served here, the ones she marked intimate included; the mark
-    no longer filters anything out of this endpoint. Read-only;
-    nothing here writes. View links follow the same toggle (v57)."""
+    """Her journal is NEVER served to a partner (v65, Angelita,
+    Nov 4, 2026). This reverses v49/v57: journal sharing is not an
+    option anymore, on any surface, whatever an old stored toggle
+    says. The endpoint stays only so old app versions get a clean
+    refusal instead of data."""
     rel = await _get_partner_relationship(current_user["id"])
     if not rel:
         raise HTTPException(status_code=403, detail="No linked partner account.")
-    owner_id, partner_id = _partner_pair(rel)
-    other_id = partner_id if current_user["id"] == owner_id else owner_id
-    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1, "partner_visibility": 1})
-    if not other:
-        raise HTTPException(status_code=404, detail="Partner account not found")
-    other_vis = {**DEFAULT_PARTNER_VISIBILITY, **(other.get("partner_visibility") or {})}
-    if not other_vis.get("share_journal"):
-        raise HTTPException(status_code=403, detail="Journal sharing is off.")
-    # v58: her entry TEXT (title and content) is served only when
-    # include_note is also on; while it is off the fields are omitted
-    # server-side and only the entry's id and timestamp remain.
-    include_note = bool(other_vis.get("include_note"))
-    entries = await db.journal_entries.find(
-        {"user_id": other_id}, {"_id": 0}
-    ).sort("created_at", -1).to_list(length=None)
-    by_day = {}
-    for e in entries:
-        d = _journal_entry_day(e)
-        if d is None:
-            continue
-        item = {"id": e.get("id"), "created_at": e.get("created_at")}
-        if include_note:
-            item["title"] = e.get("title") or ""
-            item["content"] = e.get("content") or ""
-        by_day.setdefault(d.isoformat(), []).append(item)
-    days = [{"date": d, "entries": by_day[d]} for d in sorted(by_day, reverse=True)]
-    return {"partner_name": other.get("name") or "Partner", "days": days}
+    raise HTTPException(status_code=403, detail="Her journal is never shared.")
+
 
 @api_router.get("/partner/intimacy")
 async def get_partner_intimacy(current_user: dict = Depends(get_current_user)):
-    """Her intimacy log, for her linked in-app partner, ONLY when she
-    turned intimacy sharing on (partner_visibility.share_intimacy,
-    v54, Angelita, Oct 30, 2026, reversing the old never-shared rule).
-    While the choice is off (the default for everyone) this refuses,
-    and no intimacy data appears in any partner payload. When it is
-    on, the partner sees her intimacy days: each day she logged, the
-    names she stored for that day, and any note on the log. Read-only;
-    nothing here writes. View links never carry intimacy data,
-    whatever she chooses. Journal entries marked intimate are a
-    separate thing and are never served to a partner either way."""
+    """Her intimacy log is NEVER served to a partner (v65, Angelita,
+    Nov 4, 2026). This reverses v54: intimacy sharing is not an
+    option anymore, on any surface, whatever an old stored toggle
+    says. The endpoint stays only so old app versions get a clean
+    refusal instead of data."""
     rel = await _get_partner_relationship(current_user["id"])
     if not rel:
         raise HTTPException(status_code=403, detail="No linked partner account.")
-    owner_id, partner_id = _partner_pair(rel)
-    other_id = partner_id if current_user["id"] == owner_id else owner_id
-    other = await db.users.find_one({"id": other_id}, {"_id": 0, "name": 1, "partner_visibility": 1})
-    if not other:
-        raise HTTPException(status_code=404, detail="Partner account not found")
-    other_vis = {**DEFAULT_PARTNER_VISIBILITY, **(other.get("partner_visibility") or {})}
-    if not other_vis.get("share_intimacy"):
-        raise HTTPException(status_code=403, detail="Intimacy sharing is off.")
-    logs = await db.intimacy_logs.find(
-        {"user_id": other_id}, {"_id": 0}
-    ).sort("date", -1).to_list(length=None)
-    days = [{"date": l.get("date"),
-             "partners": l.get("partners") or "",
-             "notes": l.get("notes") or ""} for l in logs if l.get("date")]
-    return {"partner_name": other.get("name") or "Partner", "days": days}
+    raise HTTPException(status_code=403, detail="Her intimacy log is never shared.")
+
 
 # ==================== ATTUNED PARTNER MODE: NOTES ====================
 # A quiet, unadvertised space where the two of them can leave short notes

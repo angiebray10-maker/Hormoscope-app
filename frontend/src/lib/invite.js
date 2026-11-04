@@ -12,6 +12,15 @@ export function partnerViewUrl(token) {
   return `${base}/partner/view/${token}`;
 }
 
+// The sync invite landing page also lives on the backend (v65): it
+// is the link the "With her" button sends. It walks her partner
+// through getting the app and making her own account, then entering
+// the code in the Partner Hub so the two accounts link.
+export function partnerInviteLandingUrl(code) {
+  const base = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/+$/, '');
+  return `${base}/partner/invite/${code}`;
+}
+
 // Share text through the native share sheet where the platform offers
 // one (in the Android shell, navigator.share is backed by Capacitor's
 // share bridge), falling back to copying the text to the clipboard.
@@ -36,9 +45,10 @@ export async function shareInviteText(text) {
   }
 }
 
-export function syncInviteMessage(code, firstName) {
+export function syncInviteMessage(code, firstName, link) {
   const from = firstName ? ` from ${firstName}` : '';
-  return `Hi, I would love for you to join me on HORMOscope${from}, so we can follow my cycle together. Get the app here: ${APP_INSTALL_LINK} Then open the Attunement tab and enter my code: ${code}`;
+  const start = link || APP_INSTALL_LINK;
+  return `Hi, I would love for you to join me on HORMOscope${from}, so we can follow our cycles together. Start here: ${start} It walks you through making your own account, and then our accounts link. If it asks for a code, mine is ${code}.`;
 }
 
 export function viewInviteMessage(url, firstName) {
