@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import DateSelect from '../components/DateSelect';
-import { ChevronRight, ChevronLeft, ChevronDown, Heart, BookOpen, Lock, Gift, Shield, KeyRound } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ChevronDown, Heart, BookOpen, Lock, Shield, KeyRound } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 import { BRAND, HEADING_FONT, BODY_FONT } from '../lib/phases';
@@ -38,7 +38,6 @@ const WHAT_IT_DOES = [
   { icon: BookOpen, text: 'Your Daily Read, written for your exact cycle day' },
   { icon: Heart, text: 'Attuned Partner Mode: share your cycle, only what you choose' },
   { icon: Lock, text: 'Your private Journal and Vault: your words, yours alone' },
-  { icon: Gift, text: 'A gift catalog, so you can build a wishlist your partner can see' },
 ];
 
 // "I'm not sure" sits FIRST and equal (Angelita, Oct 26, 2026): she

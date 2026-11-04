@@ -6,7 +6,6 @@ import { Heart, Loader2, Share2, Copy, Check, Camera } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 import CycleSync from '../components/CycleSync';
-import AttunementGifts from '../components/AttunementGifts';
 import { usePremium } from '../context/PremiumContext';
 import { getPackages, findPackageForPlan, purchasePlan, restorePurchases, isBillingConfigured } from '../utils/revenueCat';
 import TabFooter from '../components/TabFooter';
@@ -37,9 +36,9 @@ const script = { fontFamily: "'Poiret One', sans-serif" };
 // link page, no account for him). "Sync my cycle with her" first asks
 // "Does your partner get a period?": yes makes a SYNC invite (the
 // code, two-way, as before); no makes a view invite like his. The
-// wishlist left the checklist: it is always part of what a partner
-// sees, so there is no wishlist switch anymore (the stored field
-// stays, dormant).
+// The Gift Catalog and wishlist were removed entirely (Angelita,
+// Nov 4, 2026). Old stored visibility fields for them stay in the
+// database untouched but nothing reads them anymore.
 
 const VIS_OPTIONS = [
   { id: 'phase', label: 'My phase and cycle day' },
@@ -62,7 +61,7 @@ const VIS_OPTIONS = [
   { id: 'share_daily_log', label: 'Share my daily log' },
   { id: 'include_note', label: 'Include my note' },
 ];
-const DEFAULT_VIS = { phase: true, mood_energy: true, period_dates: true, fertile_window: false, wishlist: true, share_journal: false, share_intimacy: false, share_daily_log: false, include_note: false };
+const DEFAULT_VIS = { phase: true, mood_energy: true, period_dates: true, fertile_window: false, share_journal: false, share_intimacy: false, share_daily_log: false, include_note: false };
 
 // The face beside a partner's name. Falls back to a neutral initial
 // disc for accounts that have no picture (legacy partners).
@@ -637,10 +636,6 @@ export default function AttunementPage() {
 
         {inviteBlock}
 
-        {/* Attuned gifts (Angelita, Oct 25, 2026): her wishlist and
-            the Gift Catalog live here in Attunement, in a
-            tabbed section under everything else. */}
-        <AttunementGifts />
           </>
         )}
         <TabFooter />

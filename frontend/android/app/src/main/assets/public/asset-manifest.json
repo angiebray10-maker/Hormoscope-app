@@ -1,21 +1,21 @@
 {
   "files": {
-    "main.css": "./static/css/main.8b9b423f.css",
-    "main.js": "./static/js/main.7a7a9ffb.js",
+    "main.css": "./static/css/main.974df58a.css",
+    "main.js": "./static/js/main.22a1a75c.js",
     "static/js/551.34a33aba.chunk.js": "./static/js/551.34a33aba.chunk.js",
     "static/js/256.7ac8afa1.chunk.js": "./static/js/256.7ac8afa1.chunk.js",
     "static/js/617.0e0e97db.chunk.js": "./static/js/617.0e0e97db.chunk.js",
     "static/media/architects-daughter-latin.woff2": "./static/media/architects-daughter-latin.5de24e6b8da9e468d901.woff2",
     "static/media/architects-daughter-latin-ext.woff2": "./static/media/architects-daughter-latin-ext.8f5a408870c4a3ab855f.woff2",
     "index.html": "./index.html",
-    "main.8b9b423f.css.map": "./static/css/main.8b9b423f.css.map",
-    "main.7a7a9ffb.js.map": "./static/js/main.7a7a9ffb.js.map",
+    "main.974df58a.css.map": "./static/css/main.974df58a.css.map",
+    "main.22a1a75c.js.map": "./static/js/main.22a1a75c.js.map",
     "551.34a33aba.chunk.js.map": "./static/js/551.34a33aba.chunk.js.map",
     "256.7ac8afa1.chunk.js.map": "./static/js/256.7ac8afa1.chunk.js.map",
     "617.0e0e97db.chunk.js.map": "./static/js/617.0e0e97db.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.8b9b423f.css",
-    "static/js/main.7a7a9ffb.js"
+    "static/css/main.974df58a.css",
+    "static/js/main.22a1a75c.js"
   ]
 }

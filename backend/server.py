@@ -4269,9 +4269,8 @@ async def _partner_view_payload(token: str):
     along ONLY while her Journal sharing choice is on (follow the
     toggle, v57): then every entry, intimate-marked included, is part
     of the payload, and while it is off none of it is read at all.
-    The wishlist is always included: it is part of the partner
-    experience (Angelita, Oct 26, 2026), whatever the old stored
-    toggles say. An empty list simply means she has picked nothing."""
+    The Gift Catalog and wishlist were removed entirely (Angelita,
+    Nov 4, 2026): nothing commercial is read for this page anymore."""
     if not token:
         return None
     invite = await db.partner_invites.find_one({"view_token": token}, {"_id": 0})
@@ -4334,15 +4333,6 @@ async def _partner_view_payload(token: str):
         # v58: entry text only when include_note is also on.
         payload["journal_entries"] = await _journal_entries_for_partner(
             owner_id, include_note=bool(vis.get("include_note")))
-    cursor = db.wishlist_items.find({"user_id": owner_id},
-                                    {"_id": 0, "product_id": 1, "created_at": 1})
-    docs = await cursor.to_list(length=500)
-    docs.sort(key=lambda d: d.get("created_at") or "")
-    payload["wishlist"] = [
-        {"name": CATALOG_PRODUCTS[d["product_id"]]["name"],
-         "url": f"https://www.amazon.com/dp/{d['product_id']}?tag=hormoscope20-20"}
-        for d in docs if d.get("product_id") in CATALOG_PRODUCTS
-    ]
     return payload
 
 
@@ -4459,18 +4449,6 @@ def _render_partner_view_html(payload):
             jinner = "".join(jrows) if jrows else '<p class="note">No journal entries yet.</p>'
             parts.append(
                 f'<div class="card"><p class="label">Her journal, shared with you</p>{jinner}</div>')
-        wish = payload.get("wishlist")
-        if wish is not None:
-            if wish:
-                items = "".join(
-                    f'<div class="wish"><span>{esc(str(w["name"]))}</span>'
-                    f'<a href="{esc(str(w["url"]), quote=True)}" target="_blank" rel="noopener">See it on Amazon</a></div>'
-                    for w in wish)
-            else:
-                items = '<p class="note">Nothing picked yet. When she finds pieces she loves, they will be waiting here.</p>'
-            parts.append(
-                f'<div class="card"><p class="label">{esc(first)}&rsquo;s wishlist</p>{items}'
-                f'<p class="fine">As an Amazon Associate I earn from qualifying purchases.</p></div>')
         parts.append(
             '<p class="fine">If you track a cycle too, ask her for a sync '
             'invite so you can follow each other in the app.</p>')
