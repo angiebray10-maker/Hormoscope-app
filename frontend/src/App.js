@@ -13,8 +13,7 @@ import FallingFlowers from './components/FallingFlowers';
 // Pages
 import AuthPage from './pages/AuthPage';
 import OnboardingPage from './pages/OnboardingPage';
-import HomePage from './pages/HomePage';
-import JournalPage from './pages/JournalPage';
+import MainTabPage from './pages/MainTabPage';
 import ProfilePage from './pages/ProfilePage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
@@ -23,7 +22,6 @@ import GuidePage from './pages/GuidePage';
 import ContactPage from './pages/ContactPage';
 import PartnerViewPage from './pages/PartnerViewPage';
 import PartnerHubPage from './pages/PartnerHubPage';
-import AttunementPage from './pages/AttunementPage';
 import NotFoundPage from './pages/NotFoundPage';
 import AppMapPage from './pages/AppMapPage';
 
@@ -66,7 +64,7 @@ const ProtectedRoute = ({ children }) => {
 // Profile, and everywhere else.
 // v59: the Calendar tab is gone; the calendar now lives inside the
 // Journal tab, so the fading peaches live on Home and Journal.
-const FLOWER_TAB_ROUTES = ['/', '/journal'];
+const FLOWER_TAB_ROUTES = ['/'];
 
 // App Content with routing
 const AppContent = () => {
@@ -136,18 +134,14 @@ const AppContent = () => {
         } />
         <Route path="/" element={
           <ProtectedRoute>
-            <HomePage />
+            <MainTabPage />
           </ProtectedRoute>
         } />
-        {/* v59: the Calendar tab is removed; its calendar lives
-            inside the Journal tab now. Old /calendar links land on
-            the Journal. */}
-        <Route path="/calendar" element={<Navigate to="/journal" replace />} />
-        <Route path="/journal" element={
-          <ProtectedRoute>
-            <JournalPage />
-          </ProtectedRoute>
-        } />
+        {/* v64 (Angelita, Nov 4, 2026): TWO tabs only. Home, Journal
+            and Attunement live stacked on the one main tab; Profile
+            is the second tab. Old deep links land on the main tab. */}
+        <Route path="/calendar" element={<Navigate to="/" replace />} />
+        <Route path="/journal" element={<Navigate to="/" replace />} />
         <Route path="/profile" element={
           <ProtectedRoute>
             <ProfilePage />
@@ -158,11 +152,7 @@ const AppContent = () => {
             <PartnerHubPage />
           </ProtectedRoute>
         } />
-        <Route path="/attunement" element={
-          <ProtectedRoute>
-            <AttunementPage />
-          </ProtectedRoute>
-        } />
+        <Route path="/attunement" element={<Navigate to="/" replace />} />
         {/* Fallback - 404 Page */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

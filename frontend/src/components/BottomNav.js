@@ -1,14 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, MessageCircle, User, BookOpen, Heart } from 'lucide-react';
+import { Home, User } from 'lucide-react';
 
-// v59: the Calendar tab is removed; the calendar lives inside the
-// Journal tab. (There is no Devotional route in this build, so no
-// Devotional tab exists to order here.)
+// v64 (Angelita, Nov 4, 2026): TWO tabs only. The main tab holds
+// Home, Journal and Attunement stacked in one scroll; the second
+// tab is Profile, with her picture, notification settings, the
+// legal and privacy pages, the app map, sign out and deletion.
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
-  { path: '/journal', icon: BookOpen, label: 'Journal' },
-  { path: '/attunement', icon: Heart, label: 'Attunement' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
 

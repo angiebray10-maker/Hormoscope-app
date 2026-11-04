@@ -419,7 +419,7 @@ export default function PartnerHubPage() {
           </p>
           <h1 className="text-2xl text-white mb-3" style={{ fontFamily: "'Poiret One', sans-serif" }}>Link Your Accounts</h1>
           <p className="text-[#CFC3CC] text-sm mb-6 leading-relaxed" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            Ask her for the invite code from her Attunement tab, then enter it below. You will be able to follow her cycle —
+            Ask her for the invite code from Attunement on her Home tab, then enter it below. You will be able to follow her cycle —
             ovulation days, fertile window, and when to expect her period.
           </p>
           <input

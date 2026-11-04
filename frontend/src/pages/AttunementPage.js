@@ -195,7 +195,7 @@ function AttunementPaywall() {
   );
 }
 
-export default function AttunementPage() {
+export default function AttunementPage({ embedded = false } = {}) {
   const { token, user, updateUser } = useAuth();
   const { isPro, loading: premiumLoading } = usePremium();
 
@@ -381,7 +381,7 @@ export default function AttunementPage() {
       {invite && invite.kind === 'sync' && invite.code && (
         <div className="rounded-2xl p-4 mb-4 text-center" style={{ border: '1px solid rgba(244,167,185,0.35)', background: 'rgba(244,167,185,0.06)' }} data-testid="sync-invite-result">
           <p className="text-[#CFC3CC] text-xs mb-2" style={poppins}>
-            Share this code with your person. They make their own HORMOscope account, and right in onboarding they can enter it to link with you. The Attunement tab works too.
+            Share this code with your person. They make their own HORMOscope account, then enter this code in the Partner Hub to link with you.
           </p>
           <button onClick={() => copyText(invite.code)} className="w-full py-3 rounded-xl text-center" style={{ background: 'rgba(255,79,154,0.08)', border: '1px dashed rgba(255,79,154,0.4)' }}>
             <span className="text-white text-xl font-bold tracking-[0.3em]" style={poppins}>{invite.code}</span>
@@ -406,7 +406,7 @@ export default function AttunementPage() {
   );
 
   return (
-    <div className="relative min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="attunement-page">
+    <div className={embedded ? 'relative px-5 pt-8' : 'relative min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8'} style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="attunement-page">
       {/* Couples wallpaper: the man-and-woman couple and the hallway
           couple (Angelita's pick, Oct 26, 2026). CONTAINED fit, never
           cover (Angelita, Oct 31, 2026: with object-cover into a box
@@ -638,7 +638,7 @@ export default function AttunementPage() {
 
           </>
         )}
-        <TabFooter />
+        {!embedded && <TabFooter />}
       </div>
     </div>
   );

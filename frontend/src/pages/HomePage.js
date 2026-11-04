@@ -135,7 +135,7 @@ function AnonUpgradeBanner() {
   );
 }
 
-export default function HomePage() {
+export default function HomePage({ embedded = false } = {}) {
   const { user, token } = useAuth();
   const { refreshCustomerInfo, companionEntitled } = usePremium();
   const [data, setData] = useState(null);
@@ -229,7 +229,7 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className={embedded ? 'py-16 flex items-center justify-center' : 'min-h-screen flex items-center justify-center'}>
         <div className="cycle-orb orb-follicular w-16 h-16" />
       </div>
     );
@@ -328,7 +328,7 @@ export default function HomePage() {
     };
     const todayLines = dayLines(todaySummary);
     return (
-      <div className="min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8" data-testid="home-noperiods">
+      <div className={embedded ? 'px-5 pt-8' : 'min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8'} data-testid="home-noperiods">
         <div className="text-center mb-8">
           <h1 className="text-3xl text-white mb-3 font-script">
             Welcome to your true HORMOscope
@@ -408,13 +408,13 @@ export default function HomePage() {
         )}
 
         {/* v50: our logo rests at the very bottom of Home. */}
-        <TabFooter />
+        {!embedded && <TabFooter />}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8">
+    <div className={embedded ? 'px-5 pt-8' : 'min-h-screen pb-28 lg:pb-8 lg:pl-64 px-5 pt-8'}>
 
       {/* Header */}
       <div className="text-center mb-8">
@@ -804,7 +804,7 @@ export default function HomePage() {
       </div>
 
       {/* v50: our logo rests at the very bottom of Home. */}
-      <TabFooter />
+      {!embedded && <TabFooter />}
     </div>
   );
 }

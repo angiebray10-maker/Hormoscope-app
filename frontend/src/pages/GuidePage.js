@@ -27,7 +27,7 @@ export default function GuidePage() {
         <div className="space-y-10 text-[#d4d4e0] text-sm sm:text-base leading-relaxed" data-testid="guide-body">
           <section data-testid="guide-overview">
             <h2 className="text-xl sm:text-2xl text-white mb-3">What HORMOscope does</h2>
-            <p className="mb-3">HORMOscope has four tabs, in this order: Home, Journal, Attunement and Profile. Home is where you read your day. Journal is where you log it.</p>
+            <p className="mb-3">HORMOscope has two tabs. Your Home tab is one long page: Home at the top, where you read your day, then Journal, where you log it, then Attunement. The second tab is Profile, with your picture, your reminder settings, and the legal and privacy pages.</p>
             <p className="mb-3">Your daily reads come from your cycle and what you log, not from astrology.</p>
           </section>
           <section data-testid="guide-home">
@@ -49,7 +49,7 @@ export default function GuidePage() {
             <h2 className="text-xl sm:text-2xl text-white mb-3">Attunement</h2>
             <p className="mb-3">Attunement is where you link with a partner, so they can follow your cycle with you.</p>
             <ul className="list-disc pl-5 space-y-1 mb-3">
-              <li><strong>Invite code:</strong> in the Attunement tab, create an invite code and send it to your partner. They enter it in the Partner Hub.</li>
+              <li><strong>Invite code:</strong> in Attunement, lower on your Home tab, create an invite code and send it to your partner. They enter it in the Partner Hub.</li>
               <li><strong>Partner without a cycle:</strong> they get a view of your phase, what it may feel like, and how to show up for you.</li>
               <li><strong>Partner who also gets a period:</strong> you can sync, and Attunement shows both of your cycles side by side.</li>
               <li><strong>Sharing choices:</strong> in Attunement, you pick what your partner sees. Your journal and your intimacy log stay private unless you turn their sharing on. You can also share your daily log and your note. Anything you leave off is never sent.</li>

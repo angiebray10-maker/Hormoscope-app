@@ -219,7 +219,7 @@ function YearCalendar({ year, onYearChange, loggedDays, selectedDate, phaseColor
   );
 }
 
-export default function JournalPage() {
+export default function JournalPage({ embedded = false } = {}) {
   const { token, user, updateUser } = useAuth();
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [dashboard, setDashboard] = useState(null);
@@ -715,7 +715,7 @@ export default function JournalPage() {
   );
 
   return (
-    <div className="relative min-h-screen pb-80 lg:ml-64" style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="journal-page">
+    <div className={embedded ? 'relative pb-10' : 'relative min-h-screen pb-80 lg:ml-64'} style={{ background: 'linear-gradient(180deg, #15152B 0%, #0f0a1a 30%, #0B0B1E 100%)' }} data-testid="journal-page">
       <div className="absolute top-0 left-0 w-full h-64 pointer-events-none overflow-hidden opacity-20">
         <div className="absolute top-4 left-4 text-2xl" style={{ color: '#f4a7b9' }}>✿</div>
         <div className="absolute top-12 right-8 text-xl" style={{ color: '#c9b8f0' }}>✿</div>
@@ -1291,7 +1291,7 @@ export default function JournalPage() {
 
       {/* v62 (Angelita, Nov 2, 2026): the logo and rights line sit at
           the very end of EVERY tab. Journal was missing it. */}
-      <TabFooter />
+      {!embedded && <TabFooter />}
     </div>
   );
 }

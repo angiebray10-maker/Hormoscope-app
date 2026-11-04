@@ -5,10 +5,10 @@ import { ChevronLeft } from 'lucide-react';
 // App map: every section in one organised list.
 export const APP_MAP = [
   { group: 'Main tabs', items: [
-    { to: '/', name: 'Home', desc: 'Read-only: the big day peach says You are on day N, glowing in your phase color, with your estimated next period, your Daily Read, the daily recipe and vitamins, your daily affirmation, and the logo resting at the bottom.' },
-    { to: '/journal', name: 'Journal', desc: 'Where you log your day: the calendar at the top with phase colours and period, intimacy, fertile and ovulation markers, all your daily questions and your note for any day, past days by month and year, and the history chart.' },
-    { to: '/attunement', name: 'Attunement', desc: 'Attuned Partner Mode: invite your partner or sync cycles with your girlfriend, and choose what to share, including the Share my daily log and Include my note toggles.' },
-    { to: '/profile', name: 'Profile', desc: 'Your name, the conditions you live with, and your account: sign out, or delete your account and data.' },
+    { to: '/', name: 'Home', desc: 'The top of your Home tab, read-only: the big day peach says You are on day N, glowing in your phase color, with your estimated next period, your Daily Read, the daily recipe and vitamins, and your daily affirmation.' },
+    { to: '/', name: 'Journal', desc: 'In the middle of your Home tab: where you log your day, with the calendar at the top in phase colours and period, intimacy, fertile and ovulation markers, all your daily questions and your note for any day, past days by month and year, and the history chart.' },
+    { to: '/', name: 'Attunement', desc: 'At the bottom of your Home tab: Attuned Partner Mode. Invite your partner or sync cycles with your girlfriend, and choose what to share, including the Share my daily log and Include my note toggles.' },
+    { to: '/profile', name: 'Profile', desc: 'Your second tab: your picture and name, the conditions you live with, your reminder settings, the legal and privacy pages, and your account: sign out, or delete your account and data.' },
   ]},
   { group: 'Partner', items: [
     { to: '/partner-hub', name: 'Partner Hub', desc: 'Where a partner enters an invite code and follows your cycle.' },

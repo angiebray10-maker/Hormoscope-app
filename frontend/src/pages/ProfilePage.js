@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { User, LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Loader2, BookOpen, Trash2 } from 'lucide-react';
+import { User, LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Loader2, BookOpen, Trash2, Camera, Bell } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
 import TabFooter from '../components/TabFooter';
+import { loadNotifPrefs, saveNotifPrefs, applyNotificationSchedule, DEFAULT_NOTIF_PREFS, WEEKDAY_LABELS } from '../utils/notifications';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const APP_URL = process.env.REACT_APP_BACKEND_URL?.replace('/api', '') || window.location.origin;
@@ -122,15 +123,125 @@ function AttachEmailSection() {
   );
 }
 
+// v64 (Angelita, Nov 4, 2026): notification settings live here on
+// the second tab. The shape is fixed by her order: twice a week at
+// 9 AM. She picks which two days, or turns them off. New signups
+// get Monday and Thursday set automatically at onboarding; this
+// section is where that choice is changed afterwards.
+function NotificationsSection() {
+  const [prefs, setPrefs] = useState(() => loadNotifPrefs() || { ...DEFAULT_NOTIF_PREFS, enabled: false });
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const apply = async (next) => {
+    setPrefs(next);
+    saveNotifPrefs(next);
+    setBusy(true);
+    setMsg('');
+    const res = await applyNotificationSchedule(next, { askPermission: next.enabled });
+    setBusy(false);
+    if (!next.enabled) setMsg('Reminders off.');
+    else if (res.scheduled) setMsg('Saved. Your reminders are set.');
+    else if (res.reason === 'denied') setMsg('Your phone has notifications off for HORMOscope. Turn them on in your phone settings, then flip this switch off and on again.');
+    else if (res.reason === 'web') setMsg('Saved. Reminders ring inside the app on your phone.');
+    else setMsg('Saved.');
+  };
+
+  const toggleDay = (id) => {
+    let days = prefs.days.includes(id) ? prefs.days.filter((d) => d !== id) : [...prefs.days, id];
+    if (days.length > 2) days = days.slice(days.length - 2);
+    if (days.length === 0) days = [id];
+    apply({ ...prefs, days: days.sort((a, b) => a - b) });
+  };
+
+  return (
+    <div className="glass-card p-5 mb-6" data-testid="notifications-section" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-white text-base flex items-center gap-2">
+          <Bell className="w-4 h-4" style={{ color: '#FF4F9A' }} />
+          Reminders
+        </p>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={prefs.enabled}
+          data-testid="notif-toggle"
+          disabled={busy}
+          onClick={() => apply({ ...prefs, enabled: !prefs.enabled })}
+          className="relative w-12 h-7 rounded-full transition-colors disabled:opacity-50"
+          style={{ background: prefs.enabled ? '#FF4F9A' : 'rgba(255,255,255,0.15)' }}
+        >
+          <span className="absolute top-0.5 w-6 h-6 rounded-full bg-white transition-all" style={{ left: prefs.enabled ? 22 : 2 }} />
+        </button>
+      </div>
+      <p className="text-[#CFC3CC] text-xs leading-relaxed mb-4">
+        Twice a week at 9 AM, a small nudge that your Daily Read is waiting. Pick your two days:
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {WEEKDAY_LABELS.map(({ id, label }) => {
+          const active = prefs.days.includes(id);
+          return (
+            <button
+              key={id}
+              type="button"
+              data-testid={`notif-day-${id}`}
+              disabled={busy}
+              onClick={() => toggleDay(id)}
+              className="px-3.5 py-2 rounded-full text-sm disabled:opacity-50"
+              style={active
+                ? { background: 'rgba(255,79,154,0.18)', border: '1.5px solid #FF4F9A', color: '#fff' }
+                : { background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#CFC3CC' }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      {msg && <p className="text-sm text-[#E6E0EE] mt-3" role="status">{msg}</p>}
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const { user, token, logout, updateUser } = useAuth();
   const { companionEntitled } = usePremium();
   const navigate = useNavigate();
-  // v62: the name edit is back (restored from v60). The photo upload
-  // and the notifications section are NOT: she did not ask for them.
+  // v62: the name edit is back (restored from v60).
+  // v64 (Angelita, Nov 4, 2026): the photo upload is back too, here
+  // on the second tab where she said the picture goes.
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState(user?.profile_photo || null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.profile_photo) setPhotoPreview(user.profile_photo);
+  }, [user?.profile_photo]);
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setPhotoPreview(reader.result);
+    reader.readAsDataURL(file);
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await axios.post(`${API}/profile/photo`, formData, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+      });
+      updateUser(res.data);
+      setPhotoPreview(res.data.profile_photo);
+    } catch (err) {
+      logger.error('Photo upload error:', err);
+      setPhotoPreview(user?.profile_photo || null);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -220,12 +331,42 @@ export default function ProfilePage() {
       </div>
 
       {/* v62 (Angelita, Nov 2, 2026): name and email are back on the
-          top card (restored from v60). No photo: the circle stays a
-          plain gradient with the User icon, there is no upload. */}
+          top card (restored from v60). v64: the photo upload is back
+          on the circle; tap it to change her picture. */}
       <div className="glass-card p-6 mb-6">
         <div className="flex items-center gap-5">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#F4D3DC] to-[#C9B8F0] flex items-center justify-center border-2 border-[#F4D3DC]/30">
-            <User className="w-10 h-10 text-white" />
+          <div className="relative">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handlePhotoChange}
+              accept="image/*"
+              className="hidden"
+              id="profile-photo-input"
+            />
+            <label
+              htmlFor="profile-photo-input"
+              className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#F4D3DC] to-[#C9B8F0] flex items-center justify-center overflow-hidden border-2 border-[#F4D3DC]/30 hover:border-[#F4D3DC] transition-all cursor-pointer block"
+              data-testid="profile-photo-btn"
+            >
+              {photoPreview ? (
+                <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-10 h-10 text-white" />
+              )}
+              <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                {uploading ? (
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-6 h-6 text-white" />
+                )}
+              </div>
+            </label>
+            {!photoPreview && (
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#F4D3DC] flex items-center justify-center shadow-lg pointer-events-none">
+                <Camera className="w-4 h-4 text-[#12090E]" />
+              </div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             {isEditing ? (
@@ -302,7 +443,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3">
             <Shield className="w-5 h-5 text-[#C9B8F0]" />
-            <span className="text-[#FDF8FA]">Privacy Policy</span>
+            <span className="text-[#FDF8FA]">Privacy and Security</span>
           </div>
           <ChevronRight className="w-5 h-5 text-[#CFC3CC]" />
         </Link>
@@ -313,7 +454,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-[#C9B8F0]" />
-            <span className="text-[#FDF8FA]">Terms of Service</span>
+            <span className="text-[#FDF8FA]">Terms and Disclaimers</span>
           </div>
           <ChevronRight className="w-5 h-5 text-[#CFC3CC]" />
         </Link>
@@ -323,6 +464,8 @@ export default function ProfilePage() {
           (Angelita, Oct 31, 2026): Attunement has its own tab, and
           this duplicate only cluttered Profile. */}
       <MyDetailsSection user={user} token={token} updateUser={updateUser} />
+
+      <NotificationsSection />
 
       {/* Logout: legacy email accounts only (v61). An anonymous
           user has no sign-in to return to, so a Sign Out button

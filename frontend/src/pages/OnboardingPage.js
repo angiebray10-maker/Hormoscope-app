@@ -4,55 +4,33 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import DateSelect from '../components/DateSelect';
-import { ChevronRight, ChevronLeft, ChevronDown, Heart, BookOpen, Lock, Shield, KeyRound } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ChevronDown, Heart, BookOpen, Lock, Shield } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 import { BRAND, HEADING_FONT, BODY_FONT } from '../lib/phases';
 import { BACKDROP_OVERLAY, ONBOARDING_BG } from '../lib/backdrops';
+import { ensureSignupNotifications } from '../utils/notifications';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Slim onboarding (Angelita, Oct 26, 2026, v50): fewer questions, show
-// what the app does, and get her to her cycle day fast. Three steps:
-// welcome (what HORMOscope does, the privacy promise in one
-// proud line with the full text a tap away, an optional partner code)
-// -> last period (approximate is fine, no penalty) -> her situation.
-// v55 (Angelita, Oct 30, 2026): NO cycle length question anywhere in
-// onboarding, in any form. The only cycle fact asked is the first day
-// of her last period; everything else starts as an honest estimate
-// the server holds silently, and her own logged starts and finishes
-// teach the app her real bleeding days and real cycle length. Step 3
-// says exactly that, where the cycle question used to be. Then she
-// lands on Home on her cycle day.
-//
-// What moved OUT, by her order: the standalone security step (folded
-// into step 1 above), the sharing checklist step (the checklist lives
-// ONLY in Attunement now, where it runs before invite creation), and
-// the reminders step (Home carries one dismissible reminders card
-// instead; the backend fields stay optional and are simply no longer
-// collected here). "I no longer have periods" keeps its off-ramp on
-// the period step exactly as before. Birthday stays in Profile.
-const STEP_BG = { 1: ONBOARDING_BG, 2: ONBOARDING_BG, 3: ONBOARDING_BG };
+// v64 (Angelita, Nov 4, 2026): onboarding cut down to TWO steps and
+// only two real questions. She said almost half of it had to go and
+// it needs to be really simple. What is left: step 1, her name and
+// the privacy promise; step 2, the first day of her last period
+// (with "I don't remember exactly" and "I no longer have periods"
+// as the two ways out). GONE: the whole "Your situation" step (the
+// seven-way list) and the partner invite code block (a partner
+// enters her code in the Partner Hub instead). Her situation is
+// stored as "unsure": she starts on an honest estimate and her own
+// logging teaches the app, exactly as the period step tells her.
+// Completing onboarding also sets her twice-a-week 9 AM reminders
+// (Angelita, Nov 4, 2026): the system asks permission once, here.
+const STEP_BG = { 1: ONBOARDING_BG, 2: ONBOARDING_BG };
 
 const WHAT_IT_DOES = [
   { icon: BookOpen, text: 'Your Daily Read, written for your exact cycle day' },
   { icon: Heart, text: 'Attuned Partner Mode: share your cycle, only what you choose' },
-  { icon: Lock, text: 'Your private Journal and Vault: your words, yours alone' },
-];
-
-// "I'm not sure" sits FIRST and equal (Angelita, Oct 26, 2026): she
-// starts on an estimate and the app gets exact from her logging. No
-// length is ever typed or slid here (v55); the estimate number itself
-// is never shown to her as if it were hers. The other situations
-// still switch fertility predictions off, exactly as before.
-const SITUATIONS = [
-  { id: 'unsure', label: "I'm not sure", hint: "We'll start with an estimate, and your logging makes it exact" },
-  { id: 'regular', label: 'I get a period', hint: 'Your logging teaches the app your real lengths' },
-  { id: 'hormonal_birth_control', label: "I'm on hormonal birth control", hint: 'Fertility predictions stay off' },
-  { id: 'pregnant', label: "I'm pregnant", hint: 'Fertility predictions stay off' },
-  { id: 'postpartum', label: 'Postpartum / breastfeeding', hint: 'Fertility predictions stay off' },
-  { id: 'menopause', label: 'Perimenopause or menopause', hint: 'Fertility predictions stay off' },
-  { id: 'no_periods', label: 'I no longer have periods', hint: 'Your days are built from what you log' },
+  { icon: Lock, text: 'Your private Journal: your words, yours alone' },
 ];
 
 const choiceClass = (active) =>
@@ -62,66 +40,16 @@ const choiceClass = (active) =>
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
-  // v62 (Angelita, Nov 2, 2026): the name is back, restored from the
-  // v60 flow. No email verification gate comes with it: a new account
-  // is usable the moment it is created.
   const [name, setName] = useState('');
   const [showSecurity, setShowSecurity] = useState(false);
   const [lastPeriodDate, setLastPeriodDate] = useState('');
   const [dontRemember, setDontRemember] = useState(false);
   const [noPeriods, setNoPeriods] = useState(false);
-  const [situation, setSituation] = useState('unsure');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  // Optional partner code on the welcome step (v50): closed unless
-  // she opens it; a successful accept records who she linked with.
-  const [showCode, setShowCode] = useState(false);
-  const [inviteCode, setInviteCode] = useState('');
-  const [inviteBusy, setInviteBusy] = useState(false);
-  const [inviteError, setInviteError] = useState('');
-  const [inviteLinked, setInviteLinked] = useState(null); // partner name
   const { token, user, updateUser } = useAuth();
   const navigate = useNavigate();
-  const totalSteps = 3;
-
-  const effSituation = noPeriods ? 'no_periods' : situation;
-  const pickSituation = (id) => {
-    if (id === 'no_periods') { setNoPeriods(true); return; }
-    setNoPeriods(false);
-    setSituation(id);
-  };
-
-  // Already linked? Nothing to ask her: the welcome step simply shows
-  // who she is linked with.
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    axios.get(`${API}/partner/status`, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 })
-      .then((res) => {
-        if (!cancelled && res.data?.is_linked) {
-          setInviteLinked(res.data.partner_name || 'your partner');
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-
-  const acceptInvite = async () => {
-    const code = inviteCode.trim().toUpperCase();
-    if (!code || inviteBusy) return;
-    setInviteBusy(true);
-    setInviteError('');
-    try {
-      const res = await axios.post(`${API}/partner/accept-invite`, { invite_code: code }, { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 });
-      setInviteLinked(res.data.linked_to || 'your partner');
-    } catch (err) {
-      setInviteError(err.response?.data?.detail || "That code didn't work. Check it and try again, or continue without linking.");
-      logger.error('Onboarding invite accept error:', err);
-    } finally {
-      setInviteBusy(false);
-    }
-  };
+  const totalSteps = 2;
 
   // v61: an existing user who already finished onboarding (for
   // example after an app update) is never walked through it again.
@@ -140,22 +68,17 @@ export default function OnboardingPage() {
 
   const canNext =
     (step === 1 && name.trim().length > 0) ||
-    (step === 2 && (noPeriods || dontRemember || !!lastPeriodDate)) ||
-    step >= 3;
+    (step === 2 && (noPeriods || dontRemember || !!lastPeriodDate));
 
   const handleComplete = async () => {
     setLoading(true);
     setError('');
     try {
-      // Only the essentials are sent. partner_visibility and the
-      // notification fields stay OPTIONAL in the backend contract:
-      // the checklist lives in Attunement, and reminders are set from
-      // the Home card or Profile, so nothing is collected here.
       const res = await axios.post(`${API}/onboarding`, {
         name: name.trim(),
         last_period_date: noPeriods || dontRemember ? null : lastPeriodDate,
-        cycle_status: effSituation,
-        no_periods: effSituation === 'no_periods',
+        cycle_status: noPeriods ? 'no_periods' : 'unsure',
+        no_periods: noPeriods,
         // v55: no cycle_length is sent, ever. The server stores its
         // silent placeholder estimate and flags it as an estimate
         // until her logged starts teach the app her real length.
@@ -163,6 +86,10 @@ export default function OnboardingPage() {
       }, { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 });
       updateUser(res.data);
       localStorage.setItem('hormoscope-show-welcome', 'true');
+      // Her 9 AM twice-a-week reminders are set at signup (her
+      // order, Nov 4, 2026). The system permission prompt appears
+      // once, here; a denial never blocks her from entering.
+      await ensureSignupNotifications().catch(() => {});
       navigate('/');
     } catch (err) {
       logger.error('Onboarding error:', err);
@@ -190,7 +117,7 @@ export default function OnboardingPage() {
       </div>
       <div className="w-full max-w-md relative">
         <div className="flex items-center justify-center gap-2 mb-8" aria-label={`Step ${step} of ${totalSteps}`}>
-          {[1, 2, 3].map((s) => (
+          {[1, 2].map((s) => (
             <div key={s} className="h-2 rounded-full transition-all" style={{ width: s <= step ? 36 : 20, background: s <= step ? BRAND.pink : 'rgba(255,255,255,0.15)' }} />
           ))}
         </div>
@@ -209,8 +136,6 @@ export default function OnboardingPage() {
                 <Sub>Your day, read from your own cycle.</Sub>
               </div>
 
-              {/* What HORMOscope does: the glimpse comes before the
-                  questions (Angelita, Oct 26, 2026). */}
               <div className="space-y-2" data-testid="onboarding-what-it-does">
                 {WHAT_IT_DOES.map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-center gap-3 rounded-xl px-4 py-2.5 border border-white/10" style={{ background: 'rgba(255,255,255,0.03)' }}>
@@ -225,9 +150,8 @@ export default function OnboardingPage() {
                 <Input id="ob-name" data-testid="onboarding-name-input" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your first name" className="input-dark text-lg" autoFocus />
               </div>
 
-              {/* Privacy is the number one promise (Angelita, Oct 26,
-                  2026): ONE proud line up front, the full five points
-                  a single tap away. */}
+              {/* Privacy is the number one promise: ONE proud line up
+                  front, the full five points a single tap away. */}
               <div>
                 <p className="flex items-start gap-2 text-[13px] leading-relaxed text-[#E6E0EE]" data-testid="onboarding-privacy-line">
                   <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: BRAND.pink }} />
@@ -257,46 +181,6 @@ export default function OnboardingPage() {
                   </div>
                 )}
               </div>
-
-              {/* Optional partner code: there if she was invited,
-                  invisible pressure if she was not. */}
-              {inviteLinked ? (
-                <div className="rounded-xl p-4 border border-[#FF4F9A]/40 text-center" style={{ background: 'rgba(255,79,154,0.08)' }} data-testid="onboarding-invite-linked">
-                  <p className="text-white text-[15px]">You're linked with {inviteLinked}.</p>
-                  <p className="text-xs mt-1" style={{ color: BRAND.textMuted }}>Now let's set up your own side.</p>
-                </div>
-              ) : showCode ? (
-                <div className="space-y-3" data-testid="onboarding-invite-block">
-                  <div>
-                    <label className="block mb-2 text-sm text-white" htmlFor="ob-invite-code">Her invite code</label>
-                    <Input id="ob-invite-code" data-testid="onboarding-invite-code" type="text" value={inviteCode}
-                      onChange={(e) => setInviteCode(e.target.value.toUpperCase().slice(0, 8))}
-                      placeholder="8 characters" className="input-dark text-lg uppercase" autoFocus />
-                  </div>
-                  <Button data-testid="onboarding-invite-accept" onClick={acceptInvite} disabled={inviteBusy || inviteCode.trim().length < 4} className="w-full rounded-full text-white" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}>
-                    {inviteBusy ? 'Linking…' : 'Link us'}
-                  </Button>
-                  {inviteError && (
-                    <div role="alert" data-testid="onboarding-invite-error" className="rounded-xl p-3 text-sm border border-red-400/40 bg-red-500/10 text-red-200">
-                      {inviteError}
-                    </div>
-                  )}
-                  <button data-testid="onboarding-invite-skip" onClick={() => { setShowCode(false); setInviteError(''); }} className="w-full text-center text-sm underline" style={{ color: BRAND.textMuted }}>
-                    Continue without linking
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowCode(true)}
-                  className="w-full inline-flex items-center justify-center gap-2 text-[13px]"
-                  style={{ color: BRAND.textMuted }}
-                  data-testid="onboarding-invite-open"
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span className="underline">I have a partner invite code</span>
-                </button>
-              )}
             </div>
           )}
 
@@ -317,27 +201,6 @@ export default function OnboardingPage() {
                 {noPeriods ? '✓ ' : ''}I no longer have periods
                 <span className="block text-xs mt-1" style={{ color: BRAND.textMuted }}>No periods to predict. Your days are built from what you log instead.</span>
               </button>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-5" data-testid="onboarding-cycle-step">
-              <div>
-                <H>Your situation</H>
-                <Sub>Pick what's true for you right now. Not knowing is a perfectly good answer here.</Sub>
-              </div>
-              <div className="space-y-2">
-                {SITUATIONS.map((o) => (
-                  <button key={o.id} data-testid={`onboarding-situation-${o.id}`} onClick={() => pickSituation(o.id)} className={choiceClass(effSituation === o.id)}>
-                    {effSituation === o.id ? '✓ ' : ''}{o.label}
-                    <span className="block text-xs mt-0.5" style={{ color: BRAND.textMuted }}>{o.hint}</span>
-                  </button>
-                ))}
-              </div>
-              {/* Where the cycle length question used to be, the app
-                  now SAYS what happens instead (Angelita, Oct 30,
-                  2026): it starts from a guess, she teaches it the
-                  truth by logging. Her words, in her voice. */}
               <div className="rounded-2xl p-4 border border-white/10 text-left" style={{ background: 'rgba(255,255,255,0.03)' }} data-testid="onboarding-learning-note">
                 <p className="text-[13px] leading-relaxed" style={{ color: BRAND.textMuted }}>
                   That is all we need to start. At first, everything is an estimate. Log the day your period starts and the day it finishes, and HORMOscope learns your real bleeding days and your real cycle length from you, month by month. The more you log, the more accurate your predictions get.
@@ -361,7 +224,7 @@ export default function OnboardingPage() {
                 Next <ChevronRight className="w-5 h-5" />
               </Button>
             ) : (
-              <Button data-testid="onboarding-complete-btn" onClick={handleComplete} disabled={loading} className="rounded-full px-6 text-white" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}>
+              <Button data-testid="onboarding-complete-btn" onClick={handleComplete} disabled={loading || !canNext} className="rounded-full px-6 text-white" style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}>
                 {loading ? 'Saving…' : error ? 'Try again' : 'Start'}
               </Button>
             )}
