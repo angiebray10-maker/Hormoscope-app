@@ -1,13 +1,18 @@
 // Couple backdrops: swap the files here to change every faded backdrop
-// on the landing and onboarding screens. Angelita picked this set
-// (Oct 26, 2026): the at-home couple first, then the hallway couple, the
-// laughing couple, the sunset couple, and the couple in bed with their
-// dog. They stay very faded (92% navy) behind the words on purpose.
+// on the landing screen. Order set by Angelita (Nov 5, 2026): the
+// boy and girl picture FIRST (the sunset couple), then the what we
+// are all about sections, then the lesbian couples. One picture per
+// section on the landing page, never stacked or reused.
+//   [0] sunset   - boy and girl, hero
+//   [1] athome   - two women at home
+//   [2] hallway  - two women in the hallway
+//   [3] laughing - two women laughing outside
+//   [4] couple-2 - two women in bed with their dog
 export const BACKDROPS = [
+  '/images/backdrop-sunset.webp',
   '/images/backdrop-athome.webp',
   '/images/backdrop-hallway.webp',
   '/images/backdrop-laughing.webp',
-  '/images/backdrop-sunset.webp',
   '/images/backdrop-couple-2.webp',
 ];
 export const BACKDROP_OVERLAY = 'rgba(11,11,30,0.92)';

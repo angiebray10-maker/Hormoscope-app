@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import BackButton from '../components/BackButton';
 
 // App map: every section in one organised list.
 export const APP_MAP = [
@@ -17,6 +17,7 @@ export const APP_MAP = [
     { to: '/guide', name: 'Instructional Guide', desc: 'How each part of the app works.' },
     { to: '/founders-note', name: 'Founder\u2019s Note', desc: 'Why HORMOscope was made.' },
     { to: '/contact', name: 'Contact Us', desc: 'Get in touch with the HORMOscope team.' },
+    { to: '/suggestions', name: 'Suggestion Box', desc: 'Tell Angelita what you would like to see in HORMOscope, or what feature you would like built next.' },
   ]},
   { group: 'Legal', items: [
     { to: '/privacy', name: 'Privacy Policy', desc: 'What we collect, how it is used and your choices.' },
@@ -27,7 +28,7 @@ export const APP_MAP = [
 export default function AppMapPage() {
   return (
     <div className="min-h-screen px-5 pt-8 pb-28" style={{ background: '#0B0B1E', fontFamily: 'Poppins, sans-serif' }} data-testid="app-map">
-      <Link to="/profile" className="inline-flex items-center gap-1 text-[#E6E0EE] mb-4"><ChevronLeft className="w-5 h-5" /> Back</Link>
+      <BackButton fallback="/profile" className="mb-4" />
       <h1 className="text-3xl text-white mb-6" style={{ fontFamily: "'Poiret One', sans-serif" }}>App map</h1>
       {APP_MAP.map((g) => (
         <section key={g.group} className="mb-6">

@@ -18,11 +18,14 @@ const NEW_LOGO = '/images/logo.png';
 // Oct 31, 2026): with cover the couples were cropped out of frame.
 // Whole picture, navy field behind it, the 92% navy overlay on top
 // unchanged.
+// One backdrop per section (Angelita, Nov 5, 2026): boy and girl
+// first in the hero, the lesbian couples after, nothing reused and
+// nothing stacked on top of another picture.
 const HERO_BG = BACKDROPS[0];
-const SCENARIO_BG = BACKDROPS[1];
-const SCIENCE_BG = BACKDROPS[2];
-const RELATIONSHIP_BG = BACKDROPS[3];
-const TRANSFORM_BG = BACKDROPS[4];
+const TRANSFORM_BG = BACKDROPS[1];
+const CTA_BG = BACKDROPS[2];
+const SCIENCE_BG = BACKDROPS[3];
+const FINAL_BG = BACKDROPS[4];
 
 
 const BrandName = ({ className = '', style = {} }) => (
@@ -76,7 +79,7 @@ export default function AuthPage() {
       <nav className="fixed top-0 left-0 right-0 z-50" style={{ background: 'rgba(10,10,26,0.92)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(201,184,240,0.08)' }}>
         <div className="max-w-5xl mx-auto px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={NEW_LOGO} alt="HORMOscope" className="w-9 h-9 rounded-full object-cover" />
+            <img src="/images/peach-mini.png" alt="HORMOscope" className="w-11 h-11 rounded-full object-cover" />
             <BrandName className="text-xl" />
           </div>
           <div className="hidden sm:flex items-center gap-6">
@@ -106,14 +109,18 @@ export default function AuthPage() {
         <div className="absolute inset-0" style={{ backgroundImage: `url(${HERO_BG})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
-        <div aria-hidden="true" className="absolute inset-0 pointer-events-none" data-testid="auth-faded-wallpaper" style={{ backgroundImage: 'url(/images/blueprint-wallpaper.png)', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.14 }} />
 
         <div className="relative z-10 w-full max-w-xl mx-auto px-6 py-20 text-center sm:text-left">
           <h1 className="text-5xl sm:text-6xl text-white leading-tight mb-3" style={{ fontFamily: HEADING_FONT }} data-testid="hero-title">
             HORMOscope
           </h1>
-          <p className="text-base sm:text-lg mb-5" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }} data-testid="hero-tagline">
-            Not your horoscope. Your hormones.
+          <p className="text-base sm:text-lg mb-2" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }} data-testid="hero-tagline">
+            Science, not Stars
+          </p>
+          {/* Smaller cursive line under the tagline (Angelita,
+              Nov 5, 2026): the link with your partner feature. */}
+          <p className="text-sm sm:text-base mb-5" style={{ color: PINK, fontFamily: "'Architects Daughter', cursive" }} data-testid="hero-tagline-sub">
+            with the Link With Your Partner feature
           </p>
           <p className="text-sm sm:text-base leading-relaxed mb-8 max-w-md" style={{ color: PINK_SOFT, fontFamily: 'Poppins, sans-serif' }}>
             A daily read based on your menstrual cycle: which phase you&apos;re in and how it may shape your mood, energy and focus. Share it with your partner, or sync cycles with your girlfriend.
@@ -131,9 +138,6 @@ export default function AuthPage() {
               rides here on the front page as a small extra line. */}
           <p className="text-xs mb-2 text-center sm:text-left" style={{ color: PURPLE_LIGHT, fontFamily: 'Poppins, sans-serif' }} data-testid="hero-bonus-line">
             Bonus: share your cycle with someone close
-          </p>
-          <p className="text-xs flex items-center justify-center sm:justify-start gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-            <Shield className="w-3.5 h-3.5" /> HTTPS, hashed passwords, never sold.
           </p>
         </div>
         <button onClick={() => scrollTo(focusRef)} className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce" style={{ color: PINK_MUTED }}>
@@ -271,7 +275,7 @@ export default function AuthPage() {
 
       {/* CTA */}
       <section className="py-16 px-6 relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(${BACKDROPS[0]})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0" style={{ backgroundImage: `url(${CTA_BG})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
         <div className="max-w-md mx-auto relative z-10 text-center">
@@ -288,26 +292,11 @@ export default function AuthPage() {
         </div>
       </section>
 
-      {/* MEET THE FOUNDER */}
-      <section className="py-16 px-6" data-testid="meet-founder">
-        <div className="max-w-xl mx-auto flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-          <img src="/founder.webp" alt="Angelita, founder of HORMOscope" width="128" height="128" loading="lazy"
-            className="w-32 h-32 rounded-full object-cover flex-shrink-0"
-            style={{ objectPosition: '50% 35%', border: '2px solid #FF4F9A', boxShadow: '0 0 28px rgba(255,79,154,0.3)' }} />
-          <div>
-            <p className="text-xs tracking-[0.2em] uppercase mb-2" style={{ color: '#C9B8F0' }}>Meet the founder</p>
-            <p className="text-white text-lg leading-relaxed mb-3">I built HORMOscope after cancer forced me to finally listen to my body. You shouldn&apos;t have to get sick to start listening.</p>
-            <a href="/founders-note" className="text-sm font-medium" style={{ color: '#FF4F9A' }} data-testid="founder-note-link">Read my founder&apos;s note &rarr;</a>
-          </div>
-        </div>
-      </section>
-
       {/* FINAL CTA */}
       <section className="py-20 px-6 text-center relative overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: `url(${BACKDROPS[1]})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0" style={{ backgroundImage: `url(${FINAL_BG})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundColor: '#0B0B1E', backgroundPosition: 'center' }}>
           <div className="absolute inset-0" style={{ background: BACKDROP_OVERLAY }} />
         </div>
-        <div aria-hidden="true" className="absolute inset-0 pointer-events-none" data-testid="auth-faded-wallpaper" style={{ backgroundImage: 'url(/images/blueprint-wallpaper.png)', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.14 }} />
         <div className="max-w-lg mx-auto relative z-10">
           <h2 className="text-3xl sm:text-4xl mb-4 text-white" style={{ fontFamily: HEADING_FONT }} data-testid="final-cta-heading">
             You&apos;re not crazy,<br />
@@ -319,9 +308,6 @@ export default function AuthPage() {
           <button onClick={openSignup} data-testid="final-cta-btn" className="px-10 py-4 rounded-full text-white font-medium text-sm tracking-wide transition-all duration-300" style={{ background: 'rgba(123,79,166,0.3)', border: '1px solid rgba(201,184,240,0.3)' }}>
             Get Started
           </button>
-          <p className="text-xs mt-4 flex items-center justify-center gap-1.5" style={{ color: PINK_MUTED, fontFamily: 'Poppins, sans-serif' }}>
-            <Shield className="w-3.5 h-3.5" /> HTTPS, hashed passwords, never sold.
-          </p>
         </div>
       </section>
 

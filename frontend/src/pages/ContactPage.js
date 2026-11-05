@@ -1,14 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, Mail, MessageCircle, Flower2 } from 'lucide-react';
+import { Mail, MessageCircle, Flower2 } from 'lucide-react';
+import BackButton from '../components/BackButton';
 
 export default function ContactPage() {
   return (
     <div className="min-h-screen pb-32 lg:pb-8 lg:pl-72 p-6">
-      <Link to="/profile" className="inline-flex items-center gap-2 text-[#CFC3CC] hover:text-[#FDF8FA] mb-8">
-        <ChevronLeft className="w-5 h-5" />
-        Back
-      </Link>
+      <BackButton fallback="/profile" className="mb-8" />
 
       <div className="flex items-center gap-3 mb-8">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#F4D3DC] to-[#E8A4B8] flex items-center justify-center">

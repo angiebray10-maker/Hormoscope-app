@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Loader2, BookOpen, Trash2, Bell } from 'lucide-react';
+import { LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Loader2, BookOpen, Trash2, Bell, Lightbulb, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -377,6 +377,18 @@ export default function ProfilePage() {
           <ChevronRight className="w-5 h-5 text-[#CFC3CC]" />
         </Link>
 
+        <Link
+          to="/suggestions"
+          className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-t border-white/5"
+          data-testid="suggestion-box-link"
+        >
+          <div className="flex items-center gap-3">
+            <Lightbulb className="w-5 h-5 text-[#F4D3DC]" />
+            <span className="text-[#FDF8FA]">Suggestion Box</span>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[#CFC3CC]" />
+        </Link>
+
         <Link 
           to="/privacy"
           className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-t border-white/5"
@@ -437,6 +449,26 @@ export default function ProfilePage() {
       <p className="text-center text-sm text-[#E6E0EE] leading-relaxed mt-8 mb-2 px-2" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="profile-founder-note">
         I&apos;m just a solopreneur. It&apos;s just me, one person. This app was made by one woman, a breast cancer survivor.
       </p>
+
+      {/* Review ask (Angelita, Nov 5, 2026): right under her
+          solopreneur note at the bottom of the second tab, with
+          the Google Play link set up right there. */}
+      <div className="text-center px-2 mb-2" style={{ fontFamily: 'Poppins, sans-serif' }} data-testid="profile-review-ask">
+        <p className="text-sm text-[#E6E0EE] leading-relaxed mb-3">
+          If you have found HORMOscope useful in any way, would you mind writing a review? I would really appreciate it.
+        </p>
+        <a
+          href="https://play.google.com/store/apps/details?id=com.HORMOscope.app"
+          target="_blank"
+          rel="noreferrer"
+          data-testid="play-review-link"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-white text-sm font-medium"
+          style={{ background: 'transparent', border: '1.5px solid #FF4F9A' }}
+        >
+          <Star className="w-4 h-4" style={{ color: '#FF4F9A' }} />
+          Write a review on Google Play
+        </a>
+      </div>
 
       {/* v50: our logo rests at the very bottom of Profile. */}
       <TabFooter />

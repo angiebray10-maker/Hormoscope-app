@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import BackButton from '../components/BackButton';
 
 // Instructional Guide — the one home for how to use HORMOscope, living on
 // the Profile tab next to the Founder's Note (Angelita, Oct 17; rewritten
@@ -12,10 +12,7 @@ export default function GuidePage() {
   return (
     <div className="min-h-screen pb-32 lg:pl-80" style={{ background: '#0B0B1E' }} data-testid="guide-page">
       <div className="w-full max-w-2xl mx-auto px-6 sm:px-10 lg:px-12 pt-6 sm:pt-10">
-        <Link to="/profile" className="inline-flex items-center gap-2 text-[#a0a0b8] hover:text-white text-sm mb-8" data-testid="back-btn">
-          <ChevronLeft className="w-4 h-4" />
-          Back to Profile
-        </Link>
+        <BackButton fallback="/profile" label="Back to Profile" className="mb-8" />
 
         <h1 className="text-3xl sm:text-4xl text-white mb-3" data-testid="guide-title">
           Instructional Guide

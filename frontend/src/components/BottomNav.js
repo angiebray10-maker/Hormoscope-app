@@ -64,7 +64,7 @@ export default function BottomNav() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex sidebar fixed left-0 top-0 bottom-0 w-64 flex-col z-50 bg-[#1a1a2e] border-r border-white/5">
         <div className="p-6 border-b border-white/5 flex items-center gap-3">
-          <img src="/images/logo.png" alt="HORMOscope" className="w-10 h-10 rounded-full object-cover" />
+          <img src="/images/peach-mini.png" alt="HORMOscope" className="w-10 h-10 rounded-full object-cover" />
           <span className="text-2xl text-[#c9b8f0]" style={{ fontFamily: "'Poiret One', sans-serif", fontWeight: 400 }}>HORMOscope</span>
         </div>
         <nav className="flex-1 p-4 space-y-2">

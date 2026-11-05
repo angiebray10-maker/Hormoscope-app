@@ -20,6 +20,7 @@ import TermsPage from './pages/TermsPage';
 import FoundersNotePage from './pages/FoundersNotePage';
 import GuidePage from './pages/GuidePage';
 import ContactPage from './pages/ContactPage';
+import SuggestionsPage from './pages/SuggestionsPage';
 import PartnerViewPage from './pages/PartnerViewPage';
 import PartnerHubPage from './pages/PartnerHubPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -123,6 +124,7 @@ const AppContent = () => {
         <Route path="/founders-note" element={<FoundersNotePage />} />
         <Route path="/guide" element={<GuidePage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/suggestions" element={<SuggestionsPage />} />
         <Route path="/app-map" element={<AppMapPage />} />
         <Route path="/partner/:linkCode" element={<PartnerViewPage />} />
 

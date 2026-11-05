@@ -6,6 +6,7 @@ import axios from 'axios';
 import { PHASE_COLORS as SHARED_PHASE_COLORS, phaseTint, phaseOther } from '../lib/phases';
 import logger from '../utils/logger';
 import CycleSync from '../components/CycleSync';
+import BackButton from '../components/BackButton';
 
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -458,6 +459,7 @@ export default function PartnerHubPage() {
 
   return (
     <div className="min-h-screen px-5 py-8 pb-28" style={{ background: '#0B0B1E' }} data-testid="partner-hub">
+      <BackButton fallback="/" className="mb-4" />
       <div className="max-w-md mx-auto">
         <div className="text-center mb-6">
           <p className="text-[10px] tracking-widest uppercase mb-2" style={{ fontFamily: 'Poppins, sans-serif', color: '#f4a7b9' }}>

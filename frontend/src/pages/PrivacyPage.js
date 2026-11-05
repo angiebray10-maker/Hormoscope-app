@@ -1,17 +1,13 @@
 import React from 'react';
 import SecurityNotice from '../components/SecurityNotice';
-import { Link } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import BackButton from '../components/BackButton';
 
 const LOGO_URL = "/logo192.png";
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#0B0B1E] p-6 pb-24 official-doc legal-doc">
-      <Link to="/profile" className="inline-flex items-center gap-2 text-[#b8b8d1] hover:text-white mb-8">
-        <ChevronLeft className="w-5 h-5" />
-        Back
-      </Link>
+      <BackButton fallback="/profile" className="mb-8" />
 
       <div className="flex items-center gap-3 mb-8">
         <div className="w-14 h-14 rounded-full bg-[#1a1a2e] flex items-center justify-center overflow-hidden">
