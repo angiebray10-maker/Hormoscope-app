@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ChevronLeft, ChevronRight, Heart, Droplet, Lock, RotateCcw, CircleDot, Baby, HelpCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Droplet, RotateCcw, CircleDot, Baby, HelpCircle } from 'lucide-react';
 import axios from 'axios';
 import logger from '../utils/logger';
 import { PHASE_PAIRS, PHASE_NAMES, phaseTint, phaseOther, phaseForDate, cycleDayForDate } from '../lib/phases';
@@ -725,9 +725,9 @@ export default function JournalPage({ embedded = false } = {}) {
       </div>
 
       <div className="max-w-2xl mx-auto px-5 pt-6 relative">
-        {/* Header Row */}
+        {/* Header Row. v66 (Angelita, Nov 4, 2026): the "Your pages"
+            eyebrow line is removed at her order. */}
         <div className="mb-4">
-          <p className="text-[10px] tracking-widest uppercase" style={{ ...POPPINS, color: '#f4a7b9' }}>Your pages</p>
           <h1 className="text-3xl text-white" style={POIRET}>{firstName ? `${firstName}'s Journal` : 'Journal'}</h1>
         </div>
 
@@ -789,21 +789,10 @@ export default function JournalPage({ embedded = false } = {}) {
             />
           )}
 
-          {/* Legend, from the old Calendar tab */}
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs" style={POPPINS}>
-              <Droplet className="w-3 h-3" style={{ color: MENSTRUAL_TINT }} fill={MENSTRUAL_TINT} /> Confirmed
-            </span>
-            <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs" style={POPPINS}>
-              <span className="w-3.5 h-3.5 rounded" style={{ background: `${MENSTRUAL_TINT}1A`, border: `1px dashed ${MENSTRUAL_TINT}66` }} /> Expected
-            </span>
-            <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs" style={POPPINS}>
-              <span className="w-3 h-3 rounded" style={{ background: `linear-gradient(135deg, ${PEAK_TINT}, ${OVULATION_TINT})` }} /> Fertile (estimated)
-            </span>
-            <span className="flex items-center gap-1.5 text-[#CFC3CC] text-xs" style={POPPINS}>
-              <Heart className="w-3 h-3" style={{ color: '#FF4F9A' }} fill="#FF4F9A" strokeWidth={2.5} /> Intimacy
-            </span>
-          </div>
+          {/* v66 (Angelita, Nov 4, 2026): the calendar color legend
+              row (Confirmed / Expected / Fertile / Intimacy swatches)
+              is removed at her order: "take off the color menu, we
+              don't need it." The calendar colors themselves stay. */}
 
           {/* Learned confirmation (v55, from the Calendar tab):
               after a Reset that taught the app something, she sees
@@ -1006,13 +995,12 @@ export default function JournalPage({ embedded = false } = {}) {
           <div className="relative z-10 p-4">
             <h2 className="text-lg text-white mb-1" style={POIRET}>Your note for this day</h2>
             <p className="text-[11px] mb-3" style={{ ...POPPINS, color: '#CFC3CC' }} data-testid="journal-note-date">{fmtDayLong(selectedDate)}</p>
-            <input
-              type="text" value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)}
-              placeholder="Title (optional)"
-              className="w-full bg-transparent border-none text-white text-sm mb-3 placeholder-white/20 outline-none"
-              style={{ ...POIRET, fontSize: '16px', borderBottom: '1px solid rgba(244,167,185,0.14)', paddingBottom: '8px' }}
-              data-testid="journal-note-title"
-            />
+            {/* v66 (Angelita, Nov 4, 2026): the note Title field is
+                removed at her order ("take off the title for the
+                journal"). Its pink underline was the stray pink line
+                she saw under her writing; it goes with the field.
+                Entries keep the automatic date title from
+                handleSaveNote's fallback. */}
             {/* The writing window has a fixed height of its own
                 (Angelita, Oct 31, 2026: the Save button sat on top
                 of her writing). A long note scrolls INSIDE this
@@ -1040,21 +1028,18 @@ export default function JournalPage({ embedded = false } = {}) {
               writing window, an opaque background of its own, and
               a divider above it, so the button never overlaps the
               note text and the text never runs under the button. */}
-          <div className="relative z-10 flex gap-2 px-3 pt-3 pb-6 border-t border-white/10 items-center" style={{ background: 'rgba(16,10,24,0.92)' }}>
-            <button
-              onClick={() => setNoteIntimate(!noteIntimate)}
-              title={noteIntimate ? 'Intimate' : 'Mark as intimate'}
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-              style={{ border: noteIntimate ? `1px solid ${GOLD}` : '1px solid rgba(255,255,255,0.12)', background: noteIntimate ? 'rgba(201,184,240,0.12)' : 'transparent' }}
-              data-testid="journal-note-intimate-toggle">
-              <Lock className="w-4 h-4" style={{ color: noteIntimate ? GOLD : 'rgba(255,255,255,0.35)' }} />
-            </button>
-            <span className="text-[11px] text-white/50 flex-1" style={POPPINS}>{noteIntimate ? 'This note is marked intimate.' : 'Tap the lock to mark this note intimate.'}</span>
+          {/* v66 (Angelita, Nov 4, 2026): the lock toggle and its
+              "mark this note intimate" helper text are removed at
+              her order ("take off the lock, we don't need it"), and
+              the save button now reads "Click here to save" in her
+              words. Notes save unmarked; the intimacy day log above
+              is a separate feature and is untouched. */}
+          <div className="relative z-10 flex gap-2 px-3 pt-3 pb-6 border-t border-white/10 items-center justify-end" style={{ background: 'rgba(16,10,24,0.92)' }}>
             <button onClick={handleSaveNote} disabled={savingNote || !note.trim()}
               className="px-6 py-2 rounded-full text-white text-xs font-medium disabled:opacity-40"
               style={{ ...POPPINS, background: 'transparent', border: '1.5px solid #FF4F9A' }}
               data-testid="journal-note-save">
-              {savingNote ? 'Saving...' : 'Save note'}
+              {savingNote ? 'Saving...' : 'Click here to save'}
             </button>
           </div>
         </div>

@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { User, LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Loader2, BookOpen, Trash2, Camera, Bell } from 'lucide-react';
+import { LogOut, ChevronRight, Shield, FileText, Flower2, Mail, Loader2, BookOpen, Trash2, Bell } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logger from '../utils/logger';
@@ -207,41 +207,14 @@ export default function ProfilePage() {
   const { companionEntitled } = usePremium();
   const navigate = useNavigate();
   // v62: the name edit is back (restored from v60).
-  // v64 (Angelita, Nov 4, 2026): the photo upload is back too, here
-  // on the second tab where she said the picture goes.
+  // v66 (Angelita, Nov 4, 2026): the picture option is REMOVED from
+  // this tab at her order during her v65 phone check ("Take away
+  // the picture option in the second tab"). The photo upload UI,
+  // its state and its handler are gone; the backend endpoint stays
+  // dormant and any photo already stored is untouched.
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState(user?.profile_photo || null);
-  const fileInputRef = useRef(null);
-
-  useEffect(() => {
-    if (user?.profile_photo) setPhotoPreview(user.profile_photo);
-  }, [user?.profile_photo]);
-
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setPhotoPreview(reader.result);
-    reader.readAsDataURL(file);
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await axios.post(`${API}/profile/photo`, formData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
-      });
-      updateUser(res.data);
-      setPhotoPreview(res.data.profile_photo);
-    } catch (err) {
-      logger.error('Photo upload error:', err);
-      setPhotoPreview(user?.profile_photo || null);
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -331,43 +304,10 @@ export default function ProfilePage() {
       </div>
 
       {/* v62 (Angelita, Nov 2, 2026): name and email are back on the
-          top card (restored from v60). v64: the photo upload is back
-          on the circle; tap it to change her picture. */}
+          top card (restored from v60). v66: the picture circle is
+          gone at her order; the card is name and email only. */}
       <div className="glass-card p-6 mb-6">
         <div className="flex items-center gap-5">
-          <div className="relative">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handlePhotoChange}
-              accept="image/*"
-              className="hidden"
-              id="profile-photo-input"
-            />
-            <label
-              htmlFor="profile-photo-input"
-              className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#F4D3DC] to-[#C9B8F0] flex items-center justify-center overflow-hidden border-2 border-[#F4D3DC]/30 hover:border-[#F4D3DC] transition-all cursor-pointer block"
-              data-testid="profile-photo-btn"
-            >
-              {photoPreview ? (
-                <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-10 h-10 text-white" />
-              )}
-              <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                {uploading ? (
-                  <Loader2 className="w-6 h-6 text-white animate-spin" />
-                ) : (
-                  <Camera className="w-6 h-6 text-white" />
-                )}
-              </div>
-            </label>
-            {!photoPreview && (
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#F4D3DC] flex items-center justify-center shadow-lg pointer-events-none">
-                <Camera className="w-4 h-4 text-[#12090E]" />
-              </div>
-            )}
-          </div>
           <div className="flex-1 min-w-0">
             {isEditing ? (
               <input

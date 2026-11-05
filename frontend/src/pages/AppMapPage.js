@@ -8,7 +8,7 @@ export const APP_MAP = [
     { to: '/', name: 'Home', desc: 'The top of your Home tab, read-only: the big day peach says You are on day N, glowing in your phase color, with your estimated next period, your Daily Read, the daily recipe and vitamins, and your daily affirmation.' },
     { to: '/', name: 'Journal', desc: 'In the middle of your Home tab: where you log your day, with the calendar at the top in phase colours and period, intimacy, fertile and ovulation markers, all your daily questions and your note for any day, past days by month and year, and the history chart.' },
     { to: '/', name: 'Share your cycle', desc: 'At the bottom of your Home tab: invite someone close to follow your cycle. With her, a link that starts her own account and links you both. With him, a link straight to your cycle. You choose what to share, including the Share my daily log and Include my note toggles. Your journal and intimacy log are never shared.' },
-    { to: '/profile', name: 'Profile', desc: 'Your second tab: your picture and name, the conditions you live with, your reminder settings, the legal and privacy pages, and your account: sign out, or delete your account and data.' },
+    { to: '/profile', name: 'Profile', desc: 'Your second tab: your name, the conditions you live with, your reminder settings, the legal and privacy pages, and your account: sign out, or delete your account and data.' },
   ]},
   { group: 'Partner', items: [
     { to: '/partner-hub', name: 'Partner Hub', desc: 'Where a partner enters an invite code and follows your cycle.' },

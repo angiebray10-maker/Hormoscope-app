@@ -27,7 +27,7 @@ export default function GuidePage() {
         <div className="space-y-10 text-[#d4d4e0] text-sm sm:text-base leading-relaxed" data-testid="guide-body">
           <section data-testid="guide-overview">
             <h2 className="text-xl sm:text-2xl text-white mb-3">What HORMOscope does</h2>
-            <p className="mb-3">HORMOscope has two tabs. Your Home tab is one long page: Home at the top, where you read your day, then Journal, where you log it, then Share your cycle at the bottom. The second tab is Profile, with your picture, your reminder settings, and the legal and privacy pages.</p>
+            <p className="mb-3">HORMOscope has two tabs. Your Home tab is one long page: Home at the top, where you read your day, then Journal, where you log it, then Share your cycle at the bottom. The second tab is Profile, with your reminder settings, and the legal and privacy pages.</p>
             <p className="mb-3">Your daily reads come from your cycle and what you log, not from astrology.</p>
           </section>
           <section data-testid="guide-home">
