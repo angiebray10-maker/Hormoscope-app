@@ -21,10 +21,17 @@ const NEW_LOGO = '/images/logo.png';
 // One backdrop per section (Angelita, Nov 5, 2026): boy and girl
 // first in the hero, the lesbian couples after, nothing reused and
 // nothing stacked on top of another picture.
+// The pictures must also land in that order as she SCROLLS
+// (Angelita, Nov 6, 2026: "just needed the pics to be on right").
+// The Science section comes before Transformation and CTA on the
+// page, so assign in scroll order: hero, science, transformation,
+// CTA, final = BACKDROPS 0, 1, 2, 3, 4. Before this fix Science
+// carried [3], so the laughing picture jumped ahead of the at home
+// and hallway pictures.
 const HERO_BG = BACKDROPS[0];
-const TRANSFORM_BG = BACKDROPS[1];
-const CTA_BG = BACKDROPS[2];
-const SCIENCE_BG = BACKDROPS[3];
+const SCIENCE_BG = BACKDROPS[1];
+const TRANSFORM_BG = BACKDROPS[2];
+const CTA_BG = BACKDROPS[3];
 const FINAL_BG = BACKDROPS[4];
 
 
@@ -73,7 +80,15 @@ export default function AuthPage() {
 
 
   return (
-    <div className="min-h-screen" style={{ background: '#0B0B1E' }}>
+    // Root stays transparent (Angelita, Nov 6, 2026): she asked for
+    // the faded blue blueprint wallpaper back behind the front page,
+    // the way it looked yesterday. A solid root here hid the fixed
+    // app wallpaper everywhere except the empty band under the
+    // footer. The sections with couple pictures carry their own
+    // navy backdrop fields, so they are unchanged; the open sections
+    // and the footer let the faded blueprint show through, and the
+    // page still ends at the footer with nothing below it.
+    <div className="min-h-screen" style={{ background: 'transparent' }}>
 
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50" style={{ background: 'rgba(10,10,26,0.92)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(201,184,240,0.08)' }}>

@@ -115,7 +115,15 @@ const AppContent = () => {
     <div className="min-h-screen noise-overlay">
       <FadedBackdrop />
       {FLOWER_TAB_ROUTES.includes(location.pathname) && <FallingFlowers />}
-      <div className="pb-24 lg:pb-0 relative z-[1]">
+      {/* On /auth there is no bottom nav (BottomNav hides there), so
+          the pb-24 spacer was a pure empty band under the front page
+          footer, and the fixed blueprint wallpaper showed through it
+          as a strip below the copyright line (her screenshot,
+          Nov 6, 2026). She asked for the faded blueprint wallpaper
+          itself BACK behind the front page the same day, so the
+          wallpaper stays; only the empty band under the footer goes,
+          and the page ends at the footer. */}
+      <div className={`${location.pathname === '/auth' ? 'pb-0' : 'pb-24 lg:pb-0'} relative z-[1]`}>
       <Routes>
         {/* Public routes */}
         <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
